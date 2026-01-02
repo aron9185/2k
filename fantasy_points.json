@@ -1,0 +1,5830 @@
+[
+    {
+        "slateID": 3831,
+        "rwID": 14455,
+        "firstName": "Jonathan",
+        "lastName": "Taylor",
+        "rotoPos": "RB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/jonathan-taylor-14455",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-126652.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 12600,
+        "pts": "21.81",
+        "rostership": 56.39999999999999857891452847979962825775146484375,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "14",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "19.4",
+                "rushYds": "103.1",
+                "rushYpc": "5.3",
+                "rushTD": "1.1",
+                "rec": "2.7",
+                "recYds": "22.7",
+                "recYpc": "8.4",
+                "recTargets": "3.1",
+                "recYpt": "7.2",
+                "recCatchPct": "86.4",
+                "recTD": "0.1"
+            },
+            "last8": {
+                "gp": "7",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "20.1",
+                "rushYds": "106.6",
+                "rushYpc": "5.3",
+                "rushTD": "0.9",
+                "rec": "2.1",
+                "recYds": "19.0",
+                "recYpc": "8.9",
+                "recTargets": "2.7",
+                "recYpt": "7.0",
+                "recCatchPct": "78.9",
+                "recTD": "0.1"
+            },
+            "avgFpts": {
+                "last2": "11.5",
+                "last4": "11.1",
+                "last8": "19.3",
+                "last10": "21.1",
+                "season": "21.5"
+            },
+            "playerProps": {
+                "td1": "-260",
+                "td2": "220",
+                "td3": "1000",
+                "passYds": null,
+                "rushYds": "97.5",
+                "recYds": "19.5",
+                "rec": "2.5"
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 10066,
+        "rwID": 15834,
+        "firstName": "Brock",
+        "lastName": "Purdy",
+        "rotoPos": "QB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/brock-purdy-15834",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-134638.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 11800,
+        "pts": "20.19",
+        "rostership": 82.5,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "6",
+                "passerRating": "96.0",
+                "passAtt": "31.7",
+                "passComp": "21.5",
+                "passCompPct": "67.9",
+                "passYds": "240.3",
+                "passYpa": "7.6",
+                "passTD": "2.0",
+                "passInt": "1.2",
+                "rushAtt": "3.8",
+                "rushYds": "14.5",
+                "rushYpc": "3.8",
+                "rushTD": "0.2",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "0.0",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "4",
+                "passerRating": "102.4",
+                "passAtt": "29.3",
+                "passComp": "20.3",
+                "passCompPct": "69.2",
+                "passYds": "214.0",
+                "passYpa": "7.3",
+                "passTD": "2.0",
+                "passInt": "0.8",
+                "rushAtt": "4.0",
+                "rushYds": "14.3",
+                "rushYpc": "3.6",
+                "rushTD": "0.3",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "0.0",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "26.2",
+                "last4": "17.9",
+                "last8": "18.2",
+                "last10": "18.2",
+                "season": "18.6"
+            },
+            "playerProps": {
+                "td1": "550",
+                "td2": "7500",
+                "td3": null,
+                "passYds": "243.5",
+                "rushYds": "11.5",
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 4191,
+        "rwID": 11690,
+        "firstName": "Christian",
+        "lastName": "McCaffrey",
+        "rotoPos": "RB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/christian-mccaffrey-11690",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-83054.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 13000,
+        "pts": "19.04",
+        "rostership": 59.60000000000000142108547152020037174224853515625,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "14",
+                "passerRating": "39.6",
+                "passAtt": "0.1",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "18.5",
+                "rushYds": "65.9",
+                "rushYpc": "3.6",
+                "rushTD": "0.6",
+                "rec": "6.1",
+                "recYds": "58.6",
+                "recYpc": "9.5",
+                "recTargets": "7.7",
+                "recYpt": "7.6",
+                "recCatchPct": "79.6",
+                "recTD": "0.4"
+            },
+            "last8": {
+                "gp": "7",
+                "passerRating": "39.6",
+                "passAtt": "0.1",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "18.1",
+                "rushYds": "65.3",
+                "rushYpc": "3.6",
+                "rushTD": "0.9",
+                "rec": "4.7",
+                "recYds": "43.4",
+                "recYpc": "9.2",
+                "recTargets": "5.7",
+                "recYpt": "7.6",
+                "recCatchPct": "82.5",
+                "recTD": "0.3"
+            },
+            "avgFpts": {
+                "last2": "15.2",
+                "last4": "18.1",
+                "last8": "20.1",
+                "last10": "21.9",
+                "season": "21.5"
+            },
+            "playerProps": {
+                "td1": "-200",
+                "td2": "300",
+                "td3": "1600",
+                "passYds": null,
+                "rushYds": "59.5",
+                "recYds": "40.5",
+                "rec": "4.5"
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 17006,
+        "rwID": 3766,
+        "firstName": "Philip",
+        "lastName": "Rivers",
+        "rotoPos": "QB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/philip-rivers-3766",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 10200,
+        "pts": "12.70",
+        "rostership": 32.89999999999999857891452847979962825775146484375,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "1",
+                "passerRating": "73.1",
+                "passAtt": "27.0",
+                "passComp": "18.0",
+                "passCompPct": "66.7",
+                "passYds": "120.0",
+                "passYpa": "4.4",
+                "passTD": "1.0",
+                "passInt": "1.0",
+                "rushAtt": "1.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "0.0",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "1",
+                "passerRating": "73.1",
+                "passAtt": "27.0",
+                "passComp": "18.0",
+                "passCompPct": "66.7",
+                "passYds": "120.0",
+                "passYpa": "4.4",
+                "passTD": "1.0",
+                "passInt": "1.0",
+                "rushAtt": "1.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "0.0",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "7.8",
+                "last4": "7.8",
+                "last8": "7.8",
+                "last10": "7.8",
+                "season": "7.8"
+            },
+            "playerProps": {
+                "td1": "2500",
+                "td2": null,
+                "td3": null,
+                "passYds": "157.5",
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3908,
+        "rwID": 11892,
+        "firstName": "George",
+        "lastName": "Kittle",
+        "rotoPos": "TE",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/george-kittle-11892",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-75540.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 11200,
+        "pts": "12.60",
+        "rostership": 26.5,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "9",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.1",
+                "rushYds": "-0.3",
+                "rushYpc": "-3.0",
+                "rushTD": "0.0",
+                "rec": "5.0",
+                "recYds": "53.8",
+                "recYpc": "10.8",
+                "recTargets": "6.0",
+                "recYpt": "9.0",
+                "recCatchPct": "83.3",
+                "recTD": "0.7"
+            },
+            "last8": {
+                "gp": "7",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.1",
+                "rushYds": "-0.4",
+                "rushYpc": "-3.0",
+                "rushTD": "0.0",
+                "rec": "5.9",
+                "recYds": "65.6",
+                "recYpc": "11.2",
+                "recTargets": "6.9",
+                "recYpt": "9.6",
+                "recCatchPct": "85.4",
+                "recTD": "0.7"
+            },
+            "avgFpts": {
+                "last2": "18.8",
+                "last4": "12.8",
+                "last8": "13.7",
+                "last10": "12.0",
+                "season": "11.8"
+            },
+            "playerProps": {
+                "td1": "120",
+                "td2": "850",
+                "td3": "6000",
+                "passYds": null,
+                "rushYds": null,
+                "recYds": "66.5",
+                "rec": "5.5"
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 4094,
+        "rwID": 14376,
+        "firstName": "Jauan",
+        "lastName": "Jennings",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/jauan-jennings-14376",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-90288.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 9400,
+        "pts": "10.78",
+        "rostership": 23.39999999999999857891452847979962825775146484375,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "12",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "3.7",
+                "recYds": "41.3",
+                "recYpc": "11.3",
+                "recTargets": "6.2",
+                "recYpt": "6.7",
+                "recCatchPct": "59.5",
+                "recTD": "0.6"
+            },
+            "last8": {
+                "gp": "7",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "4.3",
+                "recYds": "46.9",
+                "recYpc": "10.9",
+                "recTargets": "6.4",
+                "recYpt": "7.3",
+                "recCatchPct": "66.7",
+                "recTD": "0.9"
+            },
+            "avgFpts": {
+                "last2": "17.2",
+                "last4": "13.9",
+                "last8": "11.7",
+                "last10": "9.8",
+                "season": "9.3"
+            },
+            "playerProps": {
+                "td1": "155",
+                "td2": "1200",
+                "td3": "10000",
+                "passYds": null,
+                "rushYds": null,
+                "recYds": "54.5",
+                "rec": "4.5"
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 6031,
+        "rwID": 12582,
+        "firstName": "Eddy",
+        "lastName": "Pineiro",
+        "rotoPos": "K",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/eddy-pineiro-12582",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-119954.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 6800,
+        "pts": "8.77",
+        "rostership": 62.10000000000000142108547152020037174224853515625,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3643,
+        "rwID": 14378,
+        "firstName": "Michael",
+        "lastName": "Pittman",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/michael-pittman-14378",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-122020.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 8400,
+        "pts": "8.74",
+        "rostership": 12.9000000000000003552713678800500929355621337890625,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "14",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "5.1",
+                "recYds": "51.8",
+                "recYpc": "10.1",
+                "recTargets": "7.1",
+                "recYpt": "7.3",
+                "recCatchPct": "72.7",
+                "recTD": "0.5"
+            },
+            "last8": {
+                "gp": "7",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "5.3",
+                "recYds": "53.4",
+                "recYpc": "10.1",
+                "recTargets": "7.4",
+                "recYpt": "7.2",
+                "recCatchPct": "71.2",
+                "recTD": "0.3"
+            },
+            "avgFpts": {
+                "last2": "8.3",
+                "last4": "7.4",
+                "last8": "9.7",
+                "last10": "9.6",
+                "season": "10.8"
+            },
+            "playerProps": {
+                "td1": "350",
+                "td2": "3500",
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": "31.5",
+                "rec": "3.5"
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 14483,
+        "rwID": 17595,
+        "firstName": "Blake",
+        "lastName": "Grupe",
+        "rotoPos": "K",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/blake-grupe-17595",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-132447.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 6200,
+        "pts": "8.28",
+        "rostership": 46.2000000000000028421709430404007434844970703125,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 16261,
+        "rwID": 18534,
+        "firstName": "Tyler",
+        "lastName": "Warren",
+        "rotoPos": "TE",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/tyler-warren-18534",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-178530.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 7600,
+        "pts": "8.27",
+        "rostership": 12.699999999999999289457264239899814128875732421875,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "14",
+                "passerRating": "39.6",
+                "passAtt": "0.1",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.4",
+                "rushYds": "0.6",
+                "rushYpc": "1.3",
+                "rushTD": "0.1",
+                "rec": "4.5",
+                "recYds": "51.3",
+                "recYpc": "11.4",
+                "recTargets": "6.4",
+                "recYpt": "8.0",
+                "recCatchPct": "70.0",
+                "recTD": "0.3"
+            },
+            "last8": {
+                "gp": "7",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.3",
+                "rushYds": "0.3",
+                "rushYpc": "1.0",
+                "rushTD": "0.0",
+                "rec": "4.3",
+                "recYds": "39.9",
+                "recYpc": "9.3",
+                "recTargets": "6.4",
+                "recYpt": "6.2",
+                "recCatchPct": "66.7",
+                "recTD": "0.1"
+            },
+            "avgFpts": {
+                "last2": "3.1",
+                "last4": "5.7",
+                "last8": "7.0",
+                "last10": "8.8",
+                "season": "9.6"
+            },
+            "playerProps": {
+                "td1": "250",
+                "td2": "2200",
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": "33.5",
+                "rec": "3.5"
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 10266,
+        "rwID": 16022,
+        "firstName": "Alec",
+        "lastName": "Pierce",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/alec-pierce-16022",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-136180.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 8600,
+        "pts": "8.16",
+        "rostership": 9,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "12",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "3.3",
+                "recYds": "65.4",
+                "recYpc": "20.1",
+                "recTargets": "5.7",
+                "recYpt": "11.5",
+                "recCatchPct": "57.4",
+                "recTD": "0.2"
+            },
+            "last8": {
+                "gp": "7",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "3.3",
+                "recYds": "66.9",
+                "recYpc": "20.3",
+                "recTargets": "5.9",
+                "recYpt": "11.4",
+                "recCatchPct": "56.1",
+                "recTD": "0.3"
+            },
+            "avgFpts": {
+                "last2": "6.3",
+                "last4": "7.9",
+                "last8": "10.0",
+                "last10": "9.8",
+                "season": "9.2"
+            },
+            "playerProps": {
+                "td1": "500",
+                "td2": "6500",
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": "20.5",
+                "rec": "1.5"
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 14108,
+        "rwID": 16689,
+        "firstName": "Josh",
+        "lastName": "Downs",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/josh-downs-16689",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-178439.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 6600,
+        "pts": "7.43",
+        "rostership": 11.4000000000000003552713678800500929355621337890625,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "13",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "3.6",
+                "recYds": "31.2",
+                "recYpc": "8.6",
+                "recTargets": "5.4",
+                "recYpt": "5.8",
+                "recCatchPct": "67.1",
+                "recTD": "0.3"
+            },
+            "last8": {
+                "gp": "7",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "3.0",
+                "recYds": "27.0",
+                "recYpc": "9.0",
+                "recTargets": "5.1",
+                "recYpt": "5.3",
+                "recCatchPct": "58.3",
+                "recTD": "0.4"
+            },
+            "avgFpts": {
+                "last2": "6.6",
+                "last4": "5.1",
+                "last8": "6.5",
+                "last10": "7.3",
+                "season": "6.6"
+            },
+            "playerProps": {
+                "td1": "380",
+                "td2": "4000",
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": "26.5",
+                "rec": "3.5"
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 4220,
+        "rwID": 20027,
+        "firstName": "San Francisco",
+        "lastName": "49ers",
+        "rotoPos": "DST",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": true,
+        "link": "\/football\/player\/san-francisco-49ers-20027",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 7000,
+        "pts": "6.01",
+        "rostership": 7.70000000000000017763568394002504646778106689453125,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 4246,
+        "rwID": 20013,
+        "firstName": "Indianapolis",
+        "lastName": "Colts",
+        "rotoPos": "DST",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": true,
+        "link": "\/football\/player\/indianapolis-colts-20013",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 6000,
+        "pts": "5.39",
+        "rostership": 4.70000000000000017763568394002504646778106689453125,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3305,
+        "rwID": 11847,
+        "firstName": "Kendrick",
+        "lastName": "Bourne",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/kendrick-bourne-11847",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-77936.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 7200,
+        "pts": "5.29",
+        "rostership": 6.4000000000000003552713678800500929355621337890625,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "11",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "3.0",
+                "recYds": "45.4",
+                "recYpc": "15.1",
+                "recTargets": "4.2",
+                "recYpt": "10.8",
+                "recCatchPct": "71.7",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "5",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "1.6",
+                "recYds": "22.8",
+                "recYpc": "14.3",
+                "recTargets": "2.2",
+                "recYpt": "10.4",
+                "recCatchPct": "72.7",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "2.7",
+                "last4": "1.4",
+                "last8": "3.1",
+                "last10": "4.9",
+                "season": "6.0"
+            },
+            "playerProps": {
+                "td1": "410",
+                "td2": "4500",
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": "22.5",
+                "rec": "2.5"
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 10279,
+        "rwID": 15907,
+        "firstName": "Brian",
+        "lastName": "Robinson",
+        "rotoPos": "RB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/brian-robinson-15907",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-126392.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 5400,
+        "pts": "4.55",
+        "rostership": 8.5,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "13",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "6.2",
+                "rushYds": "26.8",
+                "rushYpc": "4.3",
+                "rushTD": "0.2",
+                "rec": "0.5",
+                "recYds": "1.5",
+                "recYpc": "2.7",
+                "recTargets": "0.8",
+                "recYpt": "1.9",
+                "recCatchPct": "70.0",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "6",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "7.5",
+                "rushYds": "34.2",
+                "rushYpc": "4.6",
+                "rushTD": "0.3",
+                "rec": "0.3",
+                "recYds": "1.3",
+                "recYpc": "4.0",
+                "recTargets": "0.7",
+                "recYpt": "2.0",
+                "recCatchPct": "50.0",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "2.1",
+                "last4": "3.2",
+                "last8": "5.7",
+                "last10": "5.0",
+                "season": "4.0"
+            },
+            "playerProps": {
+                "td1": "340",
+                "td2": "3300",
+                "td3": null,
+                "passYds": null,
+                "rushYds": "22.5",
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 4015,
+        "rwID": 10126,
+        "firstName": "Ameer",
+        "lastName": "Abdullah",
+        "rotoPos": "RB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/ameer-abdullah-10126",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-54292.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 3600,
+        "pts": "4.09",
+        "rostership": 6.9000000000000003552713678800500929355621337890625,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "9",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "1.4",
+                "rushYds": "6.6",
+                "rushYpc": "4.5",
+                "rushTD": "0.1",
+                "rec": "1.3",
+                "recYds": "7.4",
+                "recYpc": "5.6",
+                "recTargets": "1.4",
+                "recYpt": "5.2",
+                "recCatchPct": "92.3",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "6",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "1.3",
+                "rushYds": "4.5",
+                "rushYpc": "3.4",
+                "rushTD": "0.0",
+                "rec": "1.7",
+                "recYds": "8.3",
+                "recYpc": "5.0",
+                "recTargets": "1.8",
+                "recYpt": "4.5",
+                "recCatchPct": "90.9",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "4.6",
+                "last4": "3.0",
+                "last8": "2.1",
+                "last10": "2.3",
+                "season": "2.7"
+            },
+            "playerProps": {
+                "td1": "600",
+                "td2": "10000",
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3938,
+        "rwID": 11163,
+        "firstName": "Demarcus",
+        "lastName": "Robinson",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/demarcus-robinson-11163",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-73802.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 4800,
+        "pts": "3.69",
+        "rostership": 4.9000000000000003552713678800500929355621337890625,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "11",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.1",
+                "rushYds": "0.5",
+                "rushYpc": "6.0",
+                "rushTD": "0.0",
+                "rec": "1.4",
+                "recYds": "18.1",
+                "recYpc": "13.3",
+                "recTargets": "2.4",
+                "recYpt": "7.7",
+                "recCatchPct": "57.7",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "7",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.1",
+                "rushYds": "0.9",
+                "rushYpc": "6.0",
+                "rushTD": "0.0",
+                "rec": "1.3",
+                "recYds": "13.7",
+                "recYpc": "10.7",
+                "recTargets": "1.9",
+                "recYpt": "7.4",
+                "recCatchPct": "69.2",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "4.6",
+                "last4": "2.2",
+                "last8": "2.1",
+                "last10": "2.2",
+                "season": "2.5"
+            },
+            "playerProps": {
+                "td1": "460",
+                "td2": "5500",
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": "18.5",
+                "rec": "1.5"
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3928,
+        "rwID": 8930,
+        "firstName": "Kyle",
+        "lastName": "Juszczyk",
+        "rotoPos": "FB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/kyle-juszczyk-8930",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-67576.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 1800,
+        "pts": "2.48",
+        "rostership": 10,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "13",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.2",
+                "rushYds": "-0.2",
+                "rushYpc": "-1.5",
+                "rushTD": "0.0",
+                "rec": "1.6",
+                "recYds": "14.9",
+                "recYpc": "9.2",
+                "recTargets": "1.8",
+                "recYpt": "8.1",
+                "recCatchPct": "87.5",
+                "recTD": "0.1"
+            },
+            "last8": {
+                "gp": "6",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "1.5",
+                "recYds": "14.0",
+                "recYpc": "9.3",
+                "recTargets": "1.8",
+                "recYpt": "7.6",
+                "recCatchPct": "81.8",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "1.2",
+                "last4": "2.5",
+                "last8": "2.2",
+                "last10": "2.0",
+                "season": "2.7"
+            },
+            "playerProps": {
+                "td1": "850",
+                "td2": "12500",
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": "7.5",
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3799,
+        "rwID": 15566,
+        "firstName": "Luke",
+        "lastName": "Farrell",
+        "rotoPos": "TE",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/luke-farrell-15566",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-123508.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 3000,
+        "pts": "0.96",
+        "rostership": 0.6999999999999999555910790149937383830547332763671875,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "9",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "1.2",
+                "recYds": "9.4",
+                "recYpc": "7.7",
+                "recTargets": "1.6",
+                "recYpt": "6.1",
+                "recCatchPct": "78.6",
+                "recTD": "0.2"
+            },
+            "last8": {
+                "gp": "4",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "1.0",
+                "recYds": "6.8",
+                "recYpc": "6.8",
+                "recTargets": "1.3",
+                "recYpt": "5.4",
+                "recCatchPct": "80.0",
+                "recTD": "0.3"
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.4",
+                "last8": "2.7",
+                "last10": "2.5",
+                "season": "2.7"
+            },
+            "playerProps": {
+                "td1": "800",
+                "td2": "12500",
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 10090,
+        "rwID": 15990,
+        "firstName": "Tyler",
+        "lastName": "Goodson",
+        "rotoPos": "RB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/tyler-goodson-15990",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-141568.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 2000,
+        "pts": "0.63",
+        "rostership": 0.59999999999999997779553950749686919152736663818359375,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "5",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "1.0",
+                "rushYds": "2.4",
+                "rushYpc": "2.4",
+                "rushTD": "0.0",
+                "rec": "0.4",
+                "recYds": "1.6",
+                "recYpc": "4.0",
+                "recTargets": "0.6",
+                "recYpt": "2.7",
+                "recCatchPct": "66.7",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "3",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "1.0",
+                "rushYds": "2.0",
+                "rushYpc": "2.0",
+                "rushTD": "0.0",
+                "rec": "0.3",
+                "recYds": "2.7",
+                "recYpc": "8.0",
+                "recTargets": "0.7",
+                "recYpt": "4.0",
+                "recCatchPct": "50.0",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.6",
+                "last10": "0.6",
+                "season": "0.6"
+            },
+            "playerProps": {
+                "td1": "1900",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 4019,
+        "rwID": 12196,
+        "firstName": "Mo",
+        "lastName": "Alie-Cox",
+        "rotoPos": "TE",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/mo-alie-cox-12196",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-126080.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1200,
+        "pts": "0.60",
+        "rostership": 1.5,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "8",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "0.6",
+                "recYds": "7.4",
+                "recYpc": "11.8",
+                "recTargets": "1.4",
+                "recYpt": "5.4",
+                "recCatchPct": "45.5",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "4",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "0.3",
+                "recYds": "2.3",
+                "recYpc": "9.0",
+                "recTargets": "1.3",
+                "recYpt": "1.8",
+                "recCatchPct": "20.0",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.7",
+                "last8": "0.4",
+                "last10": "0.8",
+                "season": "1.1"
+            },
+            "playerProps": {
+                "td1": "1400",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 10289,
+        "rwID": 16005,
+        "firstName": "Skyy",
+        "lastName": "Moore",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/skyy-moore-16005",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-143193.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 2600,
+        "pts": "0.56",
+        "rostership": 0.8000000000000000444089209850062616169452667236328125,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "7",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.1",
+                "rushYds": "0.1",
+                "rushYpc": "1.0",
+                "rushTD": "0.0",
+                "rec": "0.6",
+                "recYds": "9.1",
+                "recYpc": "16.0",
+                "recTargets": "0.9",
+                "recYpt": "10.7",
+                "recCatchPct": "66.7",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "3",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "0.7",
+                "recYds": "13.0",
+                "recYpc": "19.5",
+                "recTargets": "1.0",
+                "recYpt": "13.0",
+                "recCatchPct": "66.7",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "1.6",
+                "last10": "1.7",
+                "season": "1.2"
+            },
+            "playerProps": {
+                "td1": "1100",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 10294,
+        "rwID": 16277,
+        "firstName": "Drew",
+        "lastName": "Ogletree",
+        "rotoPos": "TE",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/drew-ogletree-16277",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-186678.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1600,
+        "pts": "0.41",
+        "rostership": 0.299999999999999988897769753748434595763683319091796875,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "3",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "1.0",
+                "recYds": "5.3",
+                "recYpc": "5.3",
+                "recTargets": "1.3",
+                "recYpt": "4.0",
+                "recCatchPct": "75.0",
+                "recTD": "0.3"
+            },
+            "last8": {
+                "gp": "3",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "1.0",
+                "recYds": "5.3",
+                "recYpc": "5.3",
+                "recTargets": "1.3",
+                "recYpt": "4.0",
+                "recCatchPct": "75.0",
+                "recTD": "0.3"
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "4.6",
+                "last8": "3.0",
+                "last10": "3.0",
+                "season": "3.0"
+            },
+            "playerProps": {
+                "td1": "2500",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 4160,
+        "rwID": 10739,
+        "firstName": "Laquon",
+        "lastName": "Treadwell",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/laquon-treadwell-10739",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-76485.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.39",
+        "rostership": 3.600000000000000088817841970012523233890533447265625,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": "2000",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 10303,
+        "rwID": 16418,
+        "firstName": "Jake",
+        "lastName": "Tonges",
+        "rotoPos": "TE",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/jake-tonges-16418",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-127091.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 4200,
+        "pts": "0.29",
+        "rostership": 0.200000000000000011102230246251565404236316680908203125,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "7",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "3.7",
+                "recYds": "32.3",
+                "recYpc": "8.7",
+                "recTargets": "5.0",
+                "recYpt": "6.5",
+                "recCatchPct": "74.3",
+                "recTD": "0.6"
+            },
+            "last8": {
+                "gp": "1",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "1.0",
+                "recYds": "2.0",
+                "recYpc": "2.0",
+                "recTargets": "1.0",
+                "recYpt": "2.0",
+                "recCatchPct": "100.0",
+                "recTD": "1.0"
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "6.7",
+                "last10": "7.8",
+                "season": "8.5"
+            },
+            "playerProps": {
+                "td1": "1400",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 16350,
+        "rwID": 18647,
+        "firstName": "Jordan",
+        "lastName": "Watkins",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/jordan-watkins-18647",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-178190.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 1400,
+        "pts": "0.19",
+        "rostership": 1.399999999999999911182158029987476766109466552734375,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "2",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "1.0",
+                "recYds": "13.0",
+                "recYpc": "13.0",
+                "recTargets": "1.5",
+                "recYpt": "8.7",
+                "recCatchPct": "66.7",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "2",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "1.0",
+                "recYds": "13.0",
+                "recYpc": "13.0",
+                "recTargets": "1.5",
+                "recYpt": "8.7",
+                "recCatchPct": "66.7",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "1.8",
+                "last10": "1.8",
+                "season": "1.8"
+            },
+            "playerProps": {
+                "td1": "1100",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 16300,
+        "rwID": 18443,
+        "firstName": "DJ",
+        "lastName": "Giddens",
+        "rotoPos": "RB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/dj-giddens-18443",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-183764.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.14",
+        "rostership": 3.20000000000000017763568394002504646778106689453125,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "4",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "4.5",
+                "rushYds": "16.5",
+                "rushYpc": "3.7",
+                "rushTD": "0.0",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "0.5",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "1.7"
+            },
+            "playerProps": {
+                "td1": "1900",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 14115,
+        "rwID": 17014,
+        "firstName": "Will",
+        "lastName": "Mallory",
+        "rotoPos": "TE",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/will-mallory-17014",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-137383.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.04",
+        "rostership": 1.1999999999999999555910790149937383830547332763671875,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": "2500",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 15255,
+        "rwID": 17947,
+        "firstName": "Isaac",
+        "lastName": "Guerendo",
+        "rotoPos": "RB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/isaac-guerendo-17947",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-135839.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": "2200",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 16386,
+        "rwID": 18485,
+        "firstName": "Jordan",
+        "lastName": "James",
+        "rotoPos": "RB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/jordan-james-18485",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-204334.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": "2200",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 16298,
+        "rwID": 18513,
+        "firstName": "Riley",
+        "lastName": "Leonard",
+        "rotoPos": "QB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/riley-leonard-18513",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-182776.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 8000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "2",
+                "passerRating": "56.5",
+                "passAtt": "15.5",
+                "passComp": "9.0",
+                "passCompPct": "58.1",
+                "passYds": "72.5",
+                "passYpa": "4.7",
+                "passTD": "0.0",
+                "passInt": "0.5",
+                "rushAtt": "1.5",
+                "rushYds": "3.0",
+                "rushYpc": "2.0",
+                "rushTD": "0.5",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "0.0",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "2",
+                "passerRating": "56.5",
+                "passAtt": "15.5",
+                "passComp": "9.0",
+                "passCompPct": "58.1",
+                "passYds": "72.5",
+                "passYpa": "4.7",
+                "passTD": "0.0",
+                "passInt": "0.5",
+                "rushAtt": "1.5",
+                "rushYds": "3.0",
+                "rushYpc": "2.0",
+                "rushTD": "0.5",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "0.0",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "11.3",
+                "last4": "11.3",
+                "last8": "5.7",
+                "last10": "5.7",
+                "season": "5.7"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3849,
+        "rwID": 14453,
+        "firstName": "Salvon",
+        "lastName": "Ahmed",
+        "rotoPos": "RB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "IR",
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/salvon-ahmed-14453",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-126288.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 15894,
+        "rwID": 18268,
+        "firstName": "Spencer",
+        "lastName": "Shrader",
+        "rotoPos": "K",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "IR",
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/spencer-shrader-18268",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-145380.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 15439,
+        "rwID": 17971,
+        "firstName": "Anthony",
+        "lastName": "Gould",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "OUT",
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/anthony-gould-17971",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-143292.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 2000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "2",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "1.0",
+                "recYds": "3.0",
+                "recYpc": "3.0",
+                "recTargets": "1.0",
+                "recYpt": "3.0",
+                "recCatchPct": "100.0",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "1",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "1.0",
+                "recYds": "3.0",
+                "recYpc": "3.0",
+                "recTargets": "1.0",
+                "recYpt": "3.0",
+                "recCatchPct": "100.0",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "0.8",
+                "last4": "0.8",
+                "last8": "0.8",
+                "last10": "0.8",
+                "season": "0.8"
+            },
+            "playerProps": {
+                "td1": "2000",
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 15293,
+        "rwID": 17008,
+        "firstName": "Jacob",
+        "lastName": "Cowing",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "IR",
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/jacob-cowing-17008",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-144535.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3627,
+        "rwID": 13491,
+        "firstName": "Daniel",
+        "lastName": "Jones",
+        "rotoPos": "QB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "IR",
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/daniel-jones-13491",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-91022.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "13",
+                "passerRating": "100.2",
+                "passAtt": "29.5",
+                "passComp": "20.1",
+                "passCompPct": "68.0",
+                "passYds": "238.5",
+                "passYpa": "8.1",
+                "passTD": "1.5",
+                "passInt": "0.6",
+                "rushAtt": "3.5",
+                "rushYds": "12.6",
+                "rushYpc": "3.6",
+                "rushTD": "0.4",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "0.0",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "6",
+                "passerRating": "93.0",
+                "passAtt": "28.3",
+                "passComp": "18.2",
+                "passCompPct": "64.1",
+                "passYds": "218.5",
+                "passYpa": "7.7",
+                "passTD": "1.5",
+                "passInt": "0.8",
+                "rushAtt": "2.7",
+                "rushYds": "13.5",
+                "rushYpc": "5.1",
+                "rushTD": "0.2",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "0.0",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "1.8",
+                "last4": "11.6",
+                "last8": "15.3",
+                "last10": "17.2",
+                "season": "18.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 15254,
+        "rwID": 17761,
+        "firstName": "Ricky",
+        "lastName": "Pearsall",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "OUT",
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/ricky-pearsall-17761",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-141342.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 9000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "8",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.3",
+                "rushYds": "-0.3",
+                "rushYpc": "-1.0",
+                "rushTD": "0.0",
+                "rec": "3.9",
+                "recYds": "55.4",
+                "recYpc": "14.3",
+                "recTargets": "5.6",
+                "recYpt": "9.8",
+                "recCatchPct": "68.9",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "4",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.3",
+                "rushYds": "0.5",
+                "rushYpc": "2.0",
+                "rushTD": "0.0",
+                "rec": "2.8",
+                "recYds": "29.0",
+                "recYpc": "10.5",
+                "recTargets": "4.0",
+                "recYpt": "7.3",
+                "recCatchPct": "68.8",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "12.6",
+                "last4": "5.6",
+                "last8": "4.3",
+                "last10": "4.3",
+                "season": "7.5"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3706,
+        "rwID": 14129,
+        "firstName": "D.J.",
+        "lastName": "Montgomery",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "IR",
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/dj-montgomery-14129",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-130861.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 4172,
+        "rwID": 11881,
+        "firstName": "Trent",
+        "lastName": "Taylor",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "IR",
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/trent-taylor-11881",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-74523.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 14089,
+        "rwID": 16653,
+        "firstName": "Anthony",
+        "lastName": "Richardson",
+        "rotoPos": "QB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "IR-",
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/anthony-richardson-16653",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-181018.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "2",
+                "passerRating": "62.5",
+                "passAtt": "1.0",
+                "passComp": "0.5",
+                "passCompPct": "50.0",
+                "passYds": "4.5",
+                "passYpa": "4.5",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "2.0",
+                "rushYds": "-0.5",
+                "rushYpc": "-0.3",
+                "rushTD": "0.0",
+                "rec": "0.5",
+                "recYds": "4.5",
+                "recYpc": "9.0",
+                "recTargets": "0.5",
+                "recYpt": "9.0",
+                "recCatchPct": "100.0",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.9"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 12389,
+        "rwID": 16045,
+        "firstName": "Bernhard",
+        "lastName": "Raimann",
+        "rotoPos": "OT",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "OUT",
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/bernhard-raimann-16045",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-136518.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "1",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.0",
+                "rushYds": "0.0",
+                "rushYpc": "0.0",
+                "rushTD": "0.0",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "1.0",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3760,
+        "rwID": 13854,
+        "firstName": "Ashton",
+        "lastName": "Dulin",
+        "rotoPos": "WR",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "IR",
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/ashton-dulin-13854",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-139721.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "6",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.5",
+                "rushYds": "7.3",
+                "rushYpc": "14.7",
+                "rushTD": "0.0",
+                "rec": "0.8",
+                "recYds": "17.7",
+                "recYpc": "21.2",
+                "recTargets": "1.3",
+                "recYpt": "13.3",
+                "recCatchPct": "62.5",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "3",
+                "passerRating": null,
+                "passAtt": "0.0",
+                "passComp": "0.0",
+                "passCompPct": "0.0",
+                "passYds": "0.0",
+                "passYpa": "0.0",
+                "passTD": "0.0",
+                "passInt": "0.0",
+                "rushAtt": "0.3",
+                "rushYds": "7.3",
+                "rushYpc": "22.0",
+                "rushTD": "0.0",
+                "rec": "0.7",
+                "recYds": "13.3",
+                "recYpc": "20.0",
+                "recTargets": "0.7",
+                "recYpt": "20.0",
+                "recCatchPct": "100.0",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "5.3",
+                "last8": "2.4",
+                "last10": "2.4",
+                "season": "2.9"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 4126,
+        "rwID": 13620,
+        "firstName": "Brett",
+        "lastName": "Rypien",
+        "rotoPos": "QB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/brett-rypien-13620",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-90145.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3568,
+        "rwID": 14573,
+        "firstName": "Patrick",
+        "lastName": "Taylor",
+        "rotoPos": "RB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": "IR",
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/patrick-taylor-14573",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-120841.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 4249,
+        "rwID": 14691,
+        "firstName": "Danny",
+        "lastName": "Pinter",
+        "rotoPos": "C",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": true,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/danny-pinter-14691",
+        "teamLink": "\/football\/team\/indianapolis-colts-ind",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-93732.jpg?v=20251222",
+        "team": {
+            "abbr": "IND",
+            "city": "Indianapolis",
+            "nickname": "Colts"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": true
+        },
+        "salary": 1000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "SF"
+        },
+        "odds": {
+            "moneyline": "212",
+            "overUnder": "46.0",
+            "spread": "5.5",
+            "impliedPts": 20.25,
+            "impliedWinProb": 30.60000000000000142108547152020037174224853515625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "last8": {
+                "gp": 0,
+                "passerRating": null,
+                "passAtt": null,
+                "passComp": null,
+                "passCompPct": null,
+                "passYds": null,
+                "passYpa": null,
+                "passTD": null,
+                "passInt": null,
+                "rushAtt": null,
+                "rushYds": null,
+                "rushYpc": null,
+                "rushTD": null,
+                "rec": null,
+                "recYds": null,
+                "recYpc": null,
+                "recTargets": null,
+                "recYpt": null,
+                "recCatchPct": null,
+                "recTD": null
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.0",
+                "last8": "0.0",
+                "last10": "0.0",
+                "season": "0.0"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    },
+    {
+        "slateID": 3297,
+        "rwID": 15402,
+        "firstName": "Mac",
+        "lastName": "Jones",
+        "rotoPos": "QB",
+        "pos": [
+            "MVP",
+            "UTIL"
+        ],
+        "injuryStatus": null,
+        "isHome": false,
+        "isTeamDefense": false,
+        "link": "\/football\/player\/mac-jones-15402",
+        "teamLink": "\/football\/team\/san-francisco-49ers-sf",
+        "imageURL": "https:\/\/content.rotowire.com\/images\/headshots\/nfl\/imagn-126377.jpg?v=20251222",
+        "team": {
+            "abbr": "SF",
+            "city": "San Francisco",
+            "nickname": "49ers"
+        },
+        "game": {
+            "dateTime": "2025-12-22 20:15:00",
+            "isDome": false
+        },
+        "salary": 8000,
+        "pts": "0.00",
+        "rostership": 0,
+        "tier": false,
+        "tierSummary": null,
+        "opponent": {
+            "team": "IND"
+        },
+        "odds": {
+            "moneyline": "-265",
+            "overUnder": "46.0",
+            "spread": "-5.5",
+            "impliedPts": 25.75,
+            "impliedWinProb": 69.400000000000005684341886080801486968994140625
+        },
+        "weather": {
+            "wind": {
+                "windSpeed": "",
+                "windDirection": "N"
+            },
+            "precip": {
+                "precipProb": 0,
+                "precipType": "rain"
+            },
+            "temp": {
+                "temp": ""
+            }
+        },
+        "stats": {
+            "season": {
+                "gp": "10",
+                "passerRating": "97.4",
+                "passAtt": "28.9",
+                "passComp": "20.1",
+                "passCompPct": "69.6",
+                "passYds": "215.1",
+                "passYpa": "7.4",
+                "passTD": "1.3",
+                "passInt": "0.6",
+                "rushAtt": "3.3",
+                "rushYds": "6.3",
+                "rushYpc": "1.9",
+                "rushTD": "0.0",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "0.0",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "last8": {
+                "gp": "5",
+                "passerRating": "112.9",
+                "passAtt": "19.0",
+                "passComp": "14.2",
+                "passCompPct": "74.7",
+                "passYds": "149.4",
+                "passYpa": "7.9",
+                "passTD": "1.4",
+                "passInt": "0.4",
+                "rushAtt": "2.4",
+                "rushYds": "5.8",
+                "rushYpc": "2.4",
+                "rushTD": "0.0",
+                "rec": "0.0",
+                "recYds": "0.0",
+                "recYpc": "0.0",
+                "recTargets": "0.0",
+                "recYpt": "0.0",
+                "recCatchPct": "0.0",
+                "recTD": "0.0"
+            },
+            "avgFpts": {
+                "last2": "0.0",
+                "last4": "0.2",
+                "last8": "11.8",
+                "last10": "11.2",
+                "season": "13.6"
+            },
+            "playerProps": {
+                "td1": null,
+                "td2": null,
+                "td3": null,
+                "passYds": null,
+                "rushYds": null,
+                "recYds": null,
+                "rec": null
+            },
+            "passRate": {
+                "passRate": null,
+                "xPassRate": null,
+                "PROE": null,
+                "oppPassRate": null,
+                "oppXPassRate": null,
+                "oppPROE": null
+            }
+        }
+    }
+]

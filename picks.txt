@@ -1,0 +1,25 @@
+playerlist
+Cade Cunningham
+Deni Avdija
+Jalen Duren
+PROB
+Shaedon Sharpe
+Donovan Clingan
+Toumani Camara
+Jerami Grant
+QUES
+Ausar Thompson
+Tobias Harris
+Isaiah Stewart
+Caris LeVert
+Robert Williams
+Ronald Holland
+QUES
+Duncan Robinson
+Jaden Ivey
+Sidy Cissoko
+Kris Murray
+Javonte Green
+Caleb Love
+Daniss Jenkins
+Rayan Rupert

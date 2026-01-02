@@ -1,0 +1,8 @@
+,Shot Type,FGM,FGA
+2023Precious Achiuwa,Backcourt,0,1
+2023Precious Achiuwa,Above the Break 3,17,59
+2023Precious Achiuwa,Right Corner 3,4,17
+2023Precious Achiuwa,Left Corner 3,8,31
+2023Precious Achiuwa,Mid-Range,5,25
+2023Precious Achiuwa,In The Paint (Non-RA),34,91
+2023Precious Achiuwa,Restricted Area,128,180

@@ -1,0 +1,4665 @@
+{
+    "playerBoxScores": [
+        {
+            "id": 943177844,
+            "sport": "nba",
+            "value": "6.630351640072668",
+            "playerId": 20001984,
+            "teamId": 25,
+            "position": "G",
+            "started": 1,
+            "minutes": 36,
+            "seconds": 35,
+            "detail": null,
+            "performanceTags": [
+                500,
+                535,
+                592
+            ],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:52:27.822Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 2891,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 36
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 10
+                },
+                {
+                    "type": "27",
+                    "label": "3pm",
+                    "value": 6
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 36,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 36,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 10,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 5,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 2,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 22,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 63.6,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "14/22",
+                    "secondaryValue": "63.6%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "6/10",
+                    "secondaryValue": "60%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "2/3",
+                    "secondaryValue": "66.7%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 4,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 2,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 10,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 77.2,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 57.5
+            },
+            "fantasyPointsFanduel": 57.5,
+            "player": {
+                "id": 20001984,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "1037ca16d878ee19cce179250a35bb59",
+                "firstName": "Luka",
+                "lastName": "Doncic",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177835,
+            "sport": "nba",
+            "value": "5.28279095910088",
+            "playerId": 20000574,
+            "teamId": 25,
+            "position": "G",
+            "started": 1,
+            "minutes": 39,
+            "seconds": 50,
+            "detail": null,
+            "performanceTags": [
+                535
+            ],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:52:27.821Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 625,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 36
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 4
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 5
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 39,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 36,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 4,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 5,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 17,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 51.9,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "14/27",
+                    "secondaryValue": "51.9%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "4/10",
+                    "secondaryValue": "40%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "4/4",
+                    "secondaryValue": "100%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 0,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 2,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 1,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 3,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 62.6,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 48.3
+            },
+            "fantasyPointsFanduel": 48.3,
+            "player": {
+                "id": 20000574,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "95d378e4382e4572c8e6865977e3e769",
+                "firstName": "Kyrie",
+                "lastName": "Irving",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177824,
+            "sport": "nba",
+            "value": "3.9962246987842285",
+            "playerId": 20002523,
+            "teamId": 16,
+            "position": "G",
+            "started": 1,
+            "minutes": 43,
+            "seconds": 0,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:52:27.820Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 2927,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 28
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 9
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 6
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 43,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 28,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 9,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 6,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 1,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 1,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -20,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 55.6,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "10/18",
+                    "secondaryValue": "55.6%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "4/6",
+                    "secondaryValue": "66.7%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "4/6",
+                    "secondaryValue": "66.7%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 1,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 2,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 1,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 8,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 67.8,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 52.8
+            },
+            "fantasyPointsFanduel": 52.8,
+            "player": {
+                "id": 20002523,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "7a54600e4d19b65491cf2e6252354a10",
+                "firstName": "Anthony",
+                "lastName": "Edwards",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177821,
+            "sport": "nba",
+            "value": "3.531888767342963",
+            "playerId": 20001431,
+            "teamId": 16,
+            "position": "F",
+            "started": 1,
+            "minutes": 37,
+            "seconds": 39,
+            "detail": null,
+            "performanceTags": [
+                500,
+                592
+            ],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:52:27.820Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 426,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 28
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 12
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 2
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 37,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 28,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 12,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 2,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 1,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -14,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 45,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "9/20",
+                    "secondaryValue": "45%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "1/6",
+                    "secondaryValue": "16.7%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "9/10",
+                    "secondaryValue": "90%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 2,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 0,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 6,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 6,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 57.4,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 46.4
+            },
+            "fantasyPointsFanduel": 46.4,
+            "player": {
+                "id": 20001431,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "77fee12130f7298bcdb5cc63f233b516",
+                "firstName": "Karl-Anthony",
+                "lastName": "Towns",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177834,
+            "sport": "nba",
+            "value": "2.823767971119269",
+            "playerId": 20003055,
+            "teamId": 25,
+            "position": "C",
+            "started": 0,
+            "minutes": 24,
+            "seconds": 45,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:52:27.821Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 805,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 9
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 8
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 3
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 24,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 9,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 8,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 3,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 3,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -1,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 100,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "3/3",
+                    "secondaryValue": "100%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "3/6",
+                    "secondaryValue": "50%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 1,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 3,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 1,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 7,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 79.8,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 31.1
+            },
+            "fantasyPointsFanduel": 31.1,
+            "player": {
+                "id": 20003055,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "8c5cfa3c302f1e5446e0ca31729269a2",
+                "firstName": "Dereck",
+                "lastName": "Lively II",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177836,
+            "sport": "nba",
+            "value": "2.1103220838351673",
+            "playerId": 20002279,
+            "teamId": 25,
+            "position": "F",
+            "started": 1,
+            "minutes": 35,
+            "seconds": 35,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:52:27.821Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 269,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 12
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 7
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 2
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 35,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 12,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 7,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 2,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 2,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 17,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 44.4,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "4/9",
+                    "secondaryValue": "44.4%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "2/5",
+                    "secondaryValue": "40%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "2/2",
+                    "secondaryValue": "100%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 2,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 2,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 2,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 5,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 60.7,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 27.4
+            },
+            "fantasyPointsFanduel": 27.4,
+            "player": {
+                "id": 20002279,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "d98e4dd62551a748dab24ac72b1c895c",
+                "firstName": "P.J.",
+                "lastName": "Washington",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177842,
+            "sport": "nba",
+            "value": "1.6588253053243338",
+            "playerId": 20002329,
+            "teamId": 25,
+            "position": "C",
+            "started": 1,
+            "minutes": 20,
+            "seconds": 13,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:39:47.775Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 304,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 11
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 9
+                },
+                {
+                    "type": "5",
+                    "label": "blk",
+                    "value": 1
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 20,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 11,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 9,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 0,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 1,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 26,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 100,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "3/3",
+                    "secondaryValue": "100%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "5/6",
+                    "secondaryValue": "83.3%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 2,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 5,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 2,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 7,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 97.5,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 22.8
+            },
+            "fantasyPointsFanduel": 22.8,
+            "player": {
+                "id": 20002329,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "a3f9840bf96f6d21c8e2d4a0705ecec7",
+                "firstName": "Daniel",
+                "lastName": "Gafford",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177846,
+            "sport": "nba",
+            "value": "1.4537075534536856",
+            "playerId": 20001796,
+            "teamId": 25,
+            "position": "F",
+            "started": 1,
+            "minutes": 29,
+            "seconds": 48,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:52:27.822Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 360,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 5
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 2
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 2
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 29,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 5,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 2,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 2,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 1,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 11,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 33.3,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "2/6",
+                    "secondaryValue": "33.3%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "1/2",
+                    "secondaryValue": "50%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 0,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 3,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 2,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 0,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 41.7,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 13.4
+            },
+            "fantasyPointsFanduel": 13.4,
+            "player": {
+                "id": 20001796,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "7f35382ef55977b0fbd09b6d985475fd",
+                "firstName": "Derrick",
+                "lastName": "Jones Jr.",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177828,
+            "sport": "nba",
+            "value": "1.3910158068110248",
+            "playerId": 20000659,
+            "teamId": 16,
+            "position": "F",
+            "started": 0,
+            "minutes": 32,
+            "seconds": 35,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:52:27.821Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 147,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 7
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 3
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 3
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 32,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 7,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 3,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 3,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 1,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 1,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -13,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 33.3,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "3/9",
+                    "secondaryValue": "33.3%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "1/4",
+                    "secondaryValue": "25%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 1,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 2,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 1,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 2,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 38.9,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 20.1
+            },
+            "fantasyPointsFanduel": 20.1,
+            "player": {
+                "id": 20000659,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "75d076e4975cf7b4260f8dd667a460e2",
+                "firstName": "Kyle",
+                "lastName": "Anderson",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177827,
+            "sport": "nba",
+            "value": "1.3091198562943664",
+            "playerId": 20000840,
+            "teamId": 16,
+            "position": "C",
+            "started": 1,
+            "minutes": 26,
+            "seconds": 28,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:36:28.312Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 568,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 9
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 5
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 1
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 26,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 9,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 5,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 1,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 1,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -23,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 50,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "4/8",
+                    "secondaryValue": "50%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "1/2",
+                    "secondaryValue": "50%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 2,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 1,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 2,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 3,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 50.7,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 17.5
+            },
+            "fantasyPointsFanduel": 17.5,
+            "player": {
+                "id": 20000840,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "b25a1edb1e780551705f93df775dfbb8",
+                "firstName": "Rudy",
+                "lastName": "Gobert",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177826,
+            "sport": "nba",
+            "value": "1.141686262492001",
+            "playerId": 20000635,
+            "teamId": 16,
+            "position": "G",
+            "started": 1,
+            "minutes": 20,
+            "seconds": 39,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:07:02.401Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 892,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 7
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 4
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 2
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 20,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 7,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 4,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 2,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 2,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -17,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 40,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "2/5",
+                    "secondaryValue": "40%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "1/3",
+                    "secondaryValue": "33.3%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "2/2",
+                    "secondaryValue": "100%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 1,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 1,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 4,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 59.5,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 19.8
+            },
+            "fantasyPointsFanduel": 19.8,
+            "player": {
+                "id": 20000635,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "bb68a301603fdb42d09e6d88d15cbb9b",
+                "firstName": "Mike",
+                "lastName": "Conley",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177829,
+            "sport": "nba",
+            "value": "0.8280186143239219",
+            "playerId": 20002684,
+            "teamId": 16,
+            "position": "F",
+            "started": 0,
+            "minutes": 3,
+            "seconds": 2,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T10:06:33.704Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 97,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 6
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 1
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 3,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 6,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 1,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 0,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 4,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 100,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "3/3",
+                    "secondaryValue": "100%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 0,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 0,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 1,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 0,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 100,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 7.2
+            },
+            "fantasyPointsFanduel": 7.2,
+            "player": {
+                "id": 20002684,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "99ffd91e4e6e88a8566c032c276447a3",
+                "firstName": "Luka",
+                "lastName": "Garza",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177822,
+            "sport": "nba",
+            "value": "0.8174183071572095",
+            "playerId": 20002553,
+            "teamId": 16,
+            "position": "F",
+            "started": 1,
+            "minutes": 21,
+            "seconds": 21,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:52:27.820Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 812,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 8
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 1
+                },
+                {
+                    "type": "5",
+                    "label": "blk",
+                    "value": 2
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 21,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 8,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 1,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 0,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 2,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -13,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 50,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "3/6",
+                    "secondaryValue": "50%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "2/4",
+                    "secondaryValue": "50%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 1,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 5,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 1,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 66.7,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 14.2
+            },
+            "fantasyPointsFanduel": 14.2,
+            "player": {
+                "id": 20002553,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "f516c6d44a6150194c104980cafa51e0",
+                "firstName": "Jaden",
+                "lastName": "McDaniels",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177839,
+            "sport": "nba",
+            "value": "0.7031139716578118",
+            "playerId": 20002543,
+            "teamId": 25,
+            "position": "G",
+            "started": 0,
+            "minutes": 18,
+            "seconds": 12,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T10:06:33.705Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 154,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 2
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 1
+                },
+                {
+                    "type": "4",
+                    "label": "stl",
+                    "value": 2
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 18,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 2,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 0,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 1,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 2,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 10,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 33.3,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "1/3",
+                    "secondaryValue": "33.3%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/2",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 0,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 0,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 0,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 33.3,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 9.5
+            },
+            "fantasyPointsFanduel": 9.5,
+            "player": {
+                "id": 20002543,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "4e2434fecc1fbc19bd608846d9b62b5e",
+                "firstName": "Josh",
+                "lastName": "Green",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177825,
+            "sport": "nba",
+            "value": "0.6558537743897488",
+            "playerId": 20002336,
+            "teamId": 16,
+            "position": "C",
+            "started": 0,
+            "minutes": 27,
+            "seconds": 3,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:52:27.821Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 1328,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 5
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 4
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 1
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 27,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 5,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 4,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 1,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 1,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -14,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 20,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "2/10",
+                    "secondaryValue": "20%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/4",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "1/1",
+                    "secondaryValue": "100%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 3,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 4,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 1,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 3,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 23.9,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 11.3
+            },
+            "fantasyPointsFanduel": 11.3,
+            "player": {
+                "id": 20002336,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "4c25d0b6fd08acbf361b0031a2496993",
+                "firstName": "Naz",
+                "lastName": "Reid",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177840,
+            "sport": "nba",
+            "value": "0.5884802998925188",
+            "playerId": 20002891,
+            "teamId": 25,
+            "position": "G",
+            "started": 0,
+            "minutes": 8,
+            "seconds": 10,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T10:06:33.705Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 218,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 7
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 0
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 8,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 7,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 0,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 0,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 4,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 60,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "3/5",
+                    "secondaryValue": "60%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "1/2",
+                    "secondaryValue": "50%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 1,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 0,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 0,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 70,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 6
+            },
+            "fantasyPointsFanduel": 6,
+            "player": {
+                "id": 20002891,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "bf02a51cbe6b442a643f8a4b0c4de389",
+                "firstName": "Jaden",
+                "lastName": "Hardy",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177818,
+            "sport": "nba",
+            "value": "0.535154352924663",
+            "playerId": 20002895,
+            "teamId": 16,
+            "position": "G",
+            "started": 0,
+            "minutes": 3,
+            "seconds": 2,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T10:06:33.702Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 14,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 5
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 0
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 3,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 5,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 0,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 0,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 4,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 66.7,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "2/3",
+                    "secondaryValue": "66.7%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "1/2",
+                    "secondaryValue": "50%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 0,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 1,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 0,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 83.3,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 5
+            },
+            "fantasyPointsFanduel": 5,
+            "player": {
+                "id": 20002895,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "818c69cd084c8e9a1081cb30d150fa17",
+                "firstName": "Wendell",
+                "lastName": "Moore Jr.",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177823,
+            "sport": "nba",
+            "value": "0.4265646583947694",
+            "playerId": 20002285,
+            "teamId": 16,
+            "position": "G",
+            "started": 0,
+            "minutes": 13,
+            "seconds": 41,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:29:27.658Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 89,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 0
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 1
+                },
+                {
+                    "type": "4",
+                    "label": "stl",
+                    "value": 2
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 13,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 0,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 0,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 1,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 2,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -3,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 0,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "0/2",
+                    "secondaryValue": "0%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/1",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 0,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 1,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 0,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 0,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 7.5
+            },
+            "fantasyPointsFanduel": 7.5,
+            "player": {
+                "id": 20002285,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "ea7e996fcd149f53a66c92a251967f56",
+                "firstName": "Nickeil",
+                "lastName": "Alexander-Walker",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177837,
+            "sport": "nba",
+            "value": "0.3945068944117871",
+            "playerId": 20001909,
+            "teamId": 25,
+            "position": "F",
+            "started": 0,
+            "minutes": 9,
+            "seconds": 23,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T02:29:27.659Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 19,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 3
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 1
+                },
+                {
+                    "type": "4",
+                    "label": "stl",
+                    "value": 1
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 9,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 3,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 1,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 0,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 1,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 8,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 33.3,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "1/3",
+                    "secondaryValue": "33.3%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "1/2",
+                    "secondaryValue": "50%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 1,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 1,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 1,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 50,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 6.2
+            },
+            "fantasyPointsFanduel": 6.2,
+            "player": {
+                "id": 20001909,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "71e387d67562480a966b916feedaa7e6",
+                "firstName": "Maxi",
+                "lastName": "Kleber",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177847,
+            "sport": "nba",
+            "value": "0.28957451724293737",
+            "playerId": 20000841,
+            "teamId": 25,
+            "position": "G",
+            "started": 0,
+            "minutes": 11,
+            "seconds": 25,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T10:06:33.705Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 25,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 0
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 3
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 1
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 11,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 0,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 3,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 1,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -1,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 0,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "0/1",
+                    "secondaryValue": "0%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 0,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 1,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 1,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 2,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 0,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 5.1
+            },
+            "fantasyPointsFanduel": 5.1,
+            "player": {
+                "id": 20000841,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "460a87421e1e2cb8b632cfece69968c3",
+                "firstName": "Dante",
+                "lastName": "Exum",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177819,
+            "sport": "nba",
+            "value": "0.225",
+            "playerId": 20002912,
+            "teamId": 16,
+            "position": "F",
+            "started": 0,
+            "minutes": 3,
+            "seconds": 2,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T10:06:33.703Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 22,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 0
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 2
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 3,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 0,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 2,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 0,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 4,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 0,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 0,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 0,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 1,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 1,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 0,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 2.4
+            },
+            "fantasyPointsFanduel": 2.4,
+            "player": {
+                "id": 20002912,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "c9b1f45cf516db0e77a56475d5744bc4",
+                "firstName": "Leonard",
+                "lastName": "Miller",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177832,
+            "sport": "nba",
+            "value": "0.11131395446816912",
+            "playerId": 20002913,
+            "teamId": 16,
+            "position": "F",
+            "started": 0,
+            "minutes": 3,
+            "seconds": 2,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T10:06:33.704Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 19,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 0
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 0
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 1
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 3,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 0,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 0,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 1,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": 4,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 0,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "0/2",
+                    "secondaryValue": "0%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/1",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 0,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 0,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 0,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 0,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 1.5
+            },
+            "fantasyPointsFanduel": 1.5,
+            "player": {
+                "id": 20002913,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "e590d378d8a9020188beddd91895a5fb",
+                "firstName": "Josh",
+                "lastName": "Minott",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177833,
+            "sport": "nba",
+            "value": "0.099875",
+            "playerId": 20002725,
+            "teamId": 25,
+            "position": "G",
+            "started": 0,
+            "minutes": 3,
+            "seconds": 2,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T10:06:33.704Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 16,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 1
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 0
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 3,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 1,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 0,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 0,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -4,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 0,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "0/1",
+                    "secondaryValue": "0%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/1",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "1/2",
+                    "secondaryValue": "50%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 0,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 0,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 0,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 26.6,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 1
+            },
+            "fantasyPointsFanduel": 1,
+            "player": {
+                "id": 20002725,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "045b70b9d70e62ea07c56c008e1b5ac7",
+                "firstName": "A.J.",
+                "lastName": "Lawson",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177841,
+            "sport": "nba",
+            "value": "0.09884006092203308",
+            "playerId": 20000539,
+            "teamId": 25,
+            "position": "F-C",
+            "started": 0,
+            "minutes": 3,
+            "seconds": 2,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T10:06:33.705Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 29,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 2
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 1
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 3,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 2,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 1,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 0,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -4,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 100,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "1/1",
+                    "secondaryValue": "100%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 1,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 1,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 1,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 100,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 2.2
+            },
+            "fantasyPointsFanduel": 2.2,
+            "player": {
+                "id": 20000539,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "dfd54946315de560b222422e2856615d",
+                "firstName": "Dwight",
+                "lastName": "Powell",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177830,
+            "sport": "nba",
+            "value": "0",
+            "playerId": 20002127,
+            "teamId": 16,
+            "position": "G",
+            "started": 0,
+            "minutes": 5,
+            "seconds": 26,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": "2024-05-31T10:06:33.704Z",
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 125,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 0
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 0
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": false,
+            "statValues": [
+                {
+                    "type": 8,
+                    "value": 5,
+                    "label": "min"
+                },
+                {
+                    "type": 1,
+                    "value": 0,
+                    "label": "pts"
+                },
+                {
+                    "type": 3,
+                    "value": 0,
+                    "label": "reb"
+                },
+                {
+                    "type": 2,
+                    "value": 0,
+                    "label": "ast"
+                },
+                {
+                    "type": 4,
+                    "value": 0,
+                    "label": "stl"
+                },
+                {
+                    "type": 5,
+                    "value": 0,
+                    "label": "blk"
+                },
+                {
+                    "type": 14,
+                    "value": -4,
+                    "colored": true,
+                    "label": "+/-"
+                },
+                {
+                    "type": 9,
+                    "value": 0,
+                    "label": "fg%",
+                    "size": "lg"
+                },
+                {
+                    "type": 26,
+                    "value": "0/3",
+                    "secondaryValue": "0%",
+                    "label": "fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 27,
+                    "value": "0/1",
+                    "secondaryValue": "0%",
+                    "label": "3fg",
+                    "size": "lg"
+                },
+                {
+                    "type": 28,
+                    "value": "0/0",
+                    "secondaryValue": "0%",
+                    "label": "fts",
+                    "size": "lg"
+                },
+                {
+                    "type": 6,
+                    "value": 0,
+                    "label": "to",
+                    "size": "sm"
+                },
+                {
+                    "type": 25,
+                    "value": 0,
+                    "label": "pf",
+                    "size": "sm"
+                },
+                {
+                    "type": 23,
+                    "value": 0,
+                    "label": "oreb"
+                },
+                {
+                    "type": 24,
+                    "value": 0,
+                    "label": "dreb"
+                },
+                {
+                    "type": 38,
+                    "value": 0,
+                    "label": "ts%"
+                }
+            ],
+            "fantasyStats": {
+                "default": 0
+            },
+            "fantasyPointsFanduel": 0,
+            "player": {
+                "id": 20002127,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "123ece7b225512dc84dcc425f7077b68",
+                "firstName": "Jordan",
+                "lastName": "McLaughlin",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177838,
+            "sport": "nba",
+            "value": "0",
+            "playerId": 20000788,
+            "teamId": 25,
+            "position": "G-F",
+            "started": 0,
+            "minutes": 0,
+            "seconds": 0,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": null,
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 32,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 0
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 0
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": true,
+            "statValues": [],
+            "fantasyStats": {
+                "default": 0
+            },
+            "fantasyPointsFanduel": 0,
+            "player": {
+                "id": 20000788,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "27f27887984341947cbf5a1b8315f6f7",
+                "firstName": "Tim",
+                "lastName": "Hardaway Jr.",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177845,
+            "sport": "nba",
+            "value": "0",
+            "playerId": 20000848,
+            "teamId": 25,
+            "position": "F",
+            "started": 0,
+            "minutes": 0,
+            "seconds": 0,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": null,
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 17,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 0
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 0
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": true,
+            "statValues": [],
+            "fantasyStats": {
+                "default": 0
+            },
+            "fantasyPointsFanduel": 0,
+            "player": {
+                "id": 20000848,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "e830d3d8e38699613720a1d019fade97",
+                "firstName": "Markieff",
+                "lastName": "Morris",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        },
+        {
+            "id": 943177820,
+            "sport": "nba",
+            "value": "0",
+            "playerId": 20000858,
+            "teamId": 16,
+            "position": "F",
+            "started": 0,
+            "minutes": 0,
+            "seconds": 0,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": null,
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 24,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 0
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 0
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": true,
+            "statValues": [],
+            "fantasyStats": {
+                "default": 0
+            },
+            "fantasyPointsFanduel": 0,
+            "player": {
+                "id": 20000858,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "01f3d72c7024bbe740c705096c6ad925",
+                "firstName": "T.J.",
+                "lastName": "Warren",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177831,
+            "sport": "nba",
+            "value": "0",
+            "playerId": 20001871,
+            "teamId": 16,
+            "position": "G",
+            "started": 0,
+            "minutes": 0,
+            "seconds": 0,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": null,
+            "injuryBodyPart": null,
+            "onCourtAt": null,
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 11,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 0
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 0
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": null,
+            "didNotPlay": true,
+            "statValues": [],
+            "fantasyStats": {
+                "default": 0
+            },
+            "fantasyPointsFanduel": 0,
+            "player": {
+                "id": 20001871,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "13717cc779a182ba0481f65f53e00310",
+                "firstName": "Monte",
+                "lastName": "Morris",
+                "backgroundColor": "#0C234044"
+            },
+            "team": {
+                "id": 16,
+                "sport": "nba",
+                "key": "MIN",
+                "name": "Wolves",
+                "avatar": "MIN_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0C234044",
+                "secondaryColorReal": "#78BE2044"
+            }
+        },
+        {
+            "id": 943177843,
+            "sport": "nba",
+            "value": "0",
+            "playerId": 20003067,
+            "teamId": 25,
+            "position": "F",
+            "started": 0,
+            "minutes": 0,
+            "seconds": 0,
+            "detail": null,
+            "performanceTags": [],
+            "injuryStatus": "Out",
+            "injuryBodyPart": "Left Ankle; Sprain",
+            "onCourtAt": null,
+            "ignoredStatTypes": null,
+            "dateTime": "2024-05-31T00:30:00.000Z",
+            "commentCount": 11,
+            "topStats": [
+                {
+                    "type": "1",
+                    "label": "pts",
+                    "value": 0
+                },
+                {
+                    "type": "3",
+                    "label": "reb",
+                    "value": 0
+                },
+                {
+                    "type": "2",
+                    "label": "ast",
+                    "value": 0
+                }
+            ],
+            "injuryDisplay": "Out · Left Ankle; Sprain",
+            "didNotPlay": true,
+            "statValues": [],
+            "fantasyStats": {
+                "default": 0
+            },
+            "fantasyPointsFanduel": 0,
+            "player": {
+                "id": 20003067,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "7a9b35bb245153ec3841dcdf661d0eb6",
+                "firstName": "Olivier-Maxence",
+                "lastName": "Prosper",
+                "backgroundColor": "#0053BC44"
+            },
+            "team": {
+                "id": 25,
+                "sport": "nba",
+                "key": "DAL",
+                "name": "Mavs",
+                "avatar": "DAL_nba",
+                "overallRank": null,
+                "primaryColorReal": "#0053BC44",
+                "secondaryColorReal": "#BBC4CA44"
+            }
+        }
+    ],
+    "gameBoxScore": {
+        "periods": [
+            {
+                "sequence": 1,
+                "homeTeamScore": 19,
+                "awayTeamScore": 35,
+                "label": "1st"
+            },
+            {
+                "sequence": 2,
+                "homeTeamScore": 21,
+                "awayTeamScore": 34,
+                "label": "2nd"
+            },
+            {
+                "sequence": 3,
+                "homeTeamScore": 33,
+                "awayTeamScore": 28,
+                "label": "3rd"
+            },
+            {
+                "sequence": 4,
+                "homeTeamScore": 30,
+                "awayTeamScore": 27,
+                "label": "4th"
+            }
+        ],
+        "teamBoxScores": [
+            {
+                "id": 90240,
+                "teamId": 25,
+                "sport": "nba",
+                "topStats": [
+                    {
+                        "type": "3",
+                        "label": "reb",
+                        "value": 45
+                    },
+                    {
+                        "type": "26",
+                        "label": "fg",
+                        "isPercentage": true,
+                        "value": "55"
+                    },
+                    {
+                        "type": "27",
+                        "label": "3pm",
+                        "value": 15
+                    }
+                ],
+                "statValues": [
+                    {
+                        "type": 26,
+                        "value": "46/84",
+                        "category": null,
+                        "displayValue": "46/84",
+                        "secondaryValue": "54.8%",
+                        "headToHeadValue": 54.8,
+                        "displayLabel": "FG",
+                        "label": "fg",
+                        "size": "xl"
+                    },
+                    {
+                        "type": 27,
+                        "value": "15/34",
+                        "category": null,
+                        "displayValue": "15/34",
+                        "secondaryValue": "44.1%",
+                        "headToHeadValue": 44.1,
+                        "displayLabel": "3FG",
+                        "label": "3fg",
+                        "size": "xl"
+                    },
+                    {
+                        "type": 28,
+                        "value": "17/23",
+                        "category": null,
+                        "displayValue": "17/23",
+                        "secondaryValue": "73.9%",
+                        "headToHeadValue": 73.9,
+                        "displayLabel": "FTS",
+                        "label": "fts",
+                        "size": "xl"
+                    },
+                    {
+                        "type": 6,
+                        "value": 12,
+                        "category": null,
+                        "displayValue": 12,
+                        "secondaryValue": null,
+                        "headToHeadValue": 12,
+                        "displayLabel": "Turnovers",
+                        "label": "to"
+                    },
+                    {
+                        "type": 3,
+                        "value": 45,
+                        "category": null,
+                        "displayValue": 45,
+                        "secondaryValue": null,
+                        "headToHeadValue": 45,
+                        "displayLabel": "Rebounds",
+                        "label": "reb"
+                    },
+                    {
+                        "type": 2,
+                        "value": 19,
+                        "category": null,
+                        "displayValue": 19,
+                        "secondaryValue": null,
+                        "headToHeadValue": 19,
+                        "displayLabel": "Assists",
+                        "label": "ast"
+                    },
+                    {
+                        "type": 5,
+                        "value": 5,
+                        "category": null,
+                        "displayValue": 5,
+                        "secondaryValue": null,
+                        "headToHeadValue": 5,
+                        "displayLabel": "Blocks",
+                        "label": "blk"
+                    },
+                    {
+                        "type": 24,
+                        "value": 36,
+                        "category": null,
+                        "displayValue": 36,
+                        "secondaryValue": null,
+                        "headToHeadValue": 36,
+                        "displayLabel": "Defensive rebounds",
+                        "label": "dreb"
+                    },
+                    {
+                        "type": 23,
+                        "value": 9,
+                        "category": null,
+                        "displayValue": 9,
+                        "secondaryValue": null,
+                        "headToHeadValue": 9,
+                        "displayLabel": "Offensive rebounds",
+                        "label": "oreb"
+                    },
+                    {
+                        "type": 33,
+                        "value": 14,
+                        "category": null,
+                        "displayValue": 14,
+                        "secondaryValue": null,
+                        "headToHeadValue": 14,
+                        "displayLabel": "Points off turnovers",
+                        "label": "pot"
+                    },
+                    {
+                        "type": 34,
+                        "value": 48,
+                        "category": null,
+                        "displayValue": 48,
+                        "secondaryValue": null,
+                        "headToHeadValue": 48,
+                        "displayLabel": "Points-in-paint",
+                        "label": "pip"
+                    },
+                    {
+                        "type": 35,
+                        "value": 8,
+                        "category": null,
+                        "displayValue": 8,
+                        "secondaryValue": null,
+                        "headToHeadValue": 8,
+                        "displayLabel": "Fastbreak points",
+                        "label": "fbp"
+                    },
+                    {
+                        "type": 36,
+                        "value": 11,
+                        "category": null,
+                        "displayValue": 11,
+                        "secondaryValue": null,
+                        "headToHeadValue": 11,
+                        "displayLabel": "Second-chance points",
+                        "label": "scp"
+                    },
+                    {
+                        "type": 4,
+                        "value": 7,
+                        "category": null,
+                        "displayValue": 7,
+                        "secondaryValue": null,
+                        "headToHeadValue": 7,
+                        "displayLabel": "Steals",
+                        "label": "stl"
+                    },
+                    {
+                        "type": 25,
+                        "value": 20,
+                        "category": null,
+                        "displayValue": 20,
+                        "secondaryValue": null,
+                        "headToHeadValue": 20,
+                        "displayLabel": "Personal fouls",
+                        "label": "pf"
+                    }
+                ]
+            },
+            {
+                "id": 90239,
+                "teamId": 16,
+                "sport": "nba",
+                "topStats": [
+                    {
+                        "type": "3",
+                        "label": "reb",
+                        "value": 41
+                    },
+                    {
+                        "type": "4",
+                        "label": "stl",
+                        "value": 8
+                    },
+                    {
+                        "type": "5",
+                        "label": "blk",
+                        "value": 5
+                    }
+                ],
+                "statValues": [
+                    {
+                        "type": 26,
+                        "value": "38/89",
+                        "category": null,
+                        "displayValue": "38/89",
+                        "secondaryValue": "42.7%",
+                        "headToHeadValue": 42.7,
+                        "displayLabel": "FG",
+                        "label": "fg",
+                        "size": "xl"
+                    },
+                    {
+                        "type": 27,
+                        "value": "10/32",
+                        "category": null,
+                        "displayValue": "10/32",
+                        "secondaryValue": "31.3%",
+                        "headToHeadValue": 31.3,
+                        "displayLabel": "3FG",
+                        "label": "3fg",
+                        "size": "xl"
+                    },
+                    {
+                        "type": 28,
+                        "value": "17/21",
+                        "category": null,
+                        "displayValue": "17/21",
+                        "secondaryValue": "81%",
+                        "headToHeadValue": 81,
+                        "displayLabel": "FTS",
+                        "label": "fts",
+                        "size": "xl"
+                    },
+                    {
+                        "type": 6,
+                        "value": 11,
+                        "category": null,
+                        "displayValue": 11,
+                        "secondaryValue": null,
+                        "headToHeadValue": 11,
+                        "displayLabel": "Turnovers",
+                        "label": "to"
+                    },
+                    {
+                        "type": 3,
+                        "value": 41,
+                        "category": null,
+                        "displayValue": 41,
+                        "secondaryValue": null,
+                        "headToHeadValue": 41,
+                        "displayLabel": "Rebounds",
+                        "label": "reb"
+                    },
+                    {
+                        "type": 2,
+                        "value": 17,
+                        "category": null,
+                        "displayValue": 17,
+                        "secondaryValue": null,
+                        "headToHeadValue": 17,
+                        "displayLabel": "Assists",
+                        "label": "ast"
+                    },
+                    {
+                        "type": 5,
+                        "value": 5,
+                        "category": null,
+                        "displayValue": 5,
+                        "secondaryValue": null,
+                        "headToHeadValue": 5,
+                        "displayLabel": "Blocks",
+                        "label": "blk"
+                    },
+                    {
+                        "type": 24,
+                        "value": 28,
+                        "category": null,
+                        "displayValue": 28,
+                        "secondaryValue": null,
+                        "headToHeadValue": 28,
+                        "displayLabel": "Defensive rebounds",
+                        "label": "dreb"
+                    },
+                    {
+                        "type": 23,
+                        "value": 13,
+                        "category": null,
+                        "displayValue": 13,
+                        "secondaryValue": null,
+                        "headToHeadValue": 13,
+                        "displayLabel": "Offensive rebounds",
+                        "label": "oreb"
+                    },
+                    {
+                        "type": 33,
+                        "value": 8,
+                        "category": null,
+                        "displayValue": 8,
+                        "secondaryValue": null,
+                        "headToHeadValue": 8,
+                        "displayLabel": "Points off turnovers",
+                        "label": "pot"
+                    },
+                    {
+                        "type": 34,
+                        "value": 46,
+                        "category": null,
+                        "displayValue": 46,
+                        "secondaryValue": null,
+                        "headToHeadValue": 46,
+                        "displayLabel": "Points-in-paint",
+                        "label": "pip"
+                    },
+                    {
+                        "type": 35,
+                        "value": 10,
+                        "category": null,
+                        "displayValue": 10,
+                        "secondaryValue": null,
+                        "headToHeadValue": 10,
+                        "displayLabel": "Fastbreak points",
+                        "label": "fbp"
+                    },
+                    {
+                        "type": 36,
+                        "value": 14,
+                        "category": null,
+                        "displayValue": 14,
+                        "secondaryValue": null,
+                        "headToHeadValue": 14,
+                        "displayLabel": "Second-chance points",
+                        "label": "scp"
+                    },
+                    {
+                        "type": 4,
+                        "value": 8,
+                        "category": null,
+                        "displayValue": 8,
+                        "secondaryValue": null,
+                        "headToHeadValue": 8,
+                        "displayLabel": "Steals",
+                        "label": "stl"
+                    },
+                    {
+                        "type": 25,
+                        "value": 17,
+                        "category": null,
+                        "displayValue": 17,
+                        "secondaryValue": null,
+                        "headToHeadValue": 17,
+                        "displayLabel": "Personal fouls",
+                        "label": "pf"
+                    }
+                ]
+            }
+        ]
+    },
+    "stats": {
+        "runs": [
+            {
+                "end": {
+                    "sequence": 17
+                },
+                "start": {
+                    "sequence": 2
+                },
+                "scoreDiff": 10,
+                "displayTime": "11:28 Q1 - 9:05 Q1",
+                "playGroupId": 1,
+                "awayTeamScore": {
+                    "end": 14,
+                    "diff": 14,
+                    "start": 0
+                },
+                "homeTeamScore": {
+                    "end": 6,
+                    "diff": 4,
+                    "start": 2
+                },
+                "playGroupDetail": "DAL 14-4 run"
+            },
+            {
+                "end": {
+                    "sequence": 83
+                },
+                "start": {
+                    "sequence": 37
+                },
+                "scoreDiff": 23,
+                "displayTime": "5:25 Q1 - 8:52 Q2",
+                "playGroupId": 16,
+                "awayTeamScore": {
+                    "end": 46,
+                    "diff": 28,
+                    "start": 18
+                },
+                "homeTeamScore": {
+                    "end": 23,
+                    "diff": 5,
+                    "start": 18
+                },
+                "playGroupDetail": "DAL 28-5 run"
+            },
+            {
+                "end": {
+                    "sequence": 147
+                },
+                "start": {
+                    "sequence": 99
+                },
+                "scoreDiff": 20,
+                "displayTime": "4:30 Q2 - 7:54 Q3",
+                "playGroupId": 41,
+                "awayTeamScore": {
+                    "end": 82,
+                    "diff": 30,
+                    "start": 52
+                },
+                "homeTeamScore": {
+                    "end": 46,
+                    "diff": 10,
+                    "start": 36
+                },
+                "playGroupDetail": "DAL 30-10 run"
+            }
+        ],
+        "activeRun": {
+            "away": 3,
+            "home": 9,
+            "timeElapsed": 99,
+            "timeElapsedDisplay": " in last 1:39"
+        },
+        "largestLead": {
+            "awayLead": 36,
+            "homeLead": 2,
+            "awayDisplay": "7:54 Q3",
+            "homeDisplay": "11:43 Q1"
+        },
+        "leadChanges": 3,
+        "awayPlayerRun": {
+            "run": 10,
+            "sport": "nba",
+            "player": {
+                "id": 20000574,
+                "sport": "nba",
+                "teamId": 25,
+                "avatar": "95d378e4382e4572c8e6865977e3e769",
+                "firstName": "Kyrie",
+                "lastName": "Irving",
+                "backgroundColor": "#0053BC44"
+            },
+            "display": "3:08 Q3",
+            "playerId": 20000574
+        },
+        "homePlayerRun": {
+            "run": 8,
+            "sport": "nba",
+            "player": {
+                "id": 20001431,
+                "sport": "nba",
+                "teamId": 16,
+                "avatar": "77fee12130f7298bcdb5cc63f233b516",
+                "firstName": "Karl-Anthony",
+                "lastName": "Towns",
+                "backgroundColor": "#0C234044"
+            },
+            "display": "5:35 Q2",
+            "playerId": 20001431
+        },
+        "numTimeoutsTotal": 7,
+        "onFieldAmount": 5
+    },
+    "metadata": {
+        "broadcasts": [
+            {
+                "label": "National",
+                "details": "TNT"
+            },
+            {
+                "label": "National",
+                "details": "truTV"
+            }
+        ],
+        "attributions": [
+            "assets/attribution/nbaleaguepass.png"
+        ]
+    },
+    "gameTeamComparison": false,
+    "emojiUsages": []
+}
