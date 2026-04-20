@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+{% block content %}
+{% set home = box.home_team if box else {} %}
+{% set away = box.away_team if box else {} %}
+
+<div class="back-link">
+  <a href="{{ url_for('index', date=box.game_date) if box and box.game_date else url_for('index') }}">&larr; Back to game browser</a>
+</div>
+
+<section class="page-hero page-hero--compact">
+  <div>
+    <p class="eyebrow">Game Detail</p>
+    <h1>{{ box.headline if box and box.available else "Game " ~ game_id }}</h1>
+    {% if box and box.available %}
+      <p class="lede">{{ box.status_text }}{% if box.tipoff %} | {{ box.tipoff }}{% endif %}{% if box.arena %} | {{ box.arena }}{% endif %}</p>
+    {% else %}
+      <p class="lede">Boxscore data is not available right now, but the route stays alive so rotation and matchup retries still work.</p>
+    {% endif %}
+  </div>
+</section>
+
+{% if box and box.available %}
+  <section class="summary-grid">
+    <article class="summary-card">
+      <p class="summary-card__label">{{ away.abbr }}</p>
+      <h2>{{ away.score }}</h2>
+      <p>{{ away.name }}</p>
+    </article>
+    <article class="summary-card">
+      <p class="summary-card__label">{{ home.abbr }}</p>
+      <h2>{{ home.score }}</h2>
+      <p>{{ home.name }}</p>
+    </article>
+    <article class="summary-card">
+      <p class="summary-card__label">Attendance</p>
+      <h2>{{ box.attendance if box.attendance else "-" }}</h2>
+      <p>Duration: {{ box.duration ~ " min" if box.duration else "-" }}</p>
+    </article>
+  </section>
+
+  <section class="boxscore-grid">
+    <article class="panel">
+      <div class="section-head section-head--tight">
+        <div>
+          <p class="eyebrow">Availability</p>
+          <h2>Injury and inactive report</h2>
+        </div>
+        {% if box.gamebook and box.gamebook.primary_url %}
+          <a class="button button--ghost" href="{{ box.gamebook.primary_url }}" target="_blank" rel="noopener noreferrer">Game Book PDF</a>
+        {% endif %}
+      </div>
+      <p class="muted">This section is built from the official boxscore inactive fields. The linked game book is the official scorer report for the full injury/inactive listing.</p>
+      <div class="availability-grid">
+        {% for label, rows in [(away.abbr, box.away_absences), (home.abbr, box.home_absences)] %}
+          <div class="availability-card">
+            <h3>{{ label }}</h3>
+            {% if rows %}
+              <ul class="availability-list">
+                {% for row in rows %}
+                  <li>
+                    {% if row.rotowire_url %}
+                      <a class="availability-link" href="{{ row.rotowire_url }}" target="_blank" rel="noopener noreferrer"><strong>{{ row.name }}</strong></a>
+                    {% else %}
+                      <strong>{{ row.name }}</strong>
+                    {% endif %}
+                    <span>{{ row.label }}{% if row.reason %} | {{ row.reason }}{% endif %}{% if row.detail %} | {{ row.detail }}{% endif %}</span>
+                    {% if row.rotowire_timing_text %}
+                      <span class="availability-return">{{ row.rotowire_timing_text }}</span>
+                    {% elif row.rotowire_note %}
+                      <span class="availability-return availability-return--note">{{ row.rotowire_note }}</span>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="empty-card">No inactive or DNP entries surfaced in the boxscore feed.</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      {% if box.gamebook and box.gamebook.alternate_urls %}
+        <div class="cached-dates">
+          <span class="muted">Alternate game book links:</span>
+          {% for url in box.gamebook.alternate_urls %}
+            <a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ url }}</a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </article>
+  </section>
+
+  {% if box.line_score_headers %}
+    <section class="panel">
+      <div class="section-head section-head--tight">
+        <h2>Line score</h2>
+      </div>
+      <div class="table-shell">
+        <table class="stat-table stat-table--linescore">
+          <thead>
+            <tr>
+              <th>Team</th>
+              {% for header in box.line_score_headers %}
+                <th>{{ header }}</th>
+              {% endfor %}
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in box.line_score_rows %}
+              <tr>
+                <th>{{ row.label }}</th>
+                {% for score in row.scores %}
+                  <td>{{ score }}</td>
+                {% endfor %}
+                <td><strong>{{ row.total }}</strong></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="boxscore-grid">
+    {% for team in [away, home] %}
+      <article class="panel">
+        <div class="section-head section-head--tight">
+          <div>
+            <p class="eyebrow">Boxscore</p>
+            <h2>{{ team.name }} ({{ team.abbr }})</h2>
+          </div>
+          <p>{{ team.score }}</p>
+        </div>
+
+        <div class="totals-strip">
+          <span>FG {{ team.totals.fg }}</span>
+          <span>3PT {{ team.totals.three }}</span>
+          <span>FT {{ team.totals.ft }}</span>
+          <span>REB {{ team.totals.rebounds }}</span>
+          <span>AST {{ team.totals.assists }}</span>
+          <span>TOV {{ team.totals.turnovers }}</span>
+        </div>
+
+        <div class="table-shell">
+          <table class="stat-table">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Pos</th>
+                <th>Min</th>
+                <th>PTS</th>
+                <th>REB</th>
+                <th>AST</th>
+                <th>STL</th>
+                <th>BLK</th>
+                <th>TOV</th>
+                <th>FG</th>
+                <th>3PT</th>
+                <th>FT</th>
+                <th>+/-</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in team.players %}
+                <tr class="{{ 'is-starter' if row.starter else '' }}">
+                  <th>{{ row.name }}{% if row.starter %} <span class="starter-flag">S</span>{% endif %}</th>
+                  <td>{{ row.position }}</td>
+                  <td>{{ row.minutes }}</td>
+                  <td>{{ row.points }}</td>
+                  <td>{{ row.rebounds }}</td>
+                  <td>{{ row.assists }}</td>
+                  <td>{{ row.steals }}</td>
+                  <td>{{ row.blocks }}</td>
+                  <td>{{ row.turnovers }}</td>
+                  <td>{{ row.fg }}</td>
+                  <td>{{ row.three }}</td>
+                  <td>{{ row.ft }}</td>
+                  <td>{{ row.plus_minus }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th>Team</th>
+                <td></td>
+                <td>{{ team.totals.minutes }}</td>
+                <td>{{ team.totals.points }}</td>
+                <td>{{ team.totals.rebounds }}</td>
+                <td>{{ team.totals.assists }}</td>
+                <td>{{ team.totals.steals }}</td>
+                <td>{{ team.totals.blocks }}</td>
+                <td>{{ team.totals.turnovers }}</td>
+                <td>{{ team.totals.fg }}</td>
+                <td>{{ team.totals.three }}</td>
+                <td>{{ team.totals.ft }}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </article>
+    {% endfor %}
+  </section>
+{% endif %}
+
+<section class="panel">
+  <div class="section-head section-head--tight">
+    <div>
+      <p class="eyebrow">Rotation Timeline</p>
+      <h2>Lineups by minute</h2>
+    </div>
+  </div>
+  {% if rotation_notes %}
+    <div class="note-list">
+      {% for note in rotation_notes %}
+        <span class="note-pill">{{ note }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <div class="plotwrap">
+    {{ html_fragment|safe }}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="section-head section-head--tight">
+    <div>
+      <p class="eyebrow">Defensive Matchups</p>
+      <h2>Who players were guarded by</h2>
+    </div>
+    <button id="loadMatchupsBtn" class="button button--ghost" type="button">Reload matchups</button>
+  </div>
+
+  <div id="matchupsStatus" class="muted"></div>
+
+  <div id="matchupsSection" style="display:none;">
+    <div class="togglebar">
+      <button class="togglebtn" id="btnGuardedBy" type="button">Guarded By</button>
+      <button class="togglebtn" id="btnDefends" type="button">Who They Guard</button>
+    </div>
+    <div class="togglebar">
+      <button class="togglebtn" id="btnHome" type="button">Home</button>
+      <button class="togglebtn" id="btnAway" type="button">Away</button>
+    </div>
+
+    <div id="homeTableWrap" class="tablewrap"></div>
+    <div id="awayTableWrap" class="tablewrap" style="display:none;"></div>
+  </div>
+</section>
+
+<script>
+function destroyIfDataTable(tableId) {
+  if (window.$ && $.fn.DataTable) {
+    const el = document.getElementById(tableId);
+    if (el && $.fn.dataTable.isDataTable(el)) {
+      $(el).DataTable().destroy();
+    }
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function renderTable(targetId, teamAbbr, rows, tableId) {
+  const wrap = document.getElementById(targetId);
+  const perspective = window.currentMatchupPerspective || "guarded_by";
+  const firstCol = perspective === "guarded_by" ? "Player" : "Defender";
+  const top1Col = perspective === "guarded_by" ? "Primary defender" : "Top 1 guarded";
+  const top2Col = perspective === "guarded_by" ? "Secondary defender" : "Top 2 guarded";
+  const top3Col = perspective === "guarded_by" ? "Third defender" : "Top 3 guarded";
+  const totalCol = perspective === "guarded_by" ? "Total guarded min" : "Total matchup min";
+  const sectionTitle = perspective === "guarded_by"
+    ? `${teamAbbr} players`
+    : `${teamAbbr} defenders`;
+
+  if (!rows || rows.length === 0) {
+    wrap.innerHTML = `<h3>${escapeHtml(sectionTitle)}</h3><div class="empty-card">No matchup data available for this side.</div>`;
+    return;
+  }
+
+  let html = `<h3>${escapeHtml(sectionTitle)}</h3>
+  <table id="${tableId}" class="display matchup-table" style="width:100%">
+    <thead>
+      <tr>
+        <th>${escapeHtml(firstCol)}</th>
+        <th>${escapeHtml(top1Col)}</th>
+        <th>${escapeHtml(top2Col)}</th>
+        <th>${escapeHtml(top3Col)}</th>
+        <th>${escapeHtml(totalCol)}</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  for (const r of rows) {
+    html += `<tr>
+      <td>${escapeHtml(r.subject || r.player || r.defender)}</td>
+      <td>${escapeHtml(r.top1)}</td>
+      <td>${escapeHtml(r.top2)}</td>
+      <td>${escapeHtml(r.top3)}</td>
+      <td data-order="${escapeHtml(r.total_min_value ?? r.total_min ?? 0)}">${escapeHtml(r.total_min)}</td>
+    </tr>`;
+  }
+
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+
+  if (window.$ && $.fn.DataTable) {
+    destroyIfDataTable(tableId);
+    $(`#${tableId}`).DataTable({
+      order: [[4, "desc"]],
+      pageLength: 15
+    });
+  }
+}
+
+function matchupRowsForPerspective(sidePayload) {
+  if (!sidePayload) {
+    return [];
+  }
+  if ((window.currentMatchupPerspective || "guarded_by") === "guarded_by") {
+    return sidePayload.guarded_by_rows || [];
+  }
+  return sidePayload.defends_rows || [];
+}
+
+function updateMatchupModeButtons() {
+  const perspective = window.currentMatchupPerspective || "guarded_by";
+  const guardedBtn = document.getElementById("btnGuardedBy");
+  const defendsBtn = document.getElementById("btnDefends");
+  if (guardedBtn) {
+    guardedBtn.classList.toggle("is-active", perspective === "guarded_by");
+  }
+  if (defendsBtn) {
+    defendsBtn.classList.toggle("is-active", perspective === "defends");
+  }
+}
+
+function rerenderMatchupTables(guarded) {
+  if (!guarded) {
+    return;
+  }
+  const homeAbbr = guarded?.home?.team_abbr || "{{ home_abbr or 'HOME' }}";
+  const awayAbbr = guarded?.away?.team_abbr || "{{ away_abbr or 'AWAY' }}";
+  renderTable("homeTableWrap", homeAbbr, matchupRowsForPerspective(guarded?.home), "guardTableHome");
+  renderTable("awayTableWrap", awayAbbr, matchupRowsForPerspective(guarded?.away), "guardTableAway");
+  updateMatchupModeButtons();
+}
+
+async function loadMatchupsOnce() {
+  const status = document.getElementById("matchupsStatus");
+  status.textContent = "Loading matchup data...";
+
+  const homeTeamId = "{{ home_team_id }}";
+  const awayTeamId = "{{ away_team_id }}";
+
+  try {
+    const url = `/api/matchups/{{ game_id }}?home_team_id=${homeTeamId}&away_team_id=${awayTeamId}`;
+    const resp = await fetch(url, { cache: "no-store" });
+    if (!resp.ok) {
+      throw new Error(`HTTP ${resp.status}`);
+    }
+
+    const guarded = await resp.json();
+    const homeAbbr = guarded?.home?.team_abbr || "{{ home_abbr or 'HOME' }}";
+    const awayAbbr = guarded?.away?.team_abbr || "{{ away_abbr or 'AWAY' }}";
+
+    document.getElementById("matchupsSection").style.display = "block";
+    document.getElementById("btnHome").textContent = `Home: ${homeAbbr}`;
+    document.getElementById("btnAway").textContent = `Away: ${awayAbbr}`;
+
+    window.matchupPayload = guarded;
+    rerenderMatchupTables(guarded);
+
+    document.getElementById("btnHome").onclick = () => {
+      document.getElementById("homeTableWrap").style.display = "block";
+      document.getElementById("awayTableWrap").style.display = "none";
+    };
+    document.getElementById("btnAway").onclick = () => {
+      document.getElementById("homeTableWrap").style.display = "none";
+      document.getElementById("awayTableWrap").style.display = "block";
+    };
+
+    status.textContent = "";
+    return true;
+  } catch (error) {
+    status.textContent = "Matchup fetch failed or the stats endpoint rejected the request. The page stays usable and you can retry.";
+    return false;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  window.currentMatchupPerspective = "guarded_by";
+  const btn = document.getElementById("loadMatchupsBtn");
+  const guardedBtn = document.getElementById("btnGuardedBy");
+  const defendsBtn = document.getElementById("btnDefends");
+
+  guardedBtn.addEventListener("click", () => {
+    window.currentMatchupPerspective = "guarded_by";
+    rerenderMatchupTables(window.matchupPayload);
+  });
+  defendsBtn.addEventListener("click", () => {
+    window.currentMatchupPerspective = "defends";
+    rerenderMatchupTables(window.matchupPayload);
+  });
+
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    await loadMatchupsOnce();
+    btn.disabled = false;
+  });
+
+  btn.disabled = true;
+  await loadMatchupsOnce();
+  btn.disabled = false;
+});
+</script>
+{% endblock %}

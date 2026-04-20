@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.cache/
+.selenium-cache/
+html/
+tmp_realsports_index.js
+real/.cache/
+real/.realsports_auth_cache.json
+real/.realsports_browser_session.json
+real/.realsports_env.ps1

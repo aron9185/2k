@@ -1,0 +1,4 @@
+
+ERROR: ConnectionError(ProtocolError('Connection aborted.', ConnectionResetError(10054, '遠端主機已強制關閉一個現存的連線。', None, 10054, None)))
+
+first400:

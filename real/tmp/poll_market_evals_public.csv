@@ -1,0 +1,8 @@
+poll_id,sport,content_text,market_family,poll_player_name,poll_stat,poll_line,poll_over_odds,poll_under_odds,poll_has_explicit_odds,matched_books,books,book_categories,fair_line,fair_over_prob,fair_under_prob,fair_over_odds,fair_under_odds,over_ev_percent,under_ev_percent,recommended_side,recommended_ev_percent,recommended_kelly_quarter,estimate_source
+341460,mlb,Total runs 8.5,game_total,,,8.5,100,100,False,0,,,,,,,,,,,,,
+341459,mlb,Gleyber Torres · 0.5 hits + runs + RBIs,player_over_under,gleyber torres,hitsrunsrbis,0.5,-190,135,True,5,kalshi,prediction_market,0.5,0.3003,0.6997,233,-233,-54.1647,64.4294,under,64.4294,0.119314,exact-line consensus
+341458,mlb,Sonny Gray · 4.5 Ks,player_over_under,sonny gray,strikeouts,4.5,-215,155,True,0,,,,,,,,,,,,,
+341412,nhl,Karel Vejmelka · 25.5 saves,player_over_under,karel vejmelka,saves,25.5,100,100,False,0,,,,,,,,,,,,,
+341410,nhl,Team to score more goals in P3,teamtowinperiod,,,,,,False,0,,,,,,,,,,,,,
+341406,nhl,Total goals 4.5,game_total,,,4.5,100,100,False,0,,,,,,,,,,,,,
+341404,nhl,Logan Cooley · 4.5 shots on goal,player_over_under,logan cooley,shots,4.5,100,100,False,0,,,,,,,,,,,,,

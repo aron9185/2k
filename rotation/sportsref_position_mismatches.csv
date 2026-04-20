@@ -1,0 +1,22 @@
+﻿GameID,CacheFile,Team,Player,NormalizedName,MismatchType,Reason,CandidateTeams
+0022500223,box_0022500223.json,ATL,Eli John Ndiaye,eli john ndiaye,missing_from_source,No matching player name in Sports Reference position file.,
+0022500223,box_0022500223.json,ATL,Nikola Đurišić,nikola đurisic,missing_from_source,No matching player name in Sports Reference position file.,
+0022500207,box_0022500207.json,BKN,Egor Dëmin,egor demin,missing_from_source,No matching player name in Sports Reference position file.,
+0022500221,box_0022500221.json,DAL,Danté Exum,dante exum,missing_from_source,No matching player name in Sports Reference position file.,
+0022500221,box_0022500221.json,DAL,Kyrie Irving,kyrie irving,missing_from_source,No matching player name in Sports Reference position file.,
+0022500212,box_0022500212.json,DEN,Tamar Bates,tamar bates,missing_from_source,No matching player name in Sports Reference position file.,
+0022500214,box_0022500214.json,DET,Ronald Holland II,ronald holland,missing_from_source,No matching player name in Sports Reference position file.,
+0022500047,box_0022500047.json,GSW,Alex Toohey,alex toohey,missing_from_source,No matching player name in Sports Reference position file.,
+0022500047,box_0022500047.json,GSW,Jackson Rowe,jackson rowe,missing_from_source,No matching player name in Sports Reference position file.,
+0022500218,box_0022500218.json,HOU,Fred VanVleet,fred vanvleet,missing_from_source,No matching player name in Sports Reference position file.,
+0022500218,box_0022500218.json,HOU,Kevon Harris,kevon harris,missing_from_source,No matching player name in Sports Reference position file.,
+0022500211,box_0022500211.json,IND,Tyrese Haliburton,tyrese haliburton,missing_from_source,No matching player name in Sports Reference position file.,
+0022500039,box_0022500039.json,MIA,Terry Rozier,terry rozier,missing_from_source,No matching player name in Sports Reference position file.,
+0022500213,box_0022500213.json,MIL,AJ Green,aj green,missing_from_source,No matching player name in Sports Reference position file.,
+0022500210,box_0022500210.json,OKC,Thomas Sorber,thomas sorber,missing_from_source,No matching player name in Sports Reference position file.,
+0022500219,box_0022500219.json,POR,Damian Lillard,damian lillard,missing_from_source,No matching player name in Sports Reference position file.,
+0022500211,box_0022500211.json,UTA,Georges Niang,georges niang,missing_from_source,No matching player name in Sports Reference position file.,
+0022500207,box_0022500207.json,BKN,Haywood Highsmith,haywood highsmith,team_mismatch,"Name exists under different team code(s): PHO, PHX",PHO|PHX
+0022500211,box_0022500211.json,UTA,John Tonje,john tonje,team_mismatch,Name exists under different team code(s): BOS,BOS
+0022500938,box_0022500938.json,WAS,Anthony Davis,anthony davis,team_mismatch,Name exists under different team code(s): DAL,DAL
+0022500938,box_0022500938.json,WAS,D'Angelo Russell,d angelo russell,team_mismatch,Name exists under different team code(s): DAL,DAL

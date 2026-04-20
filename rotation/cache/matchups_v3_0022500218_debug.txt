@@ -1,0 +1,1 @@
+ERROR: ProxyError(MaxRetryError("HTTPSConnectionPool(host='stats.nba.com', port=443): Max retries exceeded with url: /stats/boxscorematchupsv3?GameID=0022500218&LeagueID=00 (Caused by ProxyError('Unable to connect to proxy', ConnectTimeoutError(<HTTPSConnection(host='127.0.0.1', port=9) at 0x20c6474c050>, 'Connection to 127.0.0.1 timed out. (connect timeout=1.5)')))"))

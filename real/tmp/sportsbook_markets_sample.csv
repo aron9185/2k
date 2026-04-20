@@ -1,0 +1,6 @@
+book,sport,market_type,stat,player_name,line,home_team,away_team,over_odds,under_odds,updated_at,period
+DraftKings,mlb,player_over_under,strikeouts,Sonny Gray,4.5,BOS,DET,-130,100,2026-04-20T15:20:00+00:00,2
+FanDuel,mlb,player_over_under,strikeouts,Sonny Gray,5.5,BOS,DET,145,-175,2026-04-20T15:21:00+00:00,2
+Pinnacle,mlb,player_over_under,hits+runs+rbi,Gleyber Torres,0.5,BOS,DET,-155,125,2026-04-20T15:40:00+00:00,3
+DraftKings,mlb,game_total,total,,8.5,BOS,DET,-105,-115,2026-04-20T15:46:00+00:00,
+Circa,nhl,player_over_under,saves,Karel Vejmelka,25.5,VGK,UTA,-120,100,2026-04-20T04:00:00+00:00,2

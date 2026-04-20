@@ -1,0 +1,21 @@
+{
+  "data": [
+    {
+      "data": {
+        "id": "6120261cea4488c9fd5c57c5",
+        "league": {
+          "abbr": "N",
+          "id": "54457dce300969b132fcfb34",
+          "name": "NBA"
+        },
+        "name": "2021-2022"
+      }
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "totalRecords": 1
+    },
+    "warnings": []
+  }
+}

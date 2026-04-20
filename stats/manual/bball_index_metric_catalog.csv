@@ -1,0 +1,656 @@
+Metric,RawValue
+Average Dribbles Per Touch,Average Dribbles Per Touch *
+Avg Speed Defense,Avg Speed Defense *
+Avg Speed Offense,Avg Speed Offense *
+% of Time as Big,% of Time as Big
+Dribbles Per Second on Offense,Dribbles Per Second on Offense *
+Games Played,Games Played *
+Games Started,Games Started *
+Percent of Games Started,Percent of Games Started *
+% of Time as Guard,% of Time as Guard
+Minutes Consistency,Minutes Consistency *
+Minutes Per Game,Minutes Per Game *
+Offensive Involvement Rate,Offensive Involvement Rate *
+On-Ball Action Share,On-Ball Action Share *
+Ball Dominance %,Ball Dominance % *
+Primary Defender Involvement Rate,Primary Defender Involvement Rate *
+Quick Decision Making Assist %,Quick Decision Making Assist % *
+Quick Decision Making Assists/100,Quick Decision Making Assists/100 *
+Quick Decision Making Assists/75,Quick Decision Making Assists/75 *
+Quick Decision Making Pass %,Quick Decision Making Pass % *
+Quick Decision Making Shot %,Quick Decision Making Shot % *
+Quick Decision Making Shots/100,Quick Decision Making Shots/100 *
+Quick Decision Making Shots/75,Quick Decision Making Shots/75 *
+Quick Decision Making %,Quick Decision Making % *
+Scoring Possessions Per 75 Possessions,Scoring Possessions Per 75 Possessions *
+Stable Penalty Offense Poss%,Stable Penalty Offense Poss% *
+Stable PenaltyDefensePoss%,Stable PenaltyDefensePoss% *
+Stable True Usage%,Stable True Usage% *
+Time Off-Ball %,Time Off-Ball % *
+Touches Per 75,Touches Per 75 *
+Touches Per Game,Touches Per Game *
+True Shot Attempts Per 75 Possessions,True Shot Attempts Per 75 Possessions *
+True Usage,True Usage *
+Two-Way Load,Two-Way Load *
+Two-Way Usage,Two-Way Usage *
+Usage Consistency,Usage Consistency *
+Usage Rate,Usage Rate *
+% of Time as Wing,% of Time as Wing
+Advanced Position,Advanced Position *
+Age,Age *
+Clutch Minutes Played,Clutch Minutes Played *
+Clutch Time%,Clutch Time% *
+Defensive Position,Defensive Position *
+Garbage Time%,Garbage Time% *
+Height,Height *
+Minutes,Minutes *
+Non Garbage-Time Minutes,Non Garbage-Time Minutes *
+Offense Position,Offense Position *
+Salary,Salary *
+Weight,Weight *
+Years of Experience,Years of Experience *
+DHO Coverage Aggression,DHO Coverage Aggression *
+DHO Coverage Versatility,DHO Coverage Versatility *
+Defensive Role Versatility,Defensive Role Versatility *
+% of Minutes in Foul Trouble,% of Minutes in Foul Trouble *
+Fouls Committed / 75,Fouls Committed / 75 *
+Fouls Consistency,Fouls Consistency *
+Fouls Drawn / 75,Fouls Drawn / 75 *
+Off-Ball Coverage Aggression,Off-Ball Coverage Aggression *
+Off-Ball Coverage Versatility,Off-Ball Coverage Versatility *
+Overall Coverage Aggression,Overall Coverage Aggression *
+Overall Coverage Versatility,Overall Coverage Versatility *
+P&R Coverage Aggression,P&R Coverage Aggression *
+P&R Coverage Versatility,P&R Coverage Versatility *
+Shot Versatility,Shot Versatility *
+Stable Avg 2PT Shot Distance,Stable Avg 2PT Shot Distance *
+3PT Attempt Consistency,3PT Attempt Consistency *
+3PT FGA Per 75 Possessions,3PT FGA Per 75 Possessions *
+3PT Foul Rate,3PT Foul Rate *
+3PT Functional Versatility,3PT Functional Versatility *
+3PT Make Consistency,3PT Make Consistency *
+3PT Openness Rating,3PT Openness Rating *
+3PT Pull Up FG%,3PT Pull Up FG% *
+3PT Pull Up Openness Rating,3PT Pull Up Openness Rating *
+3PT Pull Up Shot Creation,3PT Pull Up Shot Creation *
+3PT Pull Up Shot Making,3PT Pull Up Shot Making *
+3PT Pull Up Shot Making Efficiency,3PT Pull Up Shot Making Efficiency *
+3PT Pull Up Shot Quality,3PT Pull Up Shot Quality *
+3PT Pull Up Talent,3PT Pull Up Talent *
+3PT Shooting Talent,3PT Shooting Talent *
+3PT Shot Creation,3PT Shot Creation *
+3PT Shot Making,3PT Shot Making *
+3PT Shot Making Efficiency,3PT Shot Making Efficiency *
+3PT Shot Quality,3PT Shot Quality *
+3PT Versatility,3PT Versatility *
+3PTA Open%,3PTA Open%
+3PT Attempt Rate,3PT Attempt Rate *
+3PT %,3PT % *
+ATB 3PT FG%,ATB 3PT FG% *
+Average 3PT Attempt Distance,Average 3PT Attempt Distance *
+C&S 3PT Openness Rating,C&S 3PT Openness Rating *
+C&S 3PT Shooting Talent,C&S 3PT Shooting Talent *
+C&S 3PT Shot Making,C&S 3PT Shot Making *
+C&S 3PT Shot Making Efficiency,C&S 3PT Shot Making Efficiency *
+C&S 3PT Shot Quality,C&S 3PT Shot Quality *
+C&S 3PT FG%,C&S 3PT FG% *
+C&S to Pull Up Ratio,C&S to Pull Up Ratio *
+Corner 3 to ATB Ratio,Corner 3 to ATB Ratio *
+Corner 3PT FG%,Corner 3PT FG% *
+Deep 3PT Openness Rating,Deep 3PT Openness Rating *
+Deep 3PT Shooting Talent,Deep 3PT Shooting Talent *
+Deep 3PT Shot Creation,Deep 3PT Shot Creation *
+Deep 3PT Shot Making,Deep 3PT Shot Making *
+Deep 3PT Shot Making Efficiency,Deep 3PT Shot Making Efficiency *
+Deep 3PT Shot Quality,Deep 3PT Shot Quality *
+Off-Ball Gravity,Off-Ball Gravity *
+Overall Gravity,Overall Gravity *
+Stable ATB 3PT%,Stable ATB 3PT% *
+Stable Avg 3PT Shot Distance,Stable Avg 3PT Shot Distance *
+Stable C&S 3PT%,Stable C&S 3PT% *
+Stable Corner 3PT%,Stable Corner 3PT% *
+Stable NonHeave ATB 3PT%,Stable NonHeave ATB 3PT% *
+Stable Pull Up 3PT%,Stable Pull Up 3PT% *
+Floater FG%,Floater FG% *
+Floater Openness Rating,Floater Openness Rating *
+Floater Shot Creation,Floater Shot Creation *
+Floater Shot Making,Floater Shot Making *
+Floater Shot Making Efficiency,Floater Shot Making Efficiency *
+Floater Shot Quality,Floater Shot Quality *
+Floater Talent,Floater Talent *
+Isolation Foul Drawn Rate,Isolation Foul Drawn Rate
+Isolation Turnover Rate,Isolation Turnover Rate
+Long Mid Range FG%,Long Mid Range FG% *
+Midrange Openness Rating,Midrange Openness Rating *
+Midrange Pull Up FG%,Midrange Pull Up FG% *
+Midrange Pull Up Openness Rating,Midrange Pull Up Openness Rating *
+Midrange Pull Up Shot Creation,Midrange Pull Up Shot Creation *
+Midrange Pull Up Shot Making,Midrange Pull Up Shot Making *
+Midrange Pull Up Shot Making Efficiency,Midrange Pull Up Shot Making Efficiency *
+Midrange Pull Up Shot Quality,Midrange Pull Up Shot Quality *
+Midrange Pull Up Talent,Midrange Pull Up Talent *
+Midrange Shot Creation,Midrange Shot Creation *
+Midrange Shot Making,Midrange Shot Making *
+Midrange Shot Making Efficiency,Midrange Shot Making Efficiency *
+Midrange Shot Quality,Midrange Shot Quality *
+Midrange Talent,Midrange Talent *
+Non-Paint Midrange Openness Rating,Non-Paint Midrange Openness Rating *
+Non-Paint Midrange Shooting Talent,Non-Paint Midrange Shooting Talent *
+Non-Paint Midrange Shot Creation,Non-Paint Midrange Shot Creation *
+Non-Paint Midrange Shot Making,Non-Paint Midrange Shot Making *
+Non-Paint Midrange Shot Making Efficiency,Non-Paint Midrange Shot Making Efficiency *
+Non-Paint Midrange Shot Quality,Non-Paint Midrange Shot Quality *
+One on One Stable eFG%,One on One Stable eFG% *
+One on One Shooting Talent,One on One Shooting Talent *
+One on One Shot Making,One on One Shot Making *
+One on One Shot Making Efficiency,One on One Shot Making Efficiency *
+One on One Shot Quality,One on One Shot Quality *
+Paint Openness Rating,Paint Openness Rating *
+Paint Shooting Talent,Paint Shooting Talent *
+Paint Shot Creation,Paint Shot Creation *
+Paint Shot Making,Paint Shot Making *
+Paint Shot Making Efficiency,Paint Shot Making Efficiency *
+Paint Shot Quality,Paint Shot Quality *
+Pull-Up Openness Rating,Pull-Up Openness Rating *
+Pull-Up Shooting Talent,Pull-Up Shooting Talent *
+Pull-Up Shot Creation,Pull-Up Shot Creation *
+Pull-Up Shot Making,Pull-Up Shot Making *
+Pull-Up Shot Making Efficiency,Pull-Up Shot Making Efficiency *
+Pull-Up Shot Quality,Pull-Up Shot Quality *
+Self-Created Openness Rating,Self-Created Openness Rating *
+Short Mid Range FG%,Short Mid Range FG% *
+Stable Long Midrange FG%,Stable Long Midrange FG% *
+Stable Short Midrange FG%,Stable Short Midrange FG% *
+Cuts Per 75 Possessions,Cuts Per 75 Possessions
+Movement Attack Rate,Movement Attack Rate
+Movement Distance Rating,Movement Distance Rating *
+Movement Scoring Impact Per 75 Possessions,Movement Scoring Impact Per 75 Possessions
+Movement Points Per 75 Possessions,Movement Points Per 75 Possessions
+Movement Speed Rating,Movement Speed Rating *
+Off-Ball Screen Possessions Per 75 Possessions,Off-Ball Screen Possessions Per 75 Possessions
+% of Shots at Rim Unassisted,% of Shots at Rim Unassisted *
+Contact Finish Rate,Contact Finish Rate *
+Drive Assist Rate,Drive Assist Rate *
+Drive Assist Per Pass Rate,Drive Assist Per Pass Rate *
+Drive Foul Drawn Rate,Drive Foul Drawn Rate *
+Drive Foul Rate,Drive Foul Rate *
+Drive Passout Rate,Drive Passout Rate *
+Drives Per 75 Possessions,Drives Per 75 Possessions *
+Rim Openness Rating,Rim Openness Rating *
+Finishing Talent,Finishing Talent *
+Rim Attempt Consistency,Rim Attempt Consistency *
+Rim FG%,Rim FG% *
+Rim Makes Consistency,Rim Makes Consistency *
+Rim Shot Creation,Rim Shot Creation *
+Rim Shot Making,Rim Shot Making *
+Rim Shot Making Efficiency,Rim Shot Making Efficiency *
+Rim Shot Quality,Rim Shot Quality *
+Stable Blocked Shots At Rim Per 75,Stable Blocked Shots At Rim Per 75 *
+Stable Rim FG%,Stable Rim FG% *
+Rim Shot Attempts Per 75 Possessions,Rim Shot Attempts Per 75 Possessions *
+Unassisted Rim Shot Attempts Per 75 Possessions,Unassisted Rim Shot Attempts Per 75 Possessions *
+Roll Man Poss Per 75 Possessions,Roll Man Poss Per 75 Possessions
+Screen Assists Per 75 Possessions,Screen Assists Per 75 Possessions
+Screening Talent,Screening Talent *
+Roll Man Impact Per 75 Possessions,Roll Man Impact Per 75 Possessions
+Assist Consistency,Assist Consistency *
+Assist Points Consistency,Assist Points Consistency *
+Assist Points Per 75 Possessions,Assist Points Per 75 Possessions *
+At Rim Assist Consistency,At Rim Assist Consistency *
+Box Creation,Box Creation *
+High Value Assists Per 75 Possessions,High Value Assists Per 75 Possessions *
+Lob Passing Creation Rate,Lob Passing Creation Rate *
+On-Ball Gravity,On-Ball Gravity *
+P&R Creation Rate,P&R Creation Rate *
+Passing Creation Quality,Passing Creation Quality *
+Passing Creation Volume,Passing Creation Volume *
+Passing Efficiency,Passing Efficiency *
+Passing Versatility,Passing Versatility *
+Pick 6s Thrown Per 75 Poss,Pick 6s Thrown Per 75 Poss *
+Playmaking Talent,Playmaking Talent *
+Potential Assists Per 100 Passes,Potential Assists Per 100 Passes *
+Potential Assists Per 75 Possessions,Potential Assists Per 75 Possessions *
+Role-Adjusted Potential Assists Per 100 Passes,Role-Adjusted Potential Assists Per 100 Passes *
+Stable At Rim Assists Per 75,Stable At Rim Assists Per 75 *
+Stable Bad Pass Out Of Bounds Turnovers Per 75,Stable Bad Pass Out Of Bounds Turnovers Per 75 *
+Stable Bad Pass Turnovers Per 75,Stable Bad Pass Turnovers Per 75 *
+Stable Dead Ball Turnovers Per 75,Stable Dead Ball Turnovers Per 75 *
+Stable Live Ball Bad Pass Turnovers Per 75,Stable Live Ball Bad Pass Turnovers Per 75 *
+Stable Live Ball Turnovers Per 75,Stable Live Ball Turnovers Per 75 *
+Stable Lost Ball Out Of Bounds Turnovers Per 75,Stable Lost Ball Out Of Bounds Turnovers Per 75 *
+Stable Lost Ball Turnovers Per 75,Stable Lost Ball Turnovers Per 75 *
+Stable Non Bad Pass Turnovers Per 75,Stable Non Bad Pass Turnovers Per 75 *
+Stable Step Out Of Bounds Turnovers Per 75,Stable Step Out Of Bounds Turnovers Per 75 *
+Turnovers Consistency,Turnovers Consistency *
+Turnovers Per 100 Touches,Turnovers Per 100 Touches *
+Paint Touches Per 75 Possessions,Paint Touches Per 75 Possessions *
+Post Up Impact Per 75 Possessions,Post Up Impact Per 75 Possessions
+Post Up Shooting Talent,Post Up Shooting Talent *
+Post Up Shot Making,Post Up Shot Making *
+Post Up Shot Making Efficiency,Post Up Shot Making Efficiency *
+Post Up Shot Quality,Post Up Shot Quality *
+Stable Post Up PPP,Stable Post Up PPP *
+Adjusted Offensive Rebounding Success Rate,Adjusted Offensive Rebounding Success Rate *
+Average Offensive Rebounding Distance from Rim,Average Offensive Rebounding Distance from Rim *
+Percentage of Offensive Rebounds Contested,Percentage of Offensive Rebounds Contested *
+Offensive Rebounding Chances Per 75 Possessions,Offensive Rebounding Chances Per 75 Possessions *
+Offensive Rebounds Per Game,Offensive Rebounds Per Game *
+Offensive Rebounds Per 75 Possessions,Offensive Rebounds Per 75 Possessions *
+Offensive Rebounding Consistency,Offensive Rebounding Consistency *
+Offensive Rebounding Conversion Skill,Offensive Rebounding Conversion Skill *
+Offensive Rebounding Crashing Skill,Offensive Rebounding Crashing Skill *
+Offensive Rebounding Talent,Offensive Rebounding Talent *
+Putback Scoring Impact Per 75 Possessions,Putback Scoring Impact Per 75 Possessions
+Stable FT Offensive Rebounds Per 75,Stable FT Offensive Rebounds Per 75 *
+Stable Self OReb Percent of FGA,Stable Self OReb Percent of FGA *
+Stable Self OReb Percent of OR,Stable Self OReb Percent of OR *
+Stable Self OReb Percent on Rim FGA,Stable Self OReb Percent on Rim FGA *
+Stable Self Offensive Rebounds Per 75,Stable Self Offensive Rebounds Per 75 *
+Percentage of Shots at Rim Contested,Percentage of Shots at Rim Contested
+Block Rate on Contests,Block Rate on Contests
+Blocks Per 75 Possessions,Blocks Per 75 Possessions *
+Blocks Consistency,Blocks Consistency *
+Help Defense Talent,Help Defense Talent *
+Help Defensive Activity,Help Defensive Activity *
+Help Effectiveness Rating,Help Effectiveness Rating *
+Stable Rim DFGA Per 75 Possessions,Stable Rim DFGA Per 75 Possessions *
+Stable Defensive FG% at Rim,Stable Defensive FG% at Rim *
+Stable Rim dFG% vs. Expected,Stable Rim dFG% vs. Expected *
+Post Defense,Post Defense *
+Rim Contests Per 75 Possessions,Rim Contests Per 75 Possessions
+Rim Deterrence Per 100,Rim Deterrence Per 100 *
+Rim Deterrence,Rim Deterrence *
+Rim Disruption,Rim Disruption *
+Rim Points Saved Per 75 Possessions,Rim Points Saved Per 75 Possessions
+Rim Protection,Rim Protection *
+Rim dFG% vs Expected,Rim dFG% vs Expected
+Screener Mobile Defense,Screener Mobile Defense *
+Screener Rim Defense,Screener Rim Defense *
+Stable Blocks Per Defensive Goaltends Ratio,Stable Blocks Per Defensive Goaltends Ratio *
+Stable Blocks Per Fouls Ratio,Stable Blocks Per Fouls Ratio *
+Stable Blocks Per Shooting Fouls Ratio,Stable Blocks Per Shooting Fouls Ratio *
+Stable Defensive Goaltends Per 75,Stable Defensive Goaltends Per 75 *
+3PT Contests Per 75 Possessions,3PT Contests Per 75 Possessions
+Ball Screen Navigation,Ball Screen Navigation *
+Defensive Miles Per 75 Possessions,Defensive Miles Per 75 Possessions *
+Deflections Per 75 Possessions,Deflections Per 75 Possessions
+Loose Ball Recovery Rate,Loose Ball Recovery Rate
+Matchup Adjusted Defensive Feet Per Minute,Matchup Adjusted Defensive Feet Per Minute *
+Off-Ball Chaser Defense,Off-Ball Chaser Defense *
+Passing Lane Defense,Passing Lane Defense *
+Perimeter Isolation Defense,Perimeter Isolation Defense *
+Pick 6s per 75 Poss,Pick 6s per 75 Poss *
+Pickpocket Rating,Pickpocket Rating *
+Stable Steals Per Loose Ball Fouls Ratio,Stable Steals Per Loose Ball Fouls Ratio *
+Steals Per 75 Possessions,Steals Per 75 Possessions *
+Steals Consistency,Steals Consistency *
+Adjusted Defensive Rebounding Success Rate,Adjusted Defensive Rebounding Success Rate *
+Average Defensive Rebounding Distance from Rim,Average Defensive Rebounding Distance from Rim *
+Percentage of Defensive Rebounds Contested,Percentage of Defensive Rebounds Contested *
+Defensive Rebonding Chances Per 75 Possessions,Defensive Rebonding Chances Per 75 Possessions *
+Defensive Rebounds Per Game,Defensive Rebounds Per Game *
+Defensive Reb Per 75 Possessions,Defensive Reb Per 75 Possessions *
+Defensive Rebounding Consistency,Defensive Rebounding Consistency *
+Defensive Rebounding Conversion Skill,Defensive Rebounding Conversion Skill *
+Defensive Rebounding Crashing Skill,Defensive Rebounding Crashing Skill *
+Defensive Rebounding Talent,Defensive Rebounding Talent *
+Stable Defensive Two Point Rebounds Per 75,Stable Defensive Two Point Rebounds Per 75 *
+Stable FT Defensive Rebounds Per 75,Stable FT Defensive Rebounds Per 75 *
+Stable FT Defensive Rebounds as a % of Defensive Rebounds,Stable FT Defensive Rebounds as a % of Defensive Rebounds *
+% of Time Guarding Athletic Finishers,% of Time Guarding Athletic Finishers *
+% of Time Guarding Low Minute Players,% of Time Guarding Low Minute Players *
+% of Time Guarding Movement Shooters,% of Time Guarding Movement Shooters *
+% of Time Guarding Off-Screen Shooters,% of Time Guarding Off-Screen Shooters *
+% of Time Guarding Post Scorers,% of Time Guarding Post Scorers *
+% of Time Guarding Primary Ball Handlers,% of Time Guarding Primary Ball Handlers *
+% of Time Guarding Roll & Cut Bigs,% of Time Guarding Roll & Cut Bigs *
+% of Time Guarding Secondary Ball Handlers,% of Time Guarding Secondary Ball Handlers *
+% of Time Guarding Shot Creators,% of Time Guarding Shot Creators *
+% of Time Guarding Slashers,% of Time Guarding Slashers *
+% of Time Guarding Stationary Shooters,% of Time Guarding Stationary Shooters *
+% of Time Guarding Stretch Bigs,% of Time Guarding Stretch Bigs *
+% of Time Guarding Versatile Bigs,% of Time Guarding Versatile Bigs *
+Defensive Position Estimate,Defensive Position Estimate *
+Defensive Positional Versatility,Defensive Positional Versatility *
+% of Time Guarding Centers,% of Time Guarding Centers *
+% of Time Guarding Power Forwards,% of Time Guarding Power Forwards *
+% of Time Guarding Point Guards,% of Time Guarding Point Guards *
+% of Time Guarding Small Forwards,% of Time Guarding Small Forwards *
+% of Time Guarding Shooting Guards,% of Time Guarding Shooting Guards *
+% of Time Guarding Usage Tier 1 Players,% of Time Guarding Usage Tier 1 Players *
+% of Time Guarding Usage Tier 2 Players,% of Time Guarding Usage Tier 2 Players *
+% of Time Guarding Usage Tier 3 Players,% of Time Guarding Usage Tier 3 Players *
+% of Time Guarding Usage Tier 4 Players,% of Time Guarding Usage Tier 4 Players *
+% of Time Guarding Usage Tier 5 Players,% of Time Guarding Usage Tier 5 Players *
+% of Time Guarding Usage Tier 6 Players,% of Time Guarding Usage Tier 6 Players *
+Guarded by Ball Screen Navigation,Guarded by Ball Screen Navigation *
+Guarded by Help Defensive Activity,Guarded by Help Defensive Activity *
+Guarded by Matchup Difficulty,Guarded by Matchup Difficulty *
+Guarded by Off-Ball Chaser Defense,Guarded by Off-Ball Chaser Defense *
+Guarded by Perimeter Isolation Defense,Guarded by Perimeter Isolation Defense *
+Guarded by Rim Protection,Guarded by Rim Protection *
+Avg Height Guarded,Avg Height Guarded *
+Guarded 3PT Shooting Talent,Guarded 3PT Shooting Talent *
+Guarded 3PT Shot Creation,Guarded 3PT Shot Creation *
+Guarded 3PT Shot Making,Guarded 3PT Shot Making *
+Guarded On-Ball %,Guarded On-Ball % *
+Guarded Bigs%,Guarded Bigs% *
+Guarded Finishing Talent,Guarded Finishing Talent *
+Guarded Guards%,Guarded Guards% *
+Guarded Midrange Talent,Guarded Midrange Talent *
+Guarded O-LEBRON,Guarded O-LEBRON *
+Guarded Offensive Involvement Rate,Guarded Offensive Involvement Rate *
+Guarded Offensive Rebounding Talent,Guarded Offensive Rebounding Talent *
+Guarded One on One Talent,Guarded One on One Talent *
+Guarded Pick & Roll Ball Handler Frequency%,Guarded Pick & Roll Ball Handler Frequency% *
+Guarded Playmaking Talent,Guarded Playmaking Talent *
+Guarded Projected Usage%,Guarded Projected Usage% *
+Guarded Rim Shot Creation,Guarded Rim Shot Creation *
+Guarded Rim Shot Making,Guarded Rim Shot Making *
+Guarded Shooting Talent,Guarded Shooting Talent *
+Guarded Stable Post Up PPP,Guarded Stable Post Up PPP *
+Guarded USG%,Guarded USG% *
+Guarded Wing%,Guarded Wing% *
+Matchup Difficulty,Matchup Difficulty *
+Padded Guarded O-LEBRON,Padded Guarded O-LEBRON *
+Padded Guarded Usage%,Padded Guarded Usage% *
+BPM LA-RAPM,BPM LA-RAPM *
+BPM,BPM *
+D-BPM LA-RAPM,D-BPM LA-RAPM *
+D-DPM,D-DPM *
+D-DRIP,D-DRIP *
+D-EBRON,D-EBRON *
+D-LEBRON,D-LEBRON *
+D-LEBRON Box Impact,D-LEBRON Box Impact *
+D-LEBRON Vs Role Average,D-LEBRON Vs Role Average *
+DPM,DPM *
+DRIP,DRIP *
+D-BPM,D-BPM *
+Defensive Impact Luck,Defensive Impact Luck *
+Defensive Playmaking,Defensive Playmaking *
+Defensive Portability,Defensive Portability  *
+Defensive RAPTOR,Defensive RAPTOR *
+EBRON,EBRON *
+Luck-Adjusted RAPM,Luck-Adjusted RAPM *
+Luck-Adjusted DRAPM,Luck-Adjusted DRAPM *
+Luck-Adjusted ORAPM,Luck-Adjusted ORAPM *
+LEBRON,LEBRON *
+LEBRON Box Impact,LEBRON Box Impact *
+LEBRON Contract Value,LEBRON Contract Value *
+LEBRON Defensive Points Saved,LEBRON Defensive Points Saved *
+LEBRON Offensive Points Added,LEBRON Offensive Points Added *
+LEBRON Salary Over Expected,LEBRON Salary Over Expected *
+LEBRON Vs Role Average,LEBRON Vs Role Average *
+LEBRON WAR,LEBRON WAR *
+Multi-Year D-LEBRON,Multi-Year D-LEBRON *
+Multi-Year LEBRON,Multi-Year LEBRON *
+Multi-Year O-LEBRON,Multi-Year O-LEBRON *
+O-BPM LA-RAPM,O-BPM LA-RAPM *
+O-DPM,O-DPM *
+O-DRIP,O-DRIP *
+O-EBRON,O-EBRON *
+O-LEBRON,O-LEBRON *
+O-LEBRON Box Impact,O-LEBRON Box Impact *
+O-LEBRON Vs Role Average,O-LEBRON Vs Role Average *
+O-BPM,O-BPM *
+Offensive Impact Luck,Offensive Impact Luck *
+Offensive Optimization,Offensive Optimization *
+Offensive Portability,Offensive Portability *
+Offensive RAPTOR,Offensive RAPTOR *
+Offensive Talent,Offensive Talent *
+Portability,Portability *
+Predictive D-LEBRON,Predictive D-LEBRON *
+Predictive LEBRON,Predictive LEBRON *
+Predictive O-LEBRON,Predictive O-LEBRON *
+RAPTOR,RAPTOR *
+RAPTOR WAR,RAPTOR WAR *
+Stable On-Court DRtg,Stable On-Court DRtg *
+Stable On-Court Net Rating,Stable On-Court Net Rating *
+Stable On-Court ORtg,Stable On-Court ORtg *
+Time Decay D-RAPM,Time Decay D-RAPM *
+Time Decay LA-DRAPM,Time Decay LA-DRAPM *
+Time Decay LA-ORAPM,Time Decay LA-ORAPM *
+Time Decay LA-RAPM,Time Decay LA-RAPM *
+Time Decay O-RAPM,Time Decay O-RAPM *
+Time Decay RAPM,Time Decay RAPM *
+Total Impact Luck,Total Impact Luck *
+VORP,VORP *
+delta DRIP,delta DRIP *
+3PTM Per 75 Possessions,3PTM Per 75 Possessions *
+3PT Pull Up FGA Per 75,3PT Pull Up FGA Per 75 *
+3PT Pull Up FGM Per 75,3PT Pull Up FGM Per 75 *
+Assists Per 75 Possessions,Assists Per 75 Possessions *
+Cut Scoring Impact Per 75,Cut Scoring Impact Per 75
+DraftKings Fantasy Points Per 75 Possessions,DraftKings Fantasy Points Per 75 Possessions *
+Midrange FGA Per 75,Midrange FGA Per 75 *
+Midrange FGM Per 75,Midrange FGM Per 75 *
+Midrange Pull Up FGA Per 75,Midrange Pull Up FGA Per 75 *
+Midrange Pull Up FGM Per 75,Midrange Pull Up FGM Per 75 *
+Off-Screen Impact Per 75,Off-Screen Impact Per 75
+Personal Fouls Per 75 Possessions,Personal Fouls Per 75 Possessions *
+Points Per 75 Possessions,Points Per 75 Possessions *
+Rebounds Per 75 Possessions,Rebounds Per 75 Possessions *
+Stable 2PTA Per 75,Stable 2PTA Per 75 *
+Stable 3-Second Violations Per 75,Stable 3-Second Violations Per 75
+Stable 3PTA Per 75,Stable 3PTA Per 75 *
+Stable And 1s Per 75,Stable And 1s Per 75 *
+Stable Assists Per 75,Stable Assists Per 75 *
+Stable Bad Pass Steals Per 75,Stable Bad Pass Steals Per 75 *
+Stable Blocks Per 75,Stable Blocks Per 75 *
+Stable Charge Fouls Drawn Per 75,Stable Charge Fouls Drawn Per 75 *
+Stable Charge Fouls Per 75,Stable Charge Fouls Per 75 *
+Stable Defensive 3-Second Violations Per 75,Stable Defensive 3-Second Violations Per 75 *
+Stable Defensive Rebounds Per 75,Stable Defensive Rebounds Per 75 *
+Stable FGA Per 75,Stable FGA Per 75 *
+Stable FTA Per 75,Stable FTA Per 75 *
+Stable Fouls Drawn Per 75,Stable Fouls Drawn Per 75 *
+Stable Fouls Per 75,Stable Fouls Per 75 *
+Stable Loose Ball Fouls Drawn Per 75,Stable Loose Ball Fouls Drawn Per 75 *
+Stable Loose Ball Fouls Per 75,Stable Loose Ball Fouls Per 75 *
+Stable Lost Ball Steals Per 75,Stable Lost Ball Steals Per 75 *
+Stable Non Shooting Fouls Drawn Per 75,Stable Non Shooting Fouls Drawn Per 75 *
+Stable Non Shooting Penalty Non Take Fouls Drawn Per 75,Stable Non Shooting Penalty Non Take Fouls Drawn Per 75 *
+Stable Non Shooting Penalty Non Take Fouls Per 75,Stable Non Shooting Penalty Non Take Fouls Per 75 *
+Stable Offensive Fouls Drawn Per 75,Stable Offensive Fouls Drawn Per 75 *
+Stable Offensive Fouls Per 75,Stable Offensive Fouls Per 75 *
+Stable Offensive Goaltends Per 75,Stable Offensive Goaltends Per 75 *
+Stable Offensive Rebounds Per 75,Stable Offensive Rebounds Per 75 *
+Stable Plus Minus Per 75,Stable Plus Minus Per 75 *
+Stable Points Per 75,Stable Points Per 75 *
+Stable Putback Points Per 75,Stable Putback Points Per 75
+Stable Rebounds Per 75,Stable Rebounds Per 75 *
+Stable Recovered Blocks Per 75,Stable Recovered Blocks Per 75 *
+Stable Recovered Blocks%,Stable Recovered Blocks% *
+Stable Shooting Fouls Drawn Per 75,Stable Shooting Fouls Drawn Per 75
+Stable Shooting Fouls Per 75,Stable Shooting Fouls Per 75 *
+Stable Steals Per 75,Stable Steals Per 75 *
+Stable TOV Per 75,Stable TOV Per 75 *
+Stable Travels Per 75,Stable Travels Per 75 *
+Turnovers Per 75 Possessions,Turnovers Per 75 Possessions *
+Assisted Openness Rating,Assisted Openness Rating *
+Effective FG%,Effective FG% *
+Free Throw Percentage,Free Throw Percentage *
+Half Court Openness Rating,Half Court Openness Rating *
+Half Court Shooting Talent,Half Court Shooting Talent *
+Half Court Shot Creation,Half Court Shot Creation *
+Half Court Shot Making,Half Court Shot Making *
+Half Court Shot Making Efficiency,Half Court Shot Making Efficiency *
+Half Court Shot Quality,Half Court Shot Quality *
+Isolation Shooting Talent,Isolation Shooting Talent *
+Isolation Shot Making,Isolation Shot Making *
+Isolation Shot Making Efficiency,Isolation Shot Making Efficiency *
+Isolation Shot Quality,Isolation Shot Quality *
+Off-Ball Shot Making,Off-Ball Shot Making *
+Off-Ball Shot Making Efficiency,Off-Ball Shot Making Efficiency *
+Off-Ball Shot Quality,Off-Ball Shot Quality *
+Overall Openness Rating,Overall Openness Rating *
+Overall Shooting Talent,Overall Shooting Talent *
+Overall Shot Creation,Overall Shot Creation *
+Overall Shot Making,Overall Shot Making *
+Overall Shot Making Efficiency,Overall Shot Making Efficiency *
+Overall Shot Quality,Overall Shot Quality *
+PnR Ball Handler Shooting Talent,PnR Ball Handler Shooting Talent *
+PnR Ball Handler Shot Making,PnR Ball Handler Shot Making *
+PnR Ball Handler Shot Making Efficiency,PnR Ball Handler Shot Making Efficiency *
+PnR Ball Handler Shot Quality,PnR Ball Handler Shot Quality *
+PnR Screener Shooting Talent,PnR Screener Shooting Talent *
+PnR Screener Shot Making,PnR Screener Shot Making *
+PnR Screener Shot Making Efficiency,PnR Screener Shot Making Efficiency *
+PnR Screener Shot Quality,PnR Screener Shot Quality *
+Points Over Expectation / 75,Points Over Expectation / 75
+Points Per Possession,Points Per Possession *
+Points Per Shot,Points Per Shot *
+Relative True Shooting%,Relative True Shooting% *
+Role Adjusted Stable TS%,Role Adjusted Stable TS% *
+Role Adjusted Stable eFG%,Role Adjusted Stable eFG% *
+Self-Created Shot Making,Self-Created Shot Making *
+Self-Created Shot Making Efficiency,Self-Created Shot Making Efficiency *
+Self-Created Shot Quality,Self-Created Shot Quality *
+Spot Up%,Spot Up%
+Stable Cut PPP,Stable Cut PPP *
+Stable FG2%,Stable FG2% *
+Stable FG3%,Stable FG3% *
+Stable FT%,Stable FT% *
+Stable Handoff PPP,Stable Handoff PPP *
+Stable Isolation PPP,Stable Isolation PPP *
+Stable Live Lost Ball Turnovers Per 75,Stable Live Lost Ball Turnovers Per 75 *
+Stable Location Shot Making,Stable Location Shot Making *
+Stable Location Shot Quality Avg,Stable Location Shot Quality Avg *
+Stable Off-Ball Screen PPP,Stable Off-Ball Screen PPP *
+Stable P&R Ball Handler PPP,Stable P&R Ball Handler PPP *
+Stable P&R Roll Man PPP,Stable P&R Roll Man PPP *
+Stable Putbacks PPP,Stable Putbacks PPP *
+Stable Relative True Shooting%,Stable Relative True Shooting% *
+Stable Spot Up PPP,Stable Spot Up PPP *
+Stable True Shooting%,Stable True Shooting% *
+Stable Transition PPP,Stable Transition PPP *
+Stable eFG%,Stable eFG% *
+Transition Openness Rating,Transition Openness Rating *
+Transition Shooting Talent,Transition Shooting Talent *
+Transition Shot Creation,Transition Shot Creation *
+Transition Shot Making,Transition Shot Making *
+Transition Shot Making Efficiency,Transition Shot Making Efficiency *
+Transition Shot Quality,Transition Shot Quality *
+True Shooting %,True Shooting % *
+Defense Impact on Possession Quality,Defense Impact on Possession Quality *
+Defensive FT Rate Impact,Defensive FT Rate Impact *
+Defense Impact on Opponent Shot Quality,Defense Impact on Opponent Shot Quality *
+Defensive Possession Volume Impact,Defensive Possession Volume Impact *
+Defensive Transition Frequency Impact,Defensive Transition Frequency Impact *
+Defensive Turnover Generation Impact,Defensive Turnover Generation Impact *
+Defensive eFG% Impact,Defensive eFG% Impact *
+Net Possession Quality Impact,Net Possession Quality Impact *
+Offense Impact on Possession Quality,Offense Impact on Possession Quality *
+Offensive FT Rate Impact,Offensive FT Rate Impact *
+Offense Impact on Teammate Shot Quality,Offense Impact on Teammate Shot Quality *
+Offensive Possession Volume Impact,Offensive Possession Volume Impact *
+Offensive Transition Frequency Impact,Offensive Transition Frequency Impact *
+Offensive Turnover Generation Impact,Offensive Turnover Generation Impact *
+Offensive eFG% Impact on Teammates,Offensive eFG% Impact on Teammates *
+Net Shot Quality Impact,Net Shot Quality Impact *
+Net Possession Volume Impact,Net Possession Volume Impact *
+Defensive Rebounding Impact,Defensive Rebounding Impact *
+Offensive Rebounding Impact,Offensive Rebounding Impact *
+Overall Turnover Impact,Overall Turnover Impact *
+Total FT Rate Impact,Total FT Rate Impact *
+Total Rebounding Impact,Total Rebounding Impact *
+Total eFG% Impact,Total eFG% Impact *
+Transition Frequency Impact,Transition Frequency Impact *
+Teammate 3PT Attempt rate,Teammate 3PT Attempt rate *
+Teammate 3PT Pull Up Shot Creation,Teammate 3PT Pull Up Shot Creation *
+Teammate 3PT Pull Up Shot Making,Teammate 3PT Pull Up Shot Making *
+Teammate 3PT Pull Up Talent,Teammate 3PT Pull Up Talent
+Teammate 3PT Shooting Talent,Teammate 3PT Shooting Talent *
+Teammate 3PT Shot Creation,Teammate 3PT Shot Creation *
+Teammate 3PT Shot Making,Teammate 3PT Shot Making *
+Teammate 3PT Versatility Rating,Teammate 3PT Versatility Rating *
+Teammate Age,Teammate Age *
+Teammate Assist%,Teammate Assist%
+Teammate Avg Height Guarded,Teammate Avg Height Guarded *
+Teammate Ball Screen Navigation,Teammate Ball Screen Navigation *
+Teammate C&S 3PT Shooting Talent,Teammate C&S 3PT Shooting Talent
+Teammate C&S 3PT Shot Making,Teammate C&S 3PT Shot Making *
+Teammate D-DPM,Teammate D-DPM *
+Teammate D-LEBRON,Teammate D-LEBRON *
+Teammate DPM,Teammate DPM *
+Teammate Deep 3PT Shooting Talent,Teammate Deep 3PT Shooting Talent *
+Teammate Defensive Position Estimate,Teammate Defensive Position Estimate *
+Teammate Defensive Positional Versatility,Teammate Defensive Positional Versatility *
+Teammate Defensive Rebounding Talent,Teammate Defensive Rebounding Talent *
+Teammate Defensive Role Versatility,Teammate Defensive Role Versatility *
+Teammate Experience,Teammate Experience *
+Teammate FT Rate,Teammate FT Rate *
+Teammate FT%,Teammate FT% *
+Teammate Finishing Talent,Teammate Finishing Talent *
+Teammate Floater Shot Making,Teammate Floater Shot Making *
+Teammate Floater Talent,Teammate Floater Talent
+Teammate GS%,Teammate GS% *
+Teammate Half Court Shooting Talent,Teammate Half Court Shooting Talent *
+Teammate Half Court Shot Creation,Teammate Half Court Shot Creation *
+Teammate Half Court Shot Making,Teammate Half Court Shot Making *
+Teammate Height,Teammate Height *
+Teammate Help Defense Talent,Teammate Help Defense Talent *
+Teammate Help Defensive Activity,Teammate Help Defensive Activity
+Teammate Help Effectiveness Rating,Teammate Help Effectiveness Rating *
+Teammate LEBRON,Teammate LEBRON *
+Teammate Lob Creation Rate,Teammate Lob Creation Rate
+Teammate Matchup Difficulty,Teammate Matchup Difficulty *
+Teammate Midrange Pull Up Shot Creation,Teammate Midrange Pull Up Shot Creation *
+Teammate Midrange Pull Up Shot Making,Teammate Midrange Pull Up Shot Making *
+Teammate Midrange Pull Up Talent,Teammate Midrange Pull Up Talent
+Teammate Midrange Shot Creation,Teammate Midrange Shot Creation *
+Teammate Midrange Shot Making,Teammate Midrange Shot Making *
+Teammate Midrange Talent,Teammate Midrange Talent *
+Teammate Minutes Per Game,Teammate Minutes Per Game *
+Teammate Movement Points Per 75,Teammate Movement Points Per 75
+Teammate Movement Scoring Impact Per 75 Possessions,Teammate Movement Scoring Impact Per 75 Possessions
+Teammate O-DPM,Teammate O-DPM *
+Teammate O-LEBRON,Teammate O-LEBRON *
+Teammate Off-Ball Chaser Defense,Teammate Off-Ball Chaser Defense *
+Teammate Off-Ball Gravity,Teammate Off-Ball Gravity *
+Teammate Off-Ball Shot Making,Teammate Off-Ball Shot Making *
+Teammate Off-Ball%,Teammate Off-Ball%
+Teammate Offensive Involvement Rate,Teammate Offensive Involvement Rate *
+Teammate Offensive Portability,Teammate Offensive Portability *
+Teammate Offensive Rebounding Talent,Teammate Offensive Rebounding Talent
+Teammate On-Ball Gravity,Teammate On-Ball Gravity *
+Teammate On-Ball%,Teammate On-Ball% *
+Teammate One on One Talent,Teammate One on One Talent
+Teammate Overall Coverage Aggression,Teammate Overall Coverage Aggression
+Teammate Overall Coverage Versatility,Teammate Overall Coverage Versatility
+Teammate Overall Gravity,Teammate Overall Gravity *
+Teammate Overall Shooting Talent,Teammate Overall Shooting Talent *
+Teammate Overall Shot Creation,Teammate Overall Shot Creation *
+Teammate Overall Shot Making,Teammate Overall Shot Making *
+Teammate P&R Coverage Aggression,Teammate P&R Coverage Aggression
+Teammate P&R Coverage Versatility,Teammate P&R Coverage Versatility
+Teammate Stable Rim dFG% vs Expected%,Teammate Stable Rim dFG% vs Expected%
+Teammate Stable Rim dFG%,Teammate Stable Rim dFG%
+Teammate Padded True Usage%,Teammate Padded True Usage% *
+Teammate Passing Creation Quality,Teammate Passing Creation Quality
+Teammate Passing Creation Volume,Teammate Passing Creation Volume
+Teammate Passing Efficiency,Teammate Passing Efficiency
+Teammate Passing Versatility,Teammate Passing Versatility
+Teammate Perimeter Isolation Defense,Teammate Perimeter Isolation Defense *
+Teammate Playmaking Talent,Teammate Playmaking Talent *
+Teammate Portability,Teammate Portability *
+Teammate Position Estimate,Teammate Position Estimate *
+Teammate Post Defense,Teammate Post Defense *
+Teammate Primary Defender Involvement Rate,Teammate Primary Defender Involvement Rate
+Teammate Pull-Up Shooting Talent,Teammate Pull-Up Shooting Talent
+Teammate Quick Decision Making%,Teammate Quick Decision Making%
+Teammate Rim Protection,Teammate Rim Protection *
+Teammate Rim Shot Creation,Teammate Rim Shot Creation *
+Teammate Rim Shot Making,Teammate Rim Shot Making *
+Teammate Screener Mobile Defense,Teammate Screener Mobile Defense
+Teammate Screener Rim Defense,Teammate Screener Rim Defense
+Teammate Screening Talent,Teammate Screening Talent *
+Teammate Self-Created Shot Making,Teammate Self-Created Shot Making *
+Teammate TS%,Teammate TS%
+Teammate Transition Shooting Talent,Teammate Transition Shooting Talent *
+Teammate Transition Shot Creation,Teammate Transition Shot Creation *
+Teammate Transition Shot Making,Teammate Transition Shot Making *
+Teammate True Usage%,Teammate True Usage% *
+Teammate Turnover%,Teammate Turnover%
+Teammate Two Way Usage,Teammate Two Way Usage *
+Teammate Usage Rate%,Teammate Usage Rate%

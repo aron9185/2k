@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-hero">
+  <div>
+    <p class="eyebrow">Game Browser</p>
+    <h1>Pick a date, then jump into the game view.</h1>
+    <p class="lede">The game page now brings the result, line score, boxscore, rotation timeline, and defensive matchup table together in one place.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <form class="toolbar" id="datePickerForm" action="{{ url_for('index') }}" method="get">
+    <div class="toolbar__group">
+      <label for="date">Game date</label>
+      <input id="date" type="date" name="date" value="{{ selected_date }}" />
+    </div>
+    <div class="toolbar__actions">
+      <button type="submit">Show games</button>
+      <a class="button button--ghost" href="{{ url_for('index', date=today_date) }}">Today</a>
+    </div>
+  </form>
+
+  <div class="date-nav">
+    <a href="{{ url_for('index', date=prev_date) }}">&larr; Previous day</a>
+    <span>{{ selected_date }}</span>
+    <a href="{{ url_for('index', date=next_date) }}">Next day &rarr;</a>
+  </div>
+</section>
+
+<section class="panel">
+  <form class="gameform" action="{{ url_for('go') }}" method="post">
+    <input name="game_id" placeholder="Enter GAME_ID, for example 0022500218" />
+    <button type="submit">Open game</button>
+  </form>
+</section>
+
+<section class="section-head">
+  <h2>Games on {{ selected_date }}</h2>
+  <p>{{ games|length }} game{{ "s" if games|length != 1 else "" }}</p>
+</section>
+
+{% if games %}
+  <div class="game-grid">
+    {% for g in games %}
+      <a class="game-card" href="{{ url_for('game', game_id=g.game_id) }}">
+        <div class="game-card__meta">
+          <span class="pill">{{ g.status }}</span>
+          <span>
+            {% if g.source == "cache" %}Cached | {% elif g.source == "nba.com" %}Live | {% endif %}
+            {% if g.tipoff %}{{ g.tipoff }}{% else %}{{ g.date }}{% endif %}
+          </span>
+        </div>
+        <h3>{{ g.summary }}</h3>
+        <p class="muted">{{ g.matchup }}</p>
+        {% if g.arena %}
+          <p class="muted">{{ g.arena }}</p>
+        {% endif %}
+        <div class="game-card__footer">
+          <span>{{ g.game_id }}</span>
+          <span>Open &rarr;</span>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-card">
+    <strong>No games found for this date.</strong><br/>
+    <span>Try another date from the calendar picker above, or open a known `GAME_ID` directly.</span>
+    {% if cached_dates %}
+      <div class="cached-dates">
+        <span class="muted">Cached dates available locally:</span>
+        {% for d in cached_dates %}
+          <a href="{{ url_for('index', date=d) }}">{{ d }}</a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("datePickerForm");
+  const input = document.getElementById("date");
+  if (!form || !input) {
+    return;
+  }
+
+  input.addEventListener("change", () => {
+    if (input.value) {
+      form.requestSubmit();
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,1 @@
+post_id,poll_id,sport,game_id,day,header,content_text,market_type,entity_type,stat,player_id,period,is_over_under,line,point_spread,home_team,away_team,home_moneyline,away_moneyline,locks_at,can_wager,min_wager,max_wager,is_locked,has_explicit_odds,option_1_label,option_1_odds,option_1_count,option_2_label,option_2_odds,option_2_count,over_odds,under_odds,over_count,under_count

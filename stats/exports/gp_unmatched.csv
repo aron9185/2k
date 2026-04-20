@@ -1,0 +1,20 @@
+NBA_ID,Season,Player,RotationRole,MIN,ExpectedMetric,SourceFile
+202711,2024-25,Bojan Bogdanovic,,,GP,general_traditional.csv
+1626179,2025-26,Terry Rozier,,,GP,general_traditional.csv
+1627777,2025-26,Georges Niang,,,GP,general_traditional.csv
+1627832,2025-26,Fred VanVleet,,,GP,general_traditional.csv
+1630284,2025-26,Kevon Harris,,,GP,general_traditional.csv
+1630554,2024-25,Jason Preston,,,GP,general_traditional.csv
+1630569,2024-25,DJ Steward,,,GP,general_traditional.csv
+1630613,2023-24,Duane Washington Jr,,,GP,general_traditional.csv
+1630679,2024-25,Ethan Thompson,,,GP,general_traditional.csv
+1630792,2023-24,Malcolm Hill,,,GP,general_traditional.csv
+1641754,2024-25,Seth Lundy,,,GP,general_traditional.csv
+1641798,2023-24,Jaylen Martin,,,GP,general_traditional.csv
+1642050,2025-26,Jackson Rowe,,,GP,general_traditional.csv
+1642357,2024-25,David Jones Garcia,,,GP,general_traditional.csv
+1642365,2025-26,Nikola Durisic,,,GP,general_traditional.csv
+1642486,2024-25,Boo Buie,,,GP,general_traditional.csv
+1642893,2025-26,Alex Toohey,,,GP,general_traditional.csv
+1642926,2025-26,Tamar Bates,,,GP,general_traditional.csv
+1642947,2025-26,Eli NDiaye,,,GP,general_traditional.csv

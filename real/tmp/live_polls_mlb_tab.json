@@ -1,0 +1,1886 @@
+[
+  {
+    "poll_info": {
+      "typeOptions": [
+        {
+          "id": "all",
+          "label": "All"
+        },
+        {
+          "id": "gamewinner",
+          "label": "H2H"
+        },
+        {
+          "id": "totaloverunder",
+          "label": "O/U"
+        },
+        {
+          "id": "player",
+          "label": "Player"
+        }
+      ],
+      "dayOptions": [
+        {
+          "id": "2026-04-20",
+          "label": "Active"
+        },
+        {
+          "id": "2026-04-21",
+          "label": "Next"
+        },
+        {
+          "id": "2026-04-19",
+          "label": "Prev"
+        }
+      ]
+    },
+    "resolved_day": "2026-04-20",
+    "poll_type": "all",
+    "post": {
+      "id": 833100,
+      "userId": "Jkd6qe6k",
+      "gameId": 824046,
+      "sport": "mlb",
+      "playId": null,
+      "content": {
+        "nodes": [
+          {
+            "type": "Paragraph",
+            "children": [
+              {
+                "text": "Vladimir Guerrero Jr. to extend 10-game hit streak",
+                "type": "Text"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "type": "Poll",
+            "pollId": 341444
+          }
+        ]
+      },
+      "createdAt": "2026-04-20T11:01:05.739Z",
+      "flaggedAt": null,
+      "deletedAt": null,
+      "additionalInfo": {
+        "stat": "hits",
+        "type": "player",
+        "period": null,
+        "pollId": 341444,
+        "isOverUnder": true,
+        "overUnderAmount": 0.5,
+        "commentsDisabled": false
+      },
+      "header": "Hit streak",
+      "avatarSource": "assets/pollavatar.png",
+      "pollsLockAt": "2026-04-21T01:38:00.000Z",
+      "isRealProOnly": false,
+      "day": "2026-04-20",
+      "commentCount": 6,
+      "emojis": [
+        {
+          "emojiId": "28c90e1af0edaddb8fdd05fae7b3f534",
+          "gameId": 824046,
+          "sport": "mlb",
+          "postId": 833100,
+          "count": 5,
+          "createdAt": "2026-04-20T11:44:30.647851+00:00"
+        },
+        {
+          "emojiId": "069586725d309fe702ecca06432f011d",
+          "gameId": 824046,
+          "sport": "mlb",
+          "postId": 833100,
+          "count": 2,
+          "createdAt": "2026-04-20T14:10:25.491123+00:00"
+        },
+        {
+          "emojiId": "046ff8c0cc88708210026a6c29cb99e4",
+          "gameId": 824046,
+          "sport": "mlb",
+          "postId": 833100,
+          "count": 13,
+          "createdAt": "2026-04-20T12:13:12.806043+00:00"
+        }
+      ],
+      "host": {
+        "id": "Jkd6qe6k",
+        "avatarKey": "3",
+        "userName": "real",
+        "flairId": "",
+        "isVerified": true,
+        "supporterTier": null,
+        "realProTier": 1,
+        "isRealPro": true,
+        "emblemIds": [
+          "vf",
+          "da",
+          "rp"
+        ]
+      }
+    },
+    "poll_payload": {
+      "poll": {
+        "id": 341444,
+        "type": "singleselect",
+        "size": 2,
+        "userId": "Jkd6qe6k",
+        "locksAt": "2026-04-21T01:38:00.000Z",
+        "createdAt": "2026-04-20T11:00:35.743Z",
+        "additionalInfo": {
+          "stat": "hits",
+          "type": "player",
+          "period": null,
+          "playerId": "665489",
+          "isOverUnder": true,
+          "overUnderAmount": 0.5
+        },
+        "gameId": 824046,
+        "sport": "mlb",
+        "winningPollOptionId": null,
+        "deletedAt": null,
+        "canWager": true,
+        "maxWager": 50,
+        "isPush": false,
+        "winningPollOptionIds": null,
+        "minWager": 0,
+        "isOnThisDayEligible": false,
+        "isDailyStreak": false,
+        "pointSpread": null,
+        "homeTeamKey": "LAA",
+        "awayTeamKey": "TOR",
+        "homeTeamId": 108,
+        "awayTeamId": 141,
+        "homeMoneyline": 102,
+        "awayMoneyline": -120,
+        "drawMoneyline": null,
+        "spreadTeamId": null,
+        "day": "2026-04-20",
+        "options": [
+          {
+            "id": 501290,
+            "odds": "+160",
+            "count": 167,
+            "label": "No",
+            "pollId": 341444,
+            "locksAt": null,
+            "priority": 0,
+            "imageKey": "f9c18744182354579bfa67bf3bee4bde",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": 160,
+              "over": false
+            },
+            "multiplier": 1.6,
+            "isLocked": false
+          },
+          {
+            "id": 501291,
+            "odds": -240,
+            "count": 2239,
+            "label": "Yes",
+            "pollId": 341444,
+            "locksAt": null,
+            "priority": 1,
+            "imageKey": "54b9d7247027c781de9e5e4100cb6697",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": -240,
+              "over": true
+            },
+            "multiplier": 0.4166666666666667,
+            "isLocked": false
+          }
+        ],
+        "showSpread": false,
+        "spreadDisplay": null,
+        "secondarySpreadDisplay": null,
+        "canViewResults": false,
+        "appliedPassInfos": null
+      },
+      "response": {
+        "pollOptionId": 501291,
+        "wager": 50,
+        "avatarSource": null,
+        "label": null
+      }
+    }
+  },
+  {
+    "poll_info": {
+      "typeOptions": [
+        {
+          "id": "all",
+          "label": "All"
+        },
+        {
+          "id": "gamewinner",
+          "label": "H2H"
+        },
+        {
+          "id": "totaloverunder",
+          "label": "O/U"
+        },
+        {
+          "id": "player",
+          "label": "Player"
+        }
+      ],
+      "dayOptions": [
+        {
+          "id": "2026-04-20",
+          "label": "Active"
+        },
+        {
+          "id": "2026-04-21",
+          "label": "Next"
+        },
+        {
+          "id": "2026-04-19",
+          "label": "Prev"
+        }
+      ]
+    },
+    "resolved_day": "2026-04-20",
+    "poll_type": "all",
+    "post": {
+      "id": 833098,
+      "userId": "Jkd6qe6k",
+      "gameId": 824370,
+      "sport": "mlb",
+      "playId": null,
+      "content": {
+        "nodes": [
+          {
+            "type": "Paragraph",
+            "children": [
+              {
+                "text": "Will Smith to extend 9-game hit streak",
+                "type": "Text"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "type": "Poll",
+            "pollId": 341442
+          }
+        ]
+      },
+      "createdAt": "2026-04-20T11:01:04.433Z",
+      "flaggedAt": null,
+      "deletedAt": null,
+      "additionalInfo": {
+        "stat": "hits",
+        "type": "player",
+        "period": null,
+        "pollId": 341442,
+        "isOverUnder": true,
+        "overUnderAmount": 0.5,
+        "commentsDisabled": false
+      },
+      "header": "Hit streak",
+      "avatarSource": "assets/pollavatar.png",
+      "pollsLockAt": "2026-04-21T00:40:00.000Z",
+      "isRealProOnly": false,
+      "day": "2026-04-20",
+      "commentCount": 14,
+      "emojis": [
+        {
+          "emojiId": "22e960b62ea9e8cb65d2589fabdeebdb",
+          "gameId": 824370,
+          "sport": "mlb",
+          "postId": 833098,
+          "count": 1,
+          "createdAt": "2026-04-20T13:12:31.160999+00:00"
+        },
+        {
+          "emojiId": "a1218c928686b1d2f562ec36917f7dab",
+          "gameId": 824370,
+          "sport": "mlb",
+          "postId": 833098,
+          "count": 1,
+          "createdAt": "2026-04-20T17:31:02.765359+00:00"
+        },
+        {
+          "emojiId": "54b9d7247027c781de9e5e4100cb6697",
+          "gameId": 824370,
+          "sport": "mlb",
+          "postId": 833098,
+          "count": 2,
+          "createdAt": "2026-04-20T12:41:33.983876+00:00"
+        },
+        {
+          "emojiId": "866979c8c296b729e85f73d1b6b45205",
+          "gameId": 824370,
+          "sport": "mlb",
+          "postId": 833098,
+          "count": 14,
+          "createdAt": "2026-04-20T12:45:28.004109+00:00"
+        },
+        {
+          "emojiId": "c81efce5010d2fb261306cbd2de2d9b4",
+          "gameId": 824370,
+          "sport": "mlb",
+          "postId": 833098,
+          "count": 2,
+          "createdAt": "2026-04-20T13:57:31.417058+00:00"
+        },
+        {
+          "emojiId": "4a69d7a26e5ad27338896f9298f1c296",
+          "gameId": 824370,
+          "sport": "mlb",
+          "postId": 833098,
+          "count": 1,
+          "createdAt": "2026-04-20T16:38:32.471632+00:00"
+        },
+        {
+          "emojiId": "d3ee57a858192b6599427c3f0034c111",
+          "gameId": 824370,
+          "sport": "mlb",
+          "postId": 833098,
+          "count": 1,
+          "createdAt": "2026-04-20T14:51:22.72486+00:00"
+        },
+        {
+          "emojiId": "f7e7ae19d5eb8e98c5e212269513b312",
+          "gameId": 824370,
+          "sport": "mlb",
+          "postId": 833098,
+          "count": 8,
+          "createdAt": "2026-04-20T12:10:39.785701+00:00"
+        }
+      ],
+      "host": {
+        "id": "Jkd6qe6k",
+        "avatarKey": "3",
+        "userName": "real",
+        "flairId": "",
+        "isVerified": true,
+        "supporterTier": null,
+        "realProTier": 1,
+        "isRealPro": true,
+        "emblemIds": [
+          "vf",
+          "da",
+          "rp"
+        ]
+      }
+    },
+    "poll_payload": {
+      "poll": {
+        "id": 341442,
+        "type": "singleselect",
+        "size": 2,
+        "userId": "Jkd6qe6k",
+        "locksAt": "2026-04-21T00:40:00.000Z",
+        "createdAt": "2026-04-20T11:00:34.437Z",
+        "additionalInfo": {
+          "stat": "hits",
+          "type": "player",
+          "period": null,
+          "playerId": "669257",
+          "isOverUnder": true,
+          "overUnderAmount": 0.5
+        },
+        "gameId": 824370,
+        "sport": "mlb",
+        "winningPollOptionId": null,
+        "deletedAt": null,
+        "canWager": true,
+        "maxWager": 50,
+        "isPush": false,
+        "winningPollOptionIds": null,
+        "minWager": 0,
+        "isOnThisDayEligible": false,
+        "isDailyStreak": false,
+        "pointSpread": null,
+        "homeTeamKey": "COL",
+        "awayTeamKey": "LAD",
+        "homeTeamId": 115,
+        "awayTeamId": 119,
+        "homeMoneyline": 235,
+        "awayMoneyline": -290,
+        "drawMoneyline": null,
+        "spreadTeamId": null,
+        "day": "2026-04-20",
+        "options": [
+          {
+            "id": 501286,
+            "odds": "+170",
+            "count": 237,
+            "label": "No",
+            "pollId": 341442,
+            "locksAt": null,
+            "priority": 0,
+            "imageKey": "f9c18744182354579bfa67bf3bee4bde",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": 170,
+              "over": false
+            },
+            "multiplier": 1.7,
+            "isLocked": false
+          },
+          {
+            "id": 501287,
+            "odds": -260,
+            "count": 2365,
+            "label": "Yes",
+            "pollId": 341442,
+            "locksAt": null,
+            "priority": 1,
+            "imageKey": "54b9d7247027c781de9e5e4100cb6697",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": -260,
+              "over": true
+            },
+            "multiplier": 0.38461538461538464,
+            "isLocked": false
+          }
+        ],
+        "showSpread": false,
+        "spreadDisplay": null,
+        "secondarySpreadDisplay": null,
+        "canViewResults": false,
+        "appliedPassInfos": null
+      },
+      "response": {
+        "pollOptionId": 501287,
+        "wager": 50,
+        "avatarSource": null,
+        "label": null
+      }
+    }
+  },
+  {
+    "poll_info": {
+      "typeOptions": [
+        {
+          "id": "all",
+          "label": "All"
+        },
+        {
+          "id": "gamewinner",
+          "label": "H2H"
+        },
+        {
+          "id": "totaloverunder",
+          "label": "O/U"
+        },
+        {
+          "id": "player",
+          "label": "Player"
+        }
+      ],
+      "dayOptions": [
+        {
+          "id": "2026-04-20",
+          "label": "Active"
+        },
+        {
+          "id": "2026-04-21",
+          "label": "Next"
+        },
+        {
+          "id": "2026-04-19",
+          "label": "Prev"
+        }
+      ]
+    },
+    "resolved_day": "2026-04-20",
+    "poll_type": "all",
+    "post": {
+      "id": 833092,
+      "userId": "Jkd6qe6k",
+      "gameId": 823879,
+      "sport": "mlb",
+      "playId": null,
+      "content": {
+        "nodes": [
+          {
+            "type": "Paragraph",
+            "children": [
+              {
+                "text": "Jordan Walker to extend 14-game hit streak",
+                "type": "Text"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "type": "Poll",
+            "pollId": 341436
+          }
+        ]
+      },
+      "createdAt": "2026-04-20T11:00:57.971Z",
+      "flaggedAt": null,
+      "deletedAt": null,
+      "additionalInfo": {
+        "stat": "hits",
+        "type": "player",
+        "period": null,
+        "pollId": 341436,
+        "isOverUnder": true,
+        "overUnderAmount": 0.5,
+        "commentsDisabled": false
+      },
+      "header": "Hit streak",
+      "avatarSource": "assets/pollavatar.png",
+      "pollsLockAt": "2026-04-20T22:40:00.000Z",
+      "isRealProOnly": false,
+      "day": "2026-04-20",
+      "commentCount": 19,
+      "emojis": [
+        {
+          "emojiId": "069586725d309fe702ecca06432f011d",
+          "gameId": 823879,
+          "sport": "mlb",
+          "postId": 833092,
+          "count": 4,
+          "createdAt": "2026-04-20T12:06:45.769188+00:00"
+        },
+        {
+          "emojiId": "c780e7dc529b4597699141de48f078fe",
+          "gameId": 823879,
+          "sport": "mlb",
+          "postId": 833092,
+          "count": 7,
+          "createdAt": "2026-04-20T11:31:18.595318+00:00"
+        },
+        {
+          "emojiId": "8a2d9b2a2ddba6ca74152bd84ada4f3e",
+          "gameId": 823879,
+          "sport": "mlb",
+          "postId": 833092,
+          "count": 6,
+          "createdAt": "2026-04-20T11:45:18.650006+00:00"
+        }
+      ],
+      "host": {
+        "id": "Jkd6qe6k",
+        "avatarKey": "3",
+        "userName": "real",
+        "flairId": "",
+        "isVerified": true,
+        "supporterTier": null,
+        "realProTier": 1,
+        "isRealPro": true,
+        "emblemIds": [
+          "vf",
+          "da",
+          "rp"
+        ]
+      }
+    },
+    "poll_payload": {
+      "poll": {
+        "id": 341436,
+        "type": "singleselect",
+        "size": 2,
+        "userId": "Jkd6qe6k",
+        "locksAt": "2026-04-20T22:40:00.000Z",
+        "createdAt": "2026-04-20T11:00:27.975Z",
+        "additionalInfo": {
+          "stat": "hits",
+          "type": "player",
+          "period": null,
+          "playerId": "691023",
+          "isOverUnder": true,
+          "overUnderAmount": 0.5
+        },
+        "gameId": 823879,
+        "sport": "mlb",
+        "winningPollOptionId": null,
+        "deletedAt": null,
+        "canWager": true,
+        "maxWager": 50,
+        "isPush": false,
+        "winningPollOptionIds": null,
+        "minWager": 0,
+        "isOnThisDayEligible": false,
+        "isDailyStreak": false,
+        "pointSpread": null,
+        "homeTeamKey": "MIA",
+        "awayTeamKey": "STL",
+        "homeTeamId": 146,
+        "awayTeamId": 138,
+        "homeMoneyline": -126,
+        "awayMoneyline": 108,
+        "drawMoneyline": null,
+        "spreadTeamId": null,
+        "day": "2026-04-20",
+        "options": [
+          {
+            "id": 501274,
+            "odds": "+180",
+            "count": 244,
+            "label": "No",
+            "pollId": 341436,
+            "locksAt": null,
+            "priority": 0,
+            "imageKey": "f9c18744182354579bfa67bf3bee4bde",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": 180,
+              "over": false
+            },
+            "multiplier": 1.8,
+            "isLocked": false
+          },
+          {
+            "id": 501275,
+            "odds": -250,
+            "count": 2158,
+            "label": "Yes",
+            "pollId": 341436,
+            "locksAt": null,
+            "priority": 1,
+            "imageKey": "54b9d7247027c781de9e5e4100cb6697",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": -250,
+              "over": true
+            },
+            "multiplier": 0.4,
+            "isLocked": false
+          }
+        ],
+        "showSpread": false,
+        "spreadDisplay": null,
+        "secondarySpreadDisplay": null,
+        "canViewResults": false,
+        "appliedPassInfos": null
+      },
+      "response": {
+        "pollOptionId": 501274,
+        "wager": 0,
+        "avatarSource": null,
+        "label": null
+      }
+    }
+  },
+  {
+    "poll_info": {
+      "typeOptions": [
+        {
+          "id": "all",
+          "label": "All"
+        },
+        {
+          "id": "gamewinner",
+          "label": "H2H"
+        },
+        {
+          "id": "totaloverunder",
+          "label": "O/U"
+        },
+        {
+          "id": "player",
+          "label": "Player"
+        }
+      ],
+      "dayOptions": [
+        {
+          "id": "2026-04-20",
+          "label": "Active"
+        },
+        {
+          "id": "2026-04-21",
+          "label": "Next"
+        },
+        {
+          "id": "2026-04-19",
+          "label": "Prev"
+        }
+      ]
+    },
+    "resolved_day": "2026-04-20",
+    "poll_type": "all",
+    "post": {
+      "id": 833102,
+      "userId": "Jkd6qe6k",
+      "gameId": 823149,
+      "sport": "mlb",
+      "playId": null,
+      "content": {
+        "nodes": [
+          {
+            "type": "Paragraph",
+            "children": [
+              {
+                "text": "Total runs 8",
+                "type": "Text"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "type": "Poll",
+            "pollId": 341446
+          }
+        ]
+      },
+      "createdAt": "2026-04-20T11:00:36.412Z",
+      "flaggedAt": null,
+      "deletedAt": null,
+      "additionalInfo": {
+        "type": "totaloverunder",
+        "pollId": 341446,
+        "isOverUnder": true,
+        "overUnderAmount": "8",
+        "commentsDisabled": false
+      },
+      "header": "Over/under",
+      "avatarSource": "assets/pollavatar.png",
+      "pollsLockAt": "2026-04-21T01:40:00.000Z",
+      "isRealProOnly": false,
+      "day": "2026-04-20",
+      "commentCount": 4,
+      "emojis": [
+        {
+          "emojiId": "3996556359d864f311ae34240ba0febf",
+          "gameId": 823149,
+          "sport": "mlb",
+          "postId": 833102,
+          "count": 2,
+          "createdAt": "2026-04-20T11:26:06.563744+00:00"
+        },
+        {
+          "emojiId": "069586725d309fe702ecca06432f011d",
+          "gameId": 823149,
+          "sport": "mlb",
+          "postId": 833102,
+          "count": 3,
+          "createdAt": "2026-04-20T15:51:14.173012+00:00"
+        },
+        {
+          "emojiId": "8a2d9b2a2ddba6ca74152bd84ada4f3e",
+          "gameId": 823149,
+          "sport": "mlb",
+          "postId": 833102,
+          "count": 2,
+          "createdAt": "2026-04-20T13:56:58.403948+00:00"
+        }
+      ],
+      "host": {
+        "id": "Jkd6qe6k",
+        "avatarKey": "3",
+        "userName": "real",
+        "flairId": "",
+        "isVerified": true,
+        "supporterTier": null,
+        "realProTier": 1,
+        "isRealPro": true,
+        "emblemIds": [
+          "vf",
+          "da",
+          "rp"
+        ]
+      }
+    },
+    "poll_payload": {
+      "poll": {
+        "id": 341446,
+        "type": "singleselect",
+        "size": 2,
+        "userId": "Jkd6qe6k",
+        "locksAt": "2026-04-21T01:40:00.000Z",
+        "createdAt": "2026-04-20T11:00:36.398Z",
+        "additionalInfo": {
+          "type": "totaloverunder",
+          "isMidgame": false,
+          "isOverUnder": true,
+          "overUnderAmount": "8"
+        },
+        "gameId": 823149,
+        "sport": "mlb",
+        "winningPollOptionId": null,
+        "deletedAt": null,
+        "canWager": true,
+        "maxWager": 100,
+        "isPush": false,
+        "winningPollOptionIds": null,
+        "minWager": 0,
+        "isOnThisDayEligible": true,
+        "isDailyStreak": false,
+        "pointSpread": null,
+        "homeTeamKey": "SEA",
+        "awayTeamKey": "OAK",
+        "homeTeamId": 136,
+        "awayTeamId": 133,
+        "homeMoneyline": -158,
+        "awayMoneyline": 134,
+        "drawMoneyline": null,
+        "spreadTeamId": null,
+        "day": "2026-04-20",
+        "options": [
+          {
+            "id": 501294,
+            "odds": null,
+            "count": 297,
+            "label": "Under",
+            "pollId": 341446,
+            "locksAt": null,
+            "priority": 0,
+            "imageKey": "cb19acb448d82d0724be2c0fd9a2643e",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": false
+            },
+            "isLocked": false
+          },
+          {
+            "id": 501295,
+            "odds": null,
+            "count": 1590,
+            "label": "Over",
+            "pollId": 341446,
+            "locksAt": null,
+            "priority": 1,
+            "imageKey": "c2dcc0fc43b3cf7a30905327a63d3b95",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": true
+            },
+            "isLocked": false
+          }
+        ],
+        "showSpread": false,
+        "spreadDisplay": null,
+        "secondarySpreadDisplay": null,
+        "canViewResults": false,
+        "appliedPassInfos": []
+      },
+      "response": {
+        "pollOptionId": 501295,
+        "wager": 0,
+        "avatarSource": null,
+        "label": null
+      }
+    }
+  },
+  {
+    "poll_info": {
+      "typeOptions": [
+        {
+          "id": "all",
+          "label": "All"
+        },
+        {
+          "id": "gamewinner",
+          "label": "H2H"
+        },
+        {
+          "id": "totaloverunder",
+          "label": "O/U"
+        },
+        {
+          "id": "player",
+          "label": "Player"
+        }
+      ],
+      "dayOptions": [
+        {
+          "id": "2026-04-20",
+          "label": "Active"
+        },
+        {
+          "id": "2026-04-21",
+          "label": "Next"
+        },
+        {
+          "id": "2026-04-19",
+          "label": "Prev"
+        }
+      ]
+    },
+    "resolved_day": "2026-04-20",
+    "poll_type": "all",
+    "post": {
+      "id": 833101,
+      "userId": "Jkd6qe6k",
+      "gameId": 824046,
+      "sport": "mlb",
+      "playId": null,
+      "content": {
+        "nodes": [
+          {
+            "type": "Paragraph",
+            "children": [
+              {
+                "text": "Total runs 7.5",
+                "type": "Text"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "type": "Poll",
+            "pollId": 341445
+          }
+        ]
+      },
+      "createdAt": "2026-04-20T11:00:36.063Z",
+      "flaggedAt": null,
+      "deletedAt": null,
+      "additionalInfo": {
+        "type": "totaloverunder",
+        "pollId": 341445,
+        "isOverUnder": true,
+        "overUnderAmount": "7.5",
+        "commentsDisabled": false
+      },
+      "header": "Over/under",
+      "avatarSource": "assets/pollavatar.png",
+      "pollsLockAt": "2026-04-21T01:38:00.000Z",
+      "isRealProOnly": false,
+      "day": "2026-04-20",
+      "commentCount": 4,
+      "emojis": [
+        {
+          "emojiId": "069586725d309fe702ecca06432f011d",
+          "gameId": 824046,
+          "sport": "mlb",
+          "postId": 833101,
+          "count": 2,
+          "createdAt": "2026-04-20T14:10:25.491123+00:00"
+        },
+        {
+          "emojiId": "28c90e1af0edaddb8fdd05fae7b3f534",
+          "gameId": 824046,
+          "sport": "mlb",
+          "postId": 833101,
+          "count": 1,
+          "createdAt": "2026-04-20T11:53:42.702765+00:00"
+        },
+        {
+          "emojiId": "8a2d9b2a2ddba6ca74152bd84ada4f3e",
+          "gameId": 824046,
+          "sport": "mlb",
+          "postId": 833101,
+          "count": 2,
+          "createdAt": "2026-04-20T11:47:39.657368+00:00"
+        }
+      ],
+      "host": {
+        "id": "Jkd6qe6k",
+        "avatarKey": "3",
+        "userName": "real",
+        "flairId": "",
+        "isVerified": true,
+        "supporterTier": null,
+        "realProTier": 1,
+        "isRealPro": true,
+        "emblemIds": [
+          "vf",
+          "da",
+          "rp"
+        ]
+      }
+    },
+    "poll_payload": {
+      "poll": {
+        "id": 341445,
+        "type": "singleselect",
+        "size": 2,
+        "userId": "Jkd6qe6k",
+        "locksAt": "2026-04-21T01:38:00.000Z",
+        "createdAt": "2026-04-20T11:00:35.978Z",
+        "additionalInfo": {
+          "type": "totaloverunder",
+          "isMidgame": false,
+          "isOverUnder": true,
+          "overUnderAmount": "7.5"
+        },
+        "gameId": 824046,
+        "sport": "mlb",
+        "winningPollOptionId": null,
+        "deletedAt": null,
+        "canWager": true,
+        "maxWager": 100,
+        "isPush": false,
+        "winningPollOptionIds": null,
+        "minWager": 0,
+        "isOnThisDayEligible": true,
+        "isDailyStreak": false,
+        "pointSpread": null,
+        "homeTeamKey": "LAA",
+        "awayTeamKey": "TOR",
+        "homeTeamId": 108,
+        "awayTeamId": 141,
+        "homeMoneyline": 102,
+        "awayMoneyline": -120,
+        "drawMoneyline": null,
+        "spreadTeamId": null,
+        "day": "2026-04-20",
+        "options": [
+          {
+            "id": 501292,
+            "odds": null,
+            "count": 283,
+            "label": "Under",
+            "pollId": 341445,
+            "locksAt": null,
+            "priority": 0,
+            "imageKey": "cb19acb448d82d0724be2c0fd9a2643e",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": false
+            },
+            "isLocked": false
+          },
+          {
+            "id": 501293,
+            "odds": null,
+            "count": 1796,
+            "label": "Over",
+            "pollId": 341445,
+            "locksAt": null,
+            "priority": 1,
+            "imageKey": "c2dcc0fc43b3cf7a30905327a63d3b95",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": true
+            },
+            "isLocked": false
+          }
+        ],
+        "showSpread": false,
+        "spreadDisplay": null,
+        "secondarySpreadDisplay": null,
+        "canViewResults": false,
+        "appliedPassInfos": []
+      },
+      "response": {
+        "pollOptionId": 501293,
+        "wager": 0,
+        "avatarSource": null,
+        "label": null
+      }
+    }
+  },
+  {
+    "poll_info": {
+      "typeOptions": [
+        {
+          "id": "all",
+          "label": "All"
+        },
+        {
+          "id": "gamewinner",
+          "label": "H2H"
+        },
+        {
+          "id": "totaloverunder",
+          "label": "O/U"
+        },
+        {
+          "id": "player",
+          "label": "Player"
+        }
+      ],
+      "dayOptions": [
+        {
+          "id": "2026-04-20",
+          "label": "Active"
+        },
+        {
+          "id": "2026-04-21",
+          "label": "Next"
+        },
+        {
+          "id": "2026-04-19",
+          "label": "Prev"
+        }
+      ]
+    },
+    "resolved_day": "2026-04-20",
+    "poll_type": "all",
+    "post": {
+      "id": 833099,
+      "userId": "Jkd6qe6k",
+      "gameId": 824370,
+      "sport": "mlb",
+      "playId": null,
+      "content": {
+        "nodes": [
+          {
+            "type": "Paragraph",
+            "children": [
+              {
+                "text": "Total runs 11.5",
+                "type": "Text"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "type": "Poll",
+            "pollId": 341443
+          }
+        ]
+      },
+      "createdAt": "2026-04-20T11:00:35.287Z",
+      "flaggedAt": null,
+      "deletedAt": null,
+      "additionalInfo": {
+        "type": "totaloverunder",
+        "pollId": 341443,
+        "isOverUnder": true,
+        "overUnderAmount": "11.5",
+        "commentsDisabled": false
+      },
+      "header": "Over/under",
+      "avatarSource": "assets/pollavatar.png",
+      "pollsLockAt": "2026-04-21T00:40:00.000Z",
+      "isRealProOnly": false,
+      "day": "2026-04-20",
+      "commentCount": 7,
+      "emojis": [
+        {
+          "emojiId": "28c90e1af0edaddb8fdd05fae7b3f534",
+          "gameId": 824370,
+          "sport": "mlb",
+          "postId": 833099,
+          "count": 7,
+          "createdAt": "2026-04-20T11:46:57.6641+00:00"
+        },
+        {
+          "emojiId": "1e31d316c829cedc913e39618c97bd11",
+          "gameId": 824370,
+          "sport": "mlb",
+          "postId": 833099,
+          "count": 10,
+          "createdAt": "2026-04-20T15:23:01.962377+00:00"
+        },
+        {
+          "emojiId": "ab5086a6f22c8ca4915f231ec3589a00",
+          "gameId": 824370,
+          "sport": "mlb",
+          "postId": 833099,
+          "count": 9,
+          "createdAt": "2026-04-20T12:13:48.81361+00:00"
+        }
+      ],
+      "host": {
+        "id": "Jkd6qe6k",
+        "avatarKey": "3",
+        "userName": "real",
+        "flairId": "",
+        "isVerified": true,
+        "supporterTier": null,
+        "realProTier": 1,
+        "isRealPro": true,
+        "emblemIds": [
+          "vf",
+          "da",
+          "rp"
+        ]
+      }
+    },
+    "poll_payload": {
+      "poll": {
+        "id": 341443,
+        "type": "singleselect",
+        "size": 2,
+        "userId": "Jkd6qe6k",
+        "locksAt": "2026-04-21T00:40:00.000Z",
+        "createdAt": "2026-04-20T11:00:34.838Z",
+        "additionalInfo": {
+          "type": "totaloverunder",
+          "isMidgame": false,
+          "isOverUnder": true,
+          "overUnderAmount": "11.5"
+        },
+        "gameId": 824370,
+        "sport": "mlb",
+        "winningPollOptionId": null,
+        "deletedAt": null,
+        "canWager": true,
+        "maxWager": 100,
+        "isPush": false,
+        "winningPollOptionIds": null,
+        "minWager": 0,
+        "isOnThisDayEligible": true,
+        "isDailyStreak": false,
+        "pointSpread": null,
+        "homeTeamKey": "COL",
+        "awayTeamKey": "LAD",
+        "homeTeamId": 115,
+        "awayTeamId": 119,
+        "homeMoneyline": 235,
+        "awayMoneyline": -290,
+        "drawMoneyline": null,
+        "spreadTeamId": null,
+        "day": "2026-04-20",
+        "options": [
+          {
+            "id": 501288,
+            "odds": null,
+            "count": 630,
+            "label": "Under",
+            "pollId": 341443,
+            "locksAt": null,
+            "priority": 0,
+            "imageKey": "cb19acb448d82d0724be2c0fd9a2643e",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": false
+            },
+            "isLocked": false
+          },
+          {
+            "id": 501289,
+            "odds": null,
+            "count": 1788,
+            "label": "Over",
+            "pollId": 341443,
+            "locksAt": null,
+            "priority": 1,
+            "imageKey": "c2dcc0fc43b3cf7a30905327a63d3b95",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": true
+            },
+            "isLocked": false
+          }
+        ],
+        "showSpread": false,
+        "spreadDisplay": null,
+        "secondarySpreadDisplay": null,
+        "canViewResults": false,
+        "appliedPassInfos": []
+      },
+      "response": {
+        "pollOptionId": 501288,
+        "wager": 0,
+        "avatarSource": null,
+        "label": null
+      }
+    }
+  },
+  {
+    "poll_info": {
+      "typeOptions": [
+        {
+          "id": "all",
+          "label": "All"
+        },
+        {
+          "id": "gamewinner",
+          "label": "H2H"
+        },
+        {
+          "id": "totaloverunder",
+          "label": "O/U"
+        },
+        {
+          "id": "player",
+          "label": "Player"
+        }
+      ],
+      "dayOptions": [
+        {
+          "id": "2026-04-20",
+          "label": "Active"
+        },
+        {
+          "id": "2026-04-21",
+          "label": "Next"
+        },
+        {
+          "id": "2026-04-19",
+          "label": "Prev"
+        }
+      ]
+    },
+    "resolved_day": "2026-04-20",
+    "poll_type": "all",
+    "post": {
+      "id": 833097,
+      "userId": "Jkd6qe6k",
+      "gameId": 824692,
+      "sport": "mlb",
+      "playId": null,
+      "content": {
+        "nodes": [
+          {
+            "type": "Paragraph",
+            "children": [
+              {
+                "text": "Total runs 8",
+                "type": "Text"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "type": "Poll",
+            "pollId": 341441
+          }
+        ]
+      },
+      "createdAt": "2026-04-20T11:00:34.130Z",
+      "flaggedAt": null,
+      "deletedAt": null,
+      "additionalInfo": {
+        "type": "totaloverunder",
+        "pollId": 341441,
+        "isOverUnder": true,
+        "overUnderAmount": "8",
+        "commentsDisabled": false
+      },
+      "header": "Over/under",
+      "avatarSource": "assets/pollavatar.png",
+      "pollsLockAt": "2026-04-20T23:40:00.000Z",
+      "isRealProOnly": false,
+      "day": "2026-04-20",
+      "commentCount": 5,
+      "emojis": [
+        {
+          "emojiId": "8b723155930211541a515d4607fb5432",
+          "gameId": 824692,
+          "sport": "mlb",
+          "postId": 833097,
+          "count": 1,
+          "createdAt": "2026-04-20T13:07:13.129255+00:00"
+        },
+        {
+          "emojiId": "069586725d309fe702ecca06432f011d",
+          "gameId": 824692,
+          "sport": "mlb",
+          "postId": 833097,
+          "count": 4,
+          "createdAt": "2026-04-20T11:46:15.660191+00:00"
+        },
+        {
+          "emojiId": "0921151cd800302519654b4e0c2c451c",
+          "gameId": 824692,
+          "sport": "mlb",
+          "postId": 833097,
+          "count": 10,
+          "createdAt": "2026-04-20T11:15:15.502003+00:00"
+        },
+        {
+          "emojiId": "28c90e1af0edaddb8fdd05fae7b3f534",
+          "gameId": 824692,
+          "sport": "mlb",
+          "postId": 833097,
+          "count": 8,
+          "createdAt": "2026-04-20T11:07:27.443049+00:00"
+        }
+      ],
+      "host": {
+        "id": "Jkd6qe6k",
+        "avatarKey": "3",
+        "userName": "real",
+        "flairId": "",
+        "isVerified": true,
+        "supporterTier": null,
+        "realProTier": 1,
+        "isRealPro": true,
+        "emblemIds": [
+          "vf",
+          "da",
+          "rp"
+        ]
+      }
+    },
+    "poll_payload": {
+      "poll": {
+        "id": 341441,
+        "type": "singleselect",
+        "size": 2,
+        "userId": "Jkd6qe6k",
+        "locksAt": "2026-04-20T23:40:00.000Z",
+        "createdAt": "2026-04-20T11:00:33.909Z",
+        "additionalInfo": {
+          "type": "totaloverunder",
+          "isMidgame": false,
+          "isOverUnder": true,
+          "overUnderAmount": "8"
+        },
+        "gameId": 824692,
+        "sport": "mlb",
+        "winningPollOptionId": null,
+        "deletedAt": null,
+        "canWager": true,
+        "maxWager": 100,
+        "isPush": false,
+        "winningPollOptionIds": null,
+        "minWager": 0,
+        "isOnThisDayEligible": true,
+        "isDailyStreak": false,
+        "pointSpread": null,
+        "homeTeamKey": "CHC",
+        "awayTeamKey": "PHI",
+        "homeTeamId": 112,
+        "awayTeamId": 143,
+        "homeMoneyline": -102,
+        "awayMoneyline": -116,
+        "drawMoneyline": null,
+        "spreadTeamId": null,
+        "day": "2026-04-20",
+        "options": [
+          {
+            "id": 501284,
+            "odds": null,
+            "count": 246,
+            "label": "Under",
+            "pollId": 341441,
+            "locksAt": null,
+            "priority": 0,
+            "imageKey": "cb19acb448d82d0724be2c0fd9a2643e",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": false
+            },
+            "isLocked": false
+          },
+          {
+            "id": 501285,
+            "odds": null,
+            "count": 2043,
+            "label": "Over",
+            "pollId": 341441,
+            "locksAt": null,
+            "priority": 1,
+            "imageKey": "c2dcc0fc43b3cf7a30905327a63d3b95",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": true
+            },
+            "isLocked": false
+          }
+        ],
+        "showSpread": false,
+        "spreadDisplay": null,
+        "secondarySpreadDisplay": null,
+        "canViewResults": false,
+        "appliedPassInfos": []
+      },
+      "response": {
+        "pollOptionId": 501284,
+        "wager": 100,
+        "avatarSource": null,
+        "label": null
+      }
+    }
+  },
+  {
+    "poll_info": {
+      "typeOptions": [
+        {
+          "id": "all",
+          "label": "All"
+        },
+        {
+          "id": "gamewinner",
+          "label": "H2H"
+        },
+        {
+          "id": "totaloverunder",
+          "label": "O/U"
+        },
+        {
+          "id": "player",
+          "label": "Player"
+        }
+      ],
+      "dayOptions": [
+        {
+          "id": "2026-04-20",
+          "label": "Active"
+        },
+        {
+          "id": "2026-04-21",
+          "label": "Next"
+        },
+        {
+          "id": "2026-04-19",
+          "label": "Prev"
+        }
+      ]
+    },
+    "resolved_day": "2026-04-20",
+    "poll_type": "all",
+    "post": {
+      "id": 833096,
+      "userId": "Jkd6qe6k",
+      "gameId": 824125,
+      "sport": "mlb",
+      "playId": null,
+      "content": {
+        "nodes": [
+          {
+            "type": "Paragraph",
+            "children": [
+              {
+                "text": "Total runs 8.5",
+                "type": "Text"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "type": "Poll",
+            "pollId": 341440
+          }
+        ]
+      },
+      "createdAt": "2026-04-20T11:00:33.217Z",
+      "flaggedAt": null,
+      "deletedAt": null,
+      "additionalInfo": {
+        "type": "totaloverunder",
+        "pollId": 341440,
+        "isOverUnder": true,
+        "overUnderAmount": "8.5",
+        "commentsDisabled": false
+      },
+      "header": "Over/under",
+      "avatarSource": "assets/pollavatar.png",
+      "pollsLockAt": "2026-04-20T23:40:00.000Z",
+      "isRealProOnly": false,
+      "day": "2026-04-20",
+      "commentCount": 3,
+      "emojis": [
+        {
+          "emojiId": "069586725d309fe702ecca06432f011d",
+          "gameId": 824125,
+          "sport": "mlb",
+          "postId": 833096,
+          "count": 1,
+          "createdAt": "2026-04-20T13:51:34.384562+00:00"
+        },
+        {
+          "emojiId": "28c90e1af0edaddb8fdd05fae7b3f534",
+          "gameId": 824125,
+          "sport": "mlb",
+          "postId": 833096,
+          "count": 2,
+          "createdAt": "2026-04-20T11:46:00.650779+00:00"
+        },
+        {
+          "emojiId": "8a2d9b2a2ddba6ca74152bd84ada4f3e",
+          "gameId": 824125,
+          "sport": "mlb",
+          "postId": 833096,
+          "count": 3,
+          "createdAt": "2026-04-20T14:10:04.493275+00:00"
+        }
+      ],
+      "host": {
+        "id": "Jkd6qe6k",
+        "avatarKey": "3",
+        "userName": "real",
+        "flairId": "",
+        "isVerified": true,
+        "supporterTier": null,
+        "realProTier": 1,
+        "isRealPro": true,
+        "emblemIds": [
+          "vf",
+          "da",
+          "rp"
+        ]
+      }
+    },
+    "poll_payload": {
+      "poll": {
+        "id": 341440,
+        "type": "singleselect",
+        "size": 2,
+        "userId": "Jkd6qe6k",
+        "locksAt": "2026-04-20T23:40:00.000Z",
+        "createdAt": "2026-04-20T11:00:32.970Z",
+        "additionalInfo": {
+          "type": "totaloverunder",
+          "isMidgame": false,
+          "isOverUnder": true,
+          "overUnderAmount": "8.5"
+        },
+        "gameId": 824125,
+        "sport": "mlb",
+        "winningPollOptionId": null,
+        "deletedAt": null,
+        "canWager": true,
+        "maxWager": 100,
+        "isPush": false,
+        "winningPollOptionIds": null,
+        "minWager": 0,
+        "isOnThisDayEligible": true,
+        "isDailyStreak": false,
+        "pointSpread": null,
+        "homeTeamKey": "KC",
+        "awayTeamKey": "BAL",
+        "homeTeamId": 118,
+        "awayTeamId": 110,
+        "homeMoneyline": -108,
+        "awayMoneyline": -108,
+        "drawMoneyline": null,
+        "spreadTeamId": null,
+        "day": "2026-04-20",
+        "options": [
+          {
+            "id": 501282,
+            "odds": null,
+            "count": 478,
+            "label": "Under",
+            "pollId": 341440,
+            "locksAt": null,
+            "priority": 0,
+            "imageKey": "cb19acb448d82d0724be2c0fd9a2643e",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": false
+            },
+            "isLocked": false
+          },
+          {
+            "id": 501283,
+            "odds": null,
+            "count": 1456,
+            "label": "Over",
+            "pollId": 341440,
+            "locksAt": null,
+            "priority": 1,
+            "imageKey": "c2dcc0fc43b3cf7a30905327a63d3b95",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": true
+            },
+            "isLocked": false
+          }
+        ],
+        "showSpread": false,
+        "spreadDisplay": null,
+        "secondarySpreadDisplay": null,
+        "canViewResults": false,
+        "appliedPassInfos": []
+      },
+      "response": {
+        "pollOptionId": 501283,
+        "wager": 100,
+        "avatarSource": null,
+        "label": null
+      }
+    }
+  },
+  {
+    "poll_info": {
+      "typeOptions": [
+        {
+          "id": "all",
+          "label": "All"
+        },
+        {
+          "id": "gamewinner",
+          "label": "H2H"
+        },
+        {
+          "id": "totaloverunder",
+          "label": "O/U"
+        },
+        {
+          "id": "player",
+          "label": "Player"
+        }
+      ],
+      "dayOptions": [
+        {
+          "id": "2026-04-20",
+          "label": "Active"
+        },
+        {
+          "id": "2026-04-21",
+          "label": "Next"
+        },
+        {
+          "id": "2026-04-19",
+          "label": "Prev"
+        }
+      ]
+    },
+    "resolved_day": "2026-04-20",
+    "poll_type": "all",
+    "post": {
+      "id": 833095,
+      "userId": "Jkd6qe6k",
+      "gameId": 822749,
+      "sport": "mlb",
+      "playId": null,
+      "content": {
+        "nodes": [
+          {
+            "type": "Paragraph",
+            "children": [
+              {
+                "text": "Total runs 8.5",
+                "type": "Text"
+              }
+            ]
+          },
+          {
+            "size": 2,
+            "type": "Poll",
+            "pollId": 341439
+          }
+        ]
+      },
+      "createdAt": "2026-04-20T11:00:32.200Z",
+      "flaggedAt": null,
+      "deletedAt": null,
+      "additionalInfo": {
+        "type": "totaloverunder",
+        "pollId": 341439,
+        "isOverUnder": true,
+        "overUnderAmount": "8.5",
+        "commentsDisabled": false
+      },
+      "header": "Over/under",
+      "avatarSource": "assets/pollavatar.png",
+      "pollsLockAt": "2026-04-20T22:45:00.000Z",
+      "isRealProOnly": false,
+      "day": "2026-04-20",
+      "commentCount": 7,
+      "emojis": [
+        {
+          "emojiId": "28c90e1af0edaddb8fdd05fae7b3f534",
+          "gameId": 822749,
+          "sport": "mlb",
+          "postId": 833095,
+          "count": 2,
+          "createdAt": "2026-04-20T13:03:43.108387+00:00"
+        },
+        {
+          "emojiId": "8a2d9b2a2ddba6ca74152bd84ada4f3e",
+          "gameId": 822749,
+          "sport": "mlb",
+          "postId": 833095,
+          "count": 2,
+          "createdAt": "2026-04-20T12:16:54.831478+00:00"
+        },
+        {
+          "emojiId": "9dd4b339939b94708474b73d89c794c4",
+          "gameId": 822749,
+          "sport": "mlb",
+          "postId": 833095,
+          "count": 2,
+          "createdAt": "2026-04-20T15:54:56.224804+00:00"
+        }
+      ],
+      "host": {
+        "id": "Jkd6qe6k",
+        "avatarKey": "3",
+        "userName": "real",
+        "flairId": "",
+        "isVerified": true,
+        "supporterTier": null,
+        "realProTier": 1,
+        "isRealPro": true,
+        "emblemIds": [
+          "vf",
+          "da",
+          "rp"
+        ]
+      }
+    },
+    "poll_payload": {
+      "poll": {
+        "id": 341439,
+        "type": "singleselect",
+        "size": 2,
+        "userId": "Jkd6qe6k",
+        "locksAt": "2026-04-20T22:45:00.000Z",
+        "createdAt": "2026-04-20T11:00:32.171Z",
+        "additionalInfo": {
+          "type": "totaloverunder",
+          "isMidgame": false,
+          "isOverUnder": true,
+          "overUnderAmount": "8.5"
+        },
+        "gameId": 822749,
+        "sport": "mlb",
+        "winningPollOptionId": null,
+        "deletedAt": null,
+        "canWager": true,
+        "maxWager": 100,
+        "isPush": false,
+        "winningPollOptionIds": null,
+        "minWager": 0,
+        "isOnThisDayEligible": true,
+        "isDailyStreak": false,
+        "pointSpread": null,
+        "homeTeamKey": "WSH",
+        "awayTeamKey": "ATL",
+        "homeTeamId": 120,
+        "awayTeamId": 144,
+        "homeMoneyline": 136,
+        "awayMoneyline": -162,
+        "drawMoneyline": null,
+        "spreadTeamId": null,
+        "day": "2026-04-20",
+        "options": [
+          {
+            "id": 501280,
+            "odds": null,
+            "count": 327,
+            "label": "Under",
+            "pollId": 341439,
+            "locksAt": null,
+            "priority": 0,
+            "imageKey": "cb19acb448d82d0724be2c0fd9a2643e",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": false
+            },
+            "isLocked": false
+          },
+          {
+            "id": 501281,
+            "odds": null,
+            "count": 1856,
+            "label": "Over",
+            "pollId": 341439,
+            "locksAt": null,
+            "priority": 1,
+            "imageKey": "c2dcc0fc43b3cf7a30905327a63d3b95",
+            "imageCategory": "emoji",
+            "additionalInfo": {
+              "odds": null,
+              "over": true
+            },
+            "isLocked": false
+          }
+        ],
+        "showSpread": false,
+        "spreadDisplay": null,
+        "secondarySpreadDisplay": null,
+        "canViewResults": false,
+        "appliedPassInfos": []
+      },
+      "response": {
+        "pollOptionId": 501280,
+        "wager": 100,
+        "avatarSource": null,
+        "label": null
+      }
+    }
+  }
+]

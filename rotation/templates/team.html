@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section-head">
+  <div>
+    <p class="eyebrow">Team View</p>
+    <h1>{{ abbr }} recent games</h1>
+  </div>
+  <p>Looking back {{ days }} day{{ "s" if days != 1 else "" }} from {{ selected_date }}</p>
+</section>
+
+<section class="panel">
+  <div class="toolbar toolbar--compact">
+    <div class="toolbar__group">
+      <span class="muted">Window</span>
+      <div class="inline-links">
+        <a href="{{ url_for('team_page', abbr=abbr, days=7, date=selected_date) }}">7 days</a>
+        <a href="{{ url_for('team_page', abbr=abbr, days=30, date=selected_date) }}">30 days</a>
+        <a href="{{ url_for('team_page', abbr=abbr, days=90, date=selected_date) }}">90 days</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if games %}
+  <div class="game-grid">
+    {% for g in games %}
+      <a class="game-card" href="{{ url_for('game', game_id=g.game_id) }}">
+        <div class="game-card__meta">
+          <span class="pill">{{ g.status }}</span>
+          <span>{{ g.date }}</span>
+        </div>
+        <h3>{{ g.summary }}</h3>
+        {% if g.tipoff %}
+          <p class="muted">{{ g.tipoff }}</p>
+        {% endif %}
+        <div class="game-card__footer">
+          <span>{{ g.game_id }}</span>
+          <span>Open &rarr;</span>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-card">
+    <strong>No games found in this window.</strong><br/>
+    <span>Try a longer range or move the anchor date.</span>
+  </div>
+{% endif %}
+{% endblock %}

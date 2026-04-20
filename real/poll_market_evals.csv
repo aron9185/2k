@@ -1,0 +1,9 @@
+poll_id,sport,content_text,market_family,poll_player_name,poll_stat,poll_line,poll_over_odds,poll_under_odds,poll_has_explicit_odds,matched_books,books,book_categories,fair_line,fair_over_prob,fair_under_prob,fair_over_odds,fair_under_odds,over_ev_percent,under_ev_percent,recommended_side,recommended_ev_percent,recommended_kelly_quarter,estimate_source
+341465,mlb,Next run scored,teamnextpoints,,,,,,False,0,,,,,,,,,,,,,
+341464,mlb,Trevor Story · 0.5 total bases,player_over_under,trevor story,totalbases,0.5,100,100,False,4,kalshi,prediction_market,-1.3509,0.225491,0.774509,343,-343,-54.9017,54.9017,under,54.9017,0.137254,nearest-line fallback
+341461,mlb,Riley Greene · 0.5 hits,player_over_under,riley greene,hits,0.5,100,100,False,3,kalshi,prediction_market,0.5,0.395257,0.604743,153,-153,-20.9486,20.9486,under,20.9486,0.052372,exact-line consensus
+341462,mlb,Will a run score in the 4th?,minimumperiodtotalpoints,,,,,,False,0,,,,,,,,,,,,,
+341460,mlb,Total runs 8.5,game_total,,,8.5,100,100,False,32,kalshi,prediction_market,8.5,0.49505,0.50495,102,-102,-0.9901,0.9901,under,0.9901,0.002475,exact-line consensus
+341459,mlb,Gleyber Torres · 0.5 hits + runs + RBIs,player_over_under,gleyber torres,hitsrunsrbis,0.5,-190,135,True,5,kalshi,prediction_market,0.5,0.304878,0.695122,228,-228,-53.466,63.3537,under,63.3537,0.117322,exact-line consensus
+341458,mlb,Sonny Gray · 4.5 Ks,player_over_under,sonny gray,strikeouts,4.5,-215,155,True,8,kalshi,prediction_market,4.5,0.005,0.995,19900,-19900,-99.2674,153.725,under,153.725,0.247944,exact-line consensus
+341412,nhl,Karel Vejmelka · 25.5 saves,player_over_under,karel vejmelka,saves,25.5,100,100,False,0,,,,,,,,,,,,,

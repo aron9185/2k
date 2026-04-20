@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section-head">
+  <div>
+    <p class="eyebrow">Teams</p>
+    <h1>Browse team pages</h1>
+  </div>
+</section>
+
+<div class="team-grid">
+  {% for t in teams %}
+    <a class="team-card" href="{{ url_for('team_page', abbr=t.abbr) }}">
+      <strong>{{ t.abbr }}</strong>
+      <span>{{ t.name }}</span>
+    </a>
+  {% endfor %}
+</div>
+{% endblock %}
