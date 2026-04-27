@@ -15,12 +15,11 @@ CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 HEADERS = {
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Encoding": "gzip, deflate",
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br, zstd",
     "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7",
     "Cache-Control": "no-cache",
     "Connection": "keep-alive",
-    "Host": "stats.nba.com",
     "Origin": "https://www.nba.com",
     "Pragma": "no-cache",
     "Referer": "https://www.nba.com/",
@@ -30,11 +29,11 @@ HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/136.0.0.0 Safari/537.36"
+        "Chrome/147.0.0.0 Safari/537.36"
     ),
     "x-nba-stats-origin": "stats",
     "x-nba-stats-token": "true",
-    "sec-ch-ua": '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
+    'sec-ch-ua': '"Google Chrome";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": '"Windows"',
 }
@@ -198,6 +197,26 @@ def _player_name(row: Dict[str, Any]) -> str:
 
 
 def _matchup_target_name(matchup: Dict[str, Any]) -> str:
+    for value in (
+        matchup.get("personName"),
+        matchup.get("playerName"),
+        matchup.get("name"),
+        matchup.get("fullName"),
+    ):
+        text = _safe_str(value)
+        if text:
+            return text
+
+    first = _safe_str(matchup.get("firstName"))
+    last = _safe_str(matchup.get("familyName") or matchup.get("lastName"))
+    combined = f"{first} {last}".strip()
+    if combined:
+        return combined
+
+    name_i = _safe_str(matchup.get("nameI"))
+    if name_i:
+        return name_i
+
     return _lookup_text(
         matchup,
         [
@@ -210,7 +229,6 @@ def _matchup_target_name(matchup: Dict[str, Any]) -> str:
             "guardedplayername",
             "playername",
             "personname",
-            "name",
         ],
     )
 
@@ -227,6 +245,7 @@ def _fetch_matchup_payload(game_id: str) -> Dict[str, Any]:
     cache = _cache_path(game_id)
     debug = _debug_path(game_id)
     session = requests.Session()
+    session.trust_env = False
     last_error = ""
 
     for attempt in range(3):

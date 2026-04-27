@@ -32,6 +32,10 @@ DEFAULT_TTL_SEC = 20
 DEFAULT_STALE_SEC = 365 * 24 * 3600
 CONNECT_TIMEOUT = 0.5
 READ_TIMEOUT = 1.5
+RETRY_TIMEOUTS = (
+    (CONNECT_TIMEOUT, READ_TIMEOUT),
+    (1.0, 3.0),
+)
 
 DEBUG_ROTATION = os.environ.get("ROT_DEBUG", "1") == "1"
 
@@ -121,17 +125,18 @@ def fetch_json(url: str, cache_key: str, ttl_sec: int = DEFAULT_TTL_SEC, stale_s
             if cached is not None:
                 return cached
 
-    try:
-        session = requests.Session()
-        session.trust_env = False
-        r = session.get(url, timeout=(CONNECT_TIMEOUT, READ_TIMEOUT), headers=DEFAULT_HEADERS)
-        if r.status_code == 200:
-            obj = r.json()
-            if isinstance(obj, dict):
-                _write_cache_atomic(path, obj)
-                return obj
-    except Exception:
-        pass
+    session = requests.Session()
+    session.trust_env = False
+    for timeout in RETRY_TIMEOUTS:
+        try:
+            r = session.get(url, timeout=timeout, headers=DEFAULT_HEADERS)
+            if r.status_code == 200:
+                obj = r.json()
+                if isinstance(obj, dict):
+                    _write_cache_atomic(path, obj)
+                    return obj
+        except Exception:
+            continue
 
     if os.path.exists(path):
         age = now - os.path.getmtime(path)

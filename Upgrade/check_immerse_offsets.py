@@ -79,7 +79,7 @@ def format_address(value):
 
 
 def load_offsets(path):
-    with path.open("r", encoding="utf-8") as handle:
+    with path.open("r", encoding="utf-8-sig") as handle:
         return json.load(handle)
 
 
@@ -141,6 +141,24 @@ def read_qword(handle, address):
         "bytes_read": int(bytes_read.value),
         "value": int(buffer.value) if ok else None,
     }
+
+
+def resolve_pointer_chain(handle, stored, chain):
+    if stored is None:
+        return {"ok": False, "steps": [], "value": None}
+    steps = []
+    probe = read_qword(handle, stored)
+    steps.append({"address": stored, "value": probe["value"], "ok": probe["ok"]})
+    if not probe["ok"]:
+        return {"ok": False, "steps": steps, "value": None}
+    current = probe["value"]
+    for offset in chain or []:
+        probe = read_qword(handle, current + offset)
+        steps.append({"address": current + offset, "value": probe["value"], "ok": probe["ok"]})
+        if not probe["ok"]:
+            return {"ok": False, "steps": steps, "value": None}
+        current = probe["value"]
+    return {"ok": True, "steps": steps, "value": current}
 
 
 def summarize_file(path, data):
@@ -270,10 +288,13 @@ def print_live_probe(files, exe_name):
         for path, data in files:
             print(f"- {path.name}")
             for name in ("Player", "Team", "Staff", "Stadium", "TeamHistory", "NBAHistory", "HallOfFame"):
-                stored = data.get("base_pointers", {}).get(name, {}).get("address")
+                pointer_info = data.get("base_pointers", {}).get(name, {})
+                stored = pointer_info.get("address")
+                chain = pointer_info.get("chain", [])
                 if stored is None:
                     continue
                 absolute_probe = read_qword(handle, stored)
+                resolved = resolve_pointer_chain(handle, stored, chain)
                 rel_value = None
                 if module and stored < module["size"]:
                     rel_probe = read_qword(handle, module["base_address"] + stored)
@@ -281,6 +302,7 @@ def print_live_probe(files, exe_name):
                 print(
                     f"  {name:<12} stored={format_address(stored)} "
                     f"abs={format_address(absolute_probe['value'])} "
+                    f"resolved={format_address(resolved['value'])} "
                     f"module+stored={format_address(rel_value)}"
                 )
         print()

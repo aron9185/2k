@@ -1,7 +1,7 @@
 ﻿{
     "game_info":  {
                       "executable":  "NBA2K26.exe",
-                      "version":  "April 24 2026 Patch (relative compact baseline)",
+                      "version":  "April 24 2026 Patch (relative compact clone pair)",
                       "playerSize":  1176,
                       "staffSize":  432,
                       "teamSize":  5672,
@@ -9,13 +9,13 @@
                   },
     "base_pointers":  {
                           "Player":  {
-                                         "address":  132244216,
+                                         "address":  133005416,
                                          "chain":  [
 
                                                    ]
                                      },
                           "Team":  {
-                                       "address":  132244264,
+                                       "address":  133005464,
                                        "chain":  [
 
                                                  ]

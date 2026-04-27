@@ -6,6 +6,7 @@ import os
 import re
 import socket
 import time
+import unicodedata
 from html import unescape
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote_plus
@@ -93,6 +94,30 @@ ROTO_WEEKDAY_LOOKUP = {
     "sunday": 6,
 }
 ROTO_SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
+ROTO_CHAR_TRANSLATIONS = str.maketrans(
+    {
+        "Đ": "D",
+        "đ": "d",
+        "Ð": "D",
+        "ð": "d",
+        "Ł": "L",
+        "ł": "l",
+        "Ø": "O",
+        "ø": "o",
+        "Þ": "Th",
+        "þ": "th",
+        "Æ": "AE",
+        "æ": "ae",
+        "Œ": "OE",
+        "œ": "oe",
+        "ß": "ss",
+    }
+)
+ROTO_NAME_ALIASES = {
+    "kristaps porziņģis": ["Kristaps Porzingis"],
+    "nikola đurišić": ["Nikola Durisic"],
+    "wendell morre jr.": ["Wendell Moore", "Wendell Moore Jr."],
+}
 ROTO_TEAM_ALIASES = {
     "PHX": {"PHX", "PHO"},
     "NOP": {"NOP", "NO"},
@@ -243,17 +268,64 @@ def _strip_html(value: Any) -> str:
     return re.sub(r"^ANALYSIS\s*", "", text, flags=re.IGNORECASE)
 
 
-def _person_name_keys(name: Any) -> set[str]:
-    text = unescape(_safe_str(name)).lower().replace("\u2019", "'").replace("`", "'")
-    tokens = re.findall(r"[a-z0-9]+", text)
-    if not tokens:
-        return set()
+def _rotowire_ascii_text(value: Any) -> str:
+    text = unescape(_safe_str(value))
+    if not text:
+        return ""
+    text = text.translate(ROTO_CHAR_TRANSLATIONS)
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    return re.sub(r"\s+", " ", text).strip()
 
-    keys = {"".join(tokens)}
-    trimmed = [token for token in tokens if token not in ROTO_SUFFIXES]
-    if trimmed:
-        keys.add("".join(trimmed))
+
+def _person_name_keys(name: Any) -> set[str]:
+    raw_text = unescape(_safe_str(name)).replace("\u2019", "'").replace("`", "'")
+    variants = {raw_text, _rotowire_ascii_text(raw_text)}
+    keys: set[str] = set()
+    for text in variants:
+        lowered = _safe_str(text).lower()
+        if not lowered:
+            continue
+        tokens = re.findall(r"[a-z0-9]+", lowered)
+        if not tokens:
+            continue
+        keys.add("".join(tokens))
+        trimmed = [token for token in tokens if token not in ROTO_SUFFIXES]
+        if trimmed:
+            keys.add("".join(trimmed))
     return {key for key in keys if key}
+
+
+def _rotowire_name_queries(name: str) -> List[str]:
+    raw = _safe_str(name)
+    if not raw:
+        return []
+
+    queries: List[str] = []
+
+    def _add(value: str) -> None:
+        text = _safe_str(value)
+        if text and text not in queries:
+            queries.append(text)
+
+    _add(raw)
+    ascii_name = _rotowire_ascii_text(raw)
+    _add(ascii_name)
+
+    for candidate in (raw, ascii_name):
+        text = _safe_str(candidate)
+        if not text:
+            continue
+        tokens = text.split()
+        if tokens and tokens[-1].rstrip(".").lower() in ROTO_SUFFIXES:
+            _add(" ".join(tokens[:-1]))
+
+    for alias in ROTO_NAME_ALIASES.get(raw.lower(), []):
+        _add(alias)
+    for alias in ROTO_NAME_ALIASES.get(ascii_name.lower(), []):
+        _add(alias)
+
+    return queries
 
 
 def _rotowire_team_codes(team_abbr: Any) -> set[str]:
@@ -264,55 +336,58 @@ def _rotowire_team_codes(team_abbr: Any) -> set[str]:
 
 
 def _resolve_rotowire_player(name: str, team_abbr: str) -> Dict[str, Any]:
-    query = _safe_str(name)
-    if not query:
+    queries = _rotowire_name_queries(name)
+    if not queries:
         return {}
-
-    search_payload = _fetch_cached_text(
-        ROTO_SEARCH_URL.format(QUERY=quote_plus(query)),
-        cache_key=f"rotowire_search_{query}_{team_abbr}",
-        ttl_sec=ROTO_SEARCH_TTL_SEC,
-        stale_sec=ROTO_STALE_SEC,
-    )
-    final_url = _safe_str(search_payload.get("url"))
-    html = _safe_str(search_payload.get("text"))
-
-    if final_url and ROTO_PLAYER_URL_RE.match(final_url):
-        return {"url": final_url, "html": html}
-    if not html:
-        return {}
-
-    wanted_keys = _person_name_keys(query)
     team_codes = _rotowire_team_codes(team_abbr)
-    best_url = ""
-    best_score = -1
+    wanted_keys = set().union(*(_person_name_keys(query) for query in queries))
 
-    for href, candidate_name, meta in ROTO_SEARCH_RESULT_RE.findall(html):
-        candidate_keys = _person_name_keys(candidate_name)
-        if not (wanted_keys & candidate_keys):
+    for query in queries:
+        search_payload = _fetch_cached_text(
+            ROTO_SEARCH_URL.format(QUERY=quote_plus(query)),
+            cache_key=f"rotowire_search_{query}_{team_abbr}",
+            ttl_sec=ROTO_SEARCH_TTL_SEC,
+            stale_sec=ROTO_STALE_SEC,
+        )
+        final_url = _safe_str(search_payload.get("url"))
+        html = _safe_str(search_payload.get("text"))
+
+        if final_url and ROTO_PLAYER_URL_RE.match(final_url):
+            return {"url": final_url, "html": html}
+        if not html:
             continue
-        score = 10
-        meta_team = _safe_str(meta).split(" ", 1)[0].upper()
-        if meta_team and meta_team in team_codes:
-            score += 3
-        if score > best_score:
-            best_url = ROTO_BASE_URL + href
-            best_score = score
 
-    if not best_url:
-        return {}
+        best_url = ""
+        best_score = -1
 
-    slug = best_url.rstrip("/").rsplit("/", 1)[-1]
-    page_payload = _fetch_cached_text(
-        best_url,
-        cache_key=f"rotowire_page_{slug}",
-        ttl_sec=ROTO_PAGE_TTL_SEC,
-        stale_sec=ROTO_STALE_SEC,
-    )
-    return {
-        "url": _safe_str(page_payload.get("url")) or best_url,
-        "html": _safe_str(page_payload.get("text")),
-    }
+        for href, candidate_name, meta in ROTO_SEARCH_RESULT_RE.findall(html):
+            candidate_keys = _person_name_keys(candidate_name)
+            if not (wanted_keys & candidate_keys):
+                continue
+            score = 10
+            meta_team = _safe_str(meta).split(" ", 1)[0].upper()
+            if meta_team and meta_team in team_codes:
+                score += 3
+            if score > best_score:
+                best_url = ROTO_BASE_URL + href
+                best_score = score
+
+        if not best_url:
+            continue
+
+        slug = best_url.rstrip("/").rsplit("/", 1)[-1]
+        page_payload = _fetch_cached_text(
+            best_url,
+            cache_key=f"rotowire_page_{slug}",
+            ttl_sec=ROTO_PAGE_TTL_SEC,
+            stale_sec=ROTO_STALE_SEC,
+        )
+        return {
+            "url": _safe_str(page_payload.get("url")) or best_url,
+            "html": _safe_str(page_payload.get("text")),
+        }
+
+    return {}
 
 
 def _extract_first_class_html(document: str, class_name: str) -> str:
