@@ -49,6 +49,19 @@ def parse_args():
         default="",
         help="Optional directory to dump raw provider payloads for inspection.",
     )
+    parser.add_argument(
+        "--force-live",
+        action="store_true",
+        help=(
+            "Ignore saved sportsbook payloads and attempt live provider fetches. "
+            "Successful live DraftKings/FanDuel responses still refresh the saved payload cache."
+        ),
+    )
+    parser.add_argument(
+        "--allow-empty",
+        action="store_true",
+        help="Allow writing a header-only market CSV when providers return zero normalized rows.",
+    )
     return parser.parse_args()
 
 
@@ -87,9 +100,15 @@ def main():
                 max_rows=args.limit_per_provider,
             )
         elif provider_key == "draftkings":
-            rows, raw = fetch_draftkings_rows(sports)
+            rows, raw = fetch_draftkings_rows(
+                sports,
+                use_saved_payloads=not args.force_live,
+            )
         elif provider_key == "fanduel":
-            rows, raw = fetch_fanduel_rows(sports)
+            rows, raw = fetch_fanduel_rows(
+                sports,
+                use_saved_payloads=not args.force_live,
+            )
         else:
             raise SystemExit(f"Unsupported provider: {provider}")
 
@@ -99,6 +118,18 @@ def main():
         counts_by_market_type.update(str(row.get("market_type") or "") for row in rows)
 
     deduped_rows = dedupe_market_rows(provider_rows)
+    if not deduped_rows and not args.allow_empty:
+        print("No normalized public-market rows fetched; leaving output unchanged.")
+        print("Use --allow-empty if you intentionally want a header-only output file.")
+        for provider, count in sorted(counts_by_provider.items()):
+            print(f"  {provider}: {count} row(s)")
+        if args.dump_json_dir:
+            dump_dir = Path(args.dump_json_dir)
+            for provider, payload in raw_payloads.items():
+                _write_json_dump(dump_dir / f"{provider}.json", payload)
+            print(f"Saved raw provider payloads to {dump_dir}")
+        raise SystemExit(1)
+
     written = write_market_rows(args.output, deduped_rows, append=args.append)
 
     print(f"Saved {written} normalized public-market rows to {args.output}")

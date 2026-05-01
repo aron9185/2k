@@ -80,6 +80,55 @@ def get_browser_like_json(
         raise
 
 
+def post_browser_like_json(
+    url: str,
+    payload: Any,
+    *,
+    headers: dict[str, str] | None = None,
+    timeout: int = 30,
+    proxy_url: str | None = None,
+    impersonate: str = "chrome136",
+) -> Any:
+    _clear_proxy_env()
+    effective_headers = {"content-type": "application/json", **dict(headers or {})}
+    last_error: Exception | None = None
+    if curl_requests is not None:
+        try:
+            curl_kwargs: dict[str, Any] = {
+                "headers": effective_headers,
+                "impersonate": impersonate,
+                "json": payload,
+                "timeout": timeout,
+            }
+            proxies = _proxy_map(proxy_url)
+            if proxies:
+                curl_kwargs["proxies"] = proxies
+            response = curl_requests.post(url, **curl_kwargs)
+            if response.status_code >= 400:
+                raise SportsbookFetchBlocked(f"{response.status_code} from {url}")
+            return response.json()
+        except Exception as exc:
+            last_error = exc
+
+    session = build_public_session("c2k-sportsbook-browser-like/1.0")
+    if effective_headers:
+        session.headers.update(effective_headers)
+    proxies = _proxy_map(proxy_url)
+    if proxies:
+        session.proxies.update(proxies)
+    try:
+        response = session.post(url, json=payload, timeout=timeout)
+        if response.status_code >= 400:
+            raise SportsbookFetchBlocked(f"{response.status_code} from {url}")
+        return response.json()
+    except Exception as exc:
+        if last_error is not None:
+            raise SportsbookFetchBlocked(
+                f"{last_error}; fallback failed: {exc}"
+            ) from exc
+        raise
+
+
 def load_request_config(provider: str) -> dict[str, Any]:
     path = REQUESTS_DIR / f"{provider}.json"
     if not path.exists():

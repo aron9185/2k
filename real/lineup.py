@@ -14,7 +14,12 @@ from read_real_player import (
     ranking_urls_for_sport,
     write_real_id_csv,
 )
-from realsports_api import RealSportsAuthError, RealSportsError, build_realsports_client
+from realsports_api import (
+    RealSportsAuthError,
+    RealSportsError,
+    RealSportsRateLimitError,
+    build_realsports_client,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -23,6 +28,7 @@ DEFAULT_DATE = "2026-04-20"
 DEFAULT_SEASON = "2025"
 DEFAULT_FANTASY_POINTS_FILE = str(BASE_DIR / "fantasy_points.json")
 DEFAULT_LINEUP_FILE = str(BASE_DIR / "lineup.csv")
+LINEUP_SNAPSHOTS_DIR = BASE_DIR / "lineups"
 DEFAULT_ROTOWIRE_SITE = "auto"
 DEFAULT_REAL_ID_FILE = str(BASE_DIR / "real_id.csv")
 DEFAULT_MULTIPLIER_CACHE_DIR = str(BASE_DIR / ".cache" / "realsports_multiplier")
@@ -332,17 +338,73 @@ def safe_int(value, default=0):
         return default
 
 
+def injury_status_key(record):
+    return str(record.get("injuryStatus") or "").strip().lower()
+
+
+def is_unavailable_or_questionable_record(record):
+    status = injury_status_key(record)
+    if not status or status in {"no", "none", "healthy", "active", "prob", "probable"}:
+        return False
+    blocked_tokens = (
+        "q",
+        "ques",
+        "questionable",
+        "gtd",
+        "game time decision",
+        "out",
+        "doubt",
+        "dnp",
+        "not playing",
+        "inactive",
+        "injured reserve",
+        "ir",
+        "susp",
+        "suspended",
+    )
+    return any(token == status or token in status for token in blocked_tokens)
+
+
 def build_game_key(record):
     team = (record.get("team") or {}).get("abbr", "")
     opponent = (record.get("opponent") or {}).get("team", "")
     game_time = (record.get("game") or {}).get("dateTime", "")
     if not team or not opponent or not game_time:
+        event = record.get("event") or {}
+        event_time = str(event.get("eventDate") or game_time or "").strip()
+        course_name = str(event.get("courseName") or "").strip()
+        if event_time:
+            return f"{event_time}|{course_name or 'event'}"
         return None
     if record.get("isHome"):
         away_team, home_team = opponent, team
     else:
         away_team, home_team = team, opponent
     return f"{game_time}|{away_team}@{home_team}"
+
+
+def slate_target_rank(sport, slate, target_date):
+    start_date = slate.get("startDate")
+    if not start_date:
+        return None
+    start_dt = parse_iso_datetime(start_date)
+    end_raw = slate.get("endDate") or start_date
+    try:
+        end_dt = parse_iso_datetime(end_raw)
+    except Exception:
+        end_dt = start_dt
+    start_day = start_dt.date()
+    end_day = end_dt.date()
+
+    if start_day == target_date:
+        return (0, 0, start_dt.timestamp())
+    if start_day <= target_date <= end_day:
+        return (1, 0, start_dt.timestamp())
+    if sport == "golf" and target_date < start_day:
+        days_ahead = (start_day - target_date).days
+        if days_ahead <= 7:
+            return (2, days_ahead, start_dt.timestamp())
+    return None
 
 
 def contest_preference_score(contest_type):
@@ -367,30 +429,27 @@ def is_standard_projection_slate(contest_type, players):
     return not bool(positions & SHOWDOWN_POSITION_TOKENS)
 
 
-def pick_covering_slates(candidates):
-    selected = []
+def select_same_day_slates(candidates):
+    ordered = sorted(
+        candidates,
+        key=lambda candidate: (
+            candidate.get("target_rank", (999, 999, float("inf"))),
+            parse_iso_datetime(candidate["start_date"]).timestamp(),
+            -contest_preference_score(candidate["contest_type"]),
+            -len(candidate["games"]),
+            candidate["slate_id"],
+        ),
+    )
+    selected = [
+        {
+            "slate": slate,
+            "included_games": set(slate["games"]),
+        }
+        for slate in ordered
+    ]
     covered_games = set()
-    remaining = list(candidates)
-
-    while remaining:
-        best = min(
-            remaining,
-            key=lambda candidate: (
-                -len(candidate["games"] - covered_games),
-                -len(candidate["games"]),
-                -contest_preference_score(candidate["contest_type"]),
-                parse_iso_datetime(candidate["start_date"]).timestamp(),
-                candidate["slate_id"],
-            ),
-        )
-        incremental_games = best["games"] - covered_games
-        if not incremental_games and selected:
-            break
-
-        selected.append({"slate": best, "included_games": incremental_games or set(best["games"])})
-        covered_games |= best["games"]
-        remaining.remove(best)
-
+    for entry in selected:
+        covered_games |= entry["included_games"]
     return selected, covered_games
 
 
@@ -426,7 +485,8 @@ def fetch_site_projection_summary(session, sport, target_date, site_name):
 
     for slate in slates:
         start_date = slate.get("startDate")
-        if not start_date or parse_iso_datetime(start_date).date() != target_date:
+        target_rank = slate_target_rank(sport, slate, target_date)
+        if target_rank is None:
             continue
 
         players = rotowire_get_json(session, sport, "players.php", params={"slateID": slate["slateID"]})
@@ -453,6 +513,7 @@ def fetch_site_projection_summary(session, sport, target_date, site_name):
                 "games": games,
                 "players": players,
                 "is_standard": is_standard_projection_slate(slate.get("contestType", ""), players),
+                "target_rank": target_rank,
             }
         )
 
@@ -466,7 +527,7 @@ def fetch_site_projection_summary(session, sport, target_date, site_name):
             "records": [],
         }
 
-    selected_entries, covered_games = pick_covering_slates(eligible_slates)
+    selected_entries, covered_games = select_same_day_slates(eligible_slates)
     records = merge_selected_slate_records(site_name, site_id, selected_entries)
     primary_coverage = len(selected_entries[0]["slate"]["games"]) if selected_entries else 0
 
@@ -621,6 +682,8 @@ def lookup_multiplier_entry(client, sport, date, record, real_player_index, cach
             )
         except RealSportsAuthError:
             raise
+        except RealSportsRateLimitError:
+            raise
         except Exception as exc:
             print(f"Failed multiplier lookup for {full_name} via {query_name}: {exc}")
             continue
@@ -679,6 +742,8 @@ def process_fantasy_points(
     multiplier_failure_message = ""
 
     for record in fantasy_records:
+        if is_unavailable_or_questionable_record(record):
+            continue
         full_name = player_full_name(record)
         if not full_name:
             continue
@@ -694,7 +759,7 @@ def process_fantasy_points(
                     real_player_index,
                     multiplier_cache,
                 )
-            except RealSportsAuthError as exc:
+            except (RealSportsAuthError, RealSportsRateLimitError) as exc:
                 multiplier_lookup_enabled = False
                 multiplier_failure_message = str(exc)
                 print(
@@ -768,16 +833,10 @@ def write_fantasy_points_cache(path, fantasy_records):
     )
 
 
-def write_lineup_output(path, projection_summary, results):
-    ensure_parent_dir(path)
-    selected_slates_text = " | ".join(
-        (
-            f"{slate['slateID']}:{slate['contestType']}:"
-            f"{slate['gamesCovered']}/{slate['totalSlateGames']}"
-        )
-        for slate in projection_summary["selected_slates"]
-    )
-    fieldnames = [
+def _lineup_output_fieldnames():
+    return [
+        "Sport",
+        "Slate_Date",
         "Lineup_Rank",
         "Name",
         "Adjusted_FP",
@@ -805,12 +864,25 @@ def write_lineup_output(path, projection_summary, results):
         "Source_Slate_Start_Date",
         "Source_Coverage_Games",
     ]
+
+
+def _write_lineup_csv(path, *, sport, date, projection_summary, results):
+    ensure_parent_dir(path)
+    selected_slates_text = " | ".join(
+        (
+            f"{slate['slateID']}:{slate['contestType']}:"
+            f"{slate['gamesCovered']}/{slate['totalSlateGames']}"
+        )
+        for slate in projection_summary["selected_slates"]
+    )
     with Path(path).open("w", newline="", encoding="utf8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=_lineup_output_fieldnames())
         writer.writeheader()
         for index, result in enumerate(results, start=1):
             writer.writerow(
                 {
+                    "Sport": sport,
+                    "Slate_Date": date,
                     "Lineup_Rank": index,
                     "Name": result["name"],
                     "Adjusted_FP": f"{result['adjusted_fp']:.2f}",
@@ -839,6 +911,26 @@ def write_lineup_output(path, projection_summary, results):
                     "Source_Coverage_Games": result["source_coverage_games"],
                 }
             )
+
+
+def write_lineup_output(path, *, sport, date, projection_summary, results):
+    output_path = Path(path)
+    _write_lineup_csv(
+        output_path,
+        sport=sport,
+        date=date,
+        projection_summary=projection_summary,
+        results=results,
+    )
+    snapshot_path = LINEUP_SNAPSHOTS_DIR / f"{sport}.csv"
+    if snapshot_path.resolve() != output_path.resolve():
+        _write_lineup_csv(
+            snapshot_path,
+            sport=sport,
+            date=date,
+            projection_summary=projection_summary,
+            results=results,
+        )
 
     print(f"Saved lineup sheet to {path}")
     print(
@@ -899,7 +991,13 @@ def main():
         skip_multiplier=args.skip_multiplier,
         client=client,
     )
-    write_lineup_output(args.output, projection_summary, results)
+    write_lineup_output(
+        args.output,
+        sport=args.sport,
+        date=args.date,
+        projection_summary=projection_summary,
+        results=results,
+    )
 
 
 if __name__ == "__main__":

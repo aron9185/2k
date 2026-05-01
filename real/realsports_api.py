@@ -55,6 +55,10 @@ class RealSportsAuthError(RealSportsError):
     """Raised when login credentials are missing or rejected."""
 
 
+class RealSportsRateLimitError(RealSportsError):
+    """Raised when the Real Sports API responds with HTTP 429."""
+
+
 @dataclass(frozen=True)
 class RealSportsAuthInfo:
     user_id: str
@@ -512,6 +516,14 @@ class RealSportsClient:
             timeout=self.timeout,
         )
         if response.status_code >= 400:
+            if response.status_code == 429:
+                message = response.text.strip()
+                retry_after = str(response.headers.get("Retry-After", "")).strip()
+                if retry_after:
+                    message = f"{message} (Retry-After: {retry_after}s)"
+                raise RealSportsRateLimitError(
+                    f"{method} {url} failed with {response.status_code}: {message}"
+                )
             if include_auth and not _retry_after_auth_reset and response.status_code in {401, 403}:
                 self.auth_info = None
                 self.auth_error = None
@@ -608,11 +620,66 @@ class RealSportsClient:
     def get_livefeed_posts(self, feed: str = "all") -> dict[str, Any]:
         return self.get_json(f"https://web.realapp.com/livefeed/{feed}/posts")
 
+    def get_prediction_game_markets(self, sport: str) -> dict[str, Any]:
+        sport_key = str(sport or "").strip().lower()
+        if not sport_key:
+            raise RealSportsError("sport is required for prediction game-markets requests")
+        return self.get_json(f"https://web.realapp.com/predictions/gamemarkets/{sport_key}")
+
+    def get_prediction_market_order(
+        self,
+        market_id: int | str,
+        *,
+        mode: str = "buy",
+    ) -> dict[str, Any]:
+        market_key = str(market_id or "").strip()
+        if not market_key:
+            raise RealSportsError("market_id is required for prediction market-order requests")
+        mode_key = str(mode or "").strip().lower()
+        if mode_key not in {"buy", "sell"}:
+            raise RealSportsError("mode must be 'buy' or 'sell' for prediction market-order requests")
+        return self.get_json(
+            f"https://web.realapp.com/predictions/marketorder/{market_key}/mode/{mode_key}"
+        )
+
+    def get_prediction_position(self, position_id: int | str) -> dict[str, Any]:
+        position_key = str(position_id or "").strip()
+        if not position_key:
+            raise RealSportsError("position_id is required for prediction position requests")
+        return self.get_json(f"https://web.realapp.com/predictions/position/{position_key}")
+
+    def get_prediction_open_positions(self) -> dict[str, Any]:
+        return self.get_json("https://web.realapp.com/predictions/openpositions")
+
     def get_home_tab(self, sport: str, *, page: str = "next", cohort: int = 0) -> dict[str, Any]:
         sport_key = str(sport or "").strip().lower()
         if not sport_key:
             raise RealSportsError("sport is required for home-tab requests")
         return self.get_json(f"https://web.realapp.com/home/{sport_key}/{page}?cohort={int(cohort)}")
+
+    def get_game_feed(
+        self,
+        game_id: int | str,
+        *,
+        sport: str,
+        version: int | str = 2,
+        view: str = "recent",
+        view_frame: str = "default",
+    ) -> dict[str, Any]:
+        sport_key = str(sport or "").strip().lower()
+        if not sport_key:
+            raise RealSportsError("sport is required for game-feed requests")
+        game_key = str(game_id or "").strip()
+        if not game_key:
+            raise RealSportsError("game_id is required for game-feed requests")
+        return self.get_json(
+            f"https://web.realapp.com/games/{game_key}/sport/{sport_key}/feed",
+            params={
+                "version": str(version),
+                "view": str(view),
+                "viewFrame": str(view_frame),
+            },
+        )
 
     def get_polls_info_for_sport(self, sport: str) -> dict[str, Any]:
         sport_key = str(sport or "").strip().lower()

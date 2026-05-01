@@ -15,13 +15,27 @@
 - `fetch_ranking.py`
   - saves raw ranking pages for deeper inspection
 - `lineup.py`
-  - pulls Rotowire optimizer projections, applies Real Sports multipliers, and writes `lineup.csv`
+  - pulls Rotowire optimizer projections, applies Real Sports multipliers, writes `lineup.csv`, and keeps per-sport snapshots in `lineups/`
 - `fair_odds.py`
   - core fair-line / devig / EV / Kelly math for sportsbook consensus markets
 - `sportsbook_catalog.py`
   - canonical target-book list, alias normalization, categories, and default source weights
 - `live_polls.py`
   - pulls current Real Sports polls from the live feed, sport home tabs, or the dedicated sport-polls tab and writes `live_polls.csv`
+- `predictions.py`
+  - inspects Real prediction markets, buy/sell order tickets, and position pages
+- `recommend_prediction_markets.py`
+  - matches current Real prediction markets against sportsbook consensus and calculates buy EV in rax
+- `recommend_prediction_positions.py`
+  - compares current open Real prediction positions against sportsbook fair value and suggests hold vs cashout
+- `render_prediction_sheet.py`
+  - renders the prediction EV CSV into a markdown sheet under `real/output/`, and can include open positions in the same file
+- `render_prediction_positions_sheet.py`
+  - renders the open-position hold/cashout CSV into a markdown sheet under `real/output/`
+- `refresh_dashboard_data.py`
+  - refreshes stable dashboard markdown files under `real/output/dashboard/` so a local HTML view can update in place without creating a new versioned file every cycle
+- `dashboard_server.py`
+  - serves a local HTML dashboard for the vote-sheet and prediction markdown outputs, with optional background refresh
 - `poll_market_matcher.py`
   - matches Real Sports polls to sportsbook markets and evaluates fair line / EV
 - `ingest_public_markets.py`
@@ -60,6 +74,7 @@ Active Real Sports files now live here too:
 - `real_id.csv`
 - `live_polls.csv`
 - `lineup.csv`
+- `lineups/`
 - `fantasy_points.json`
 - `fantasy_points.txt`
 - `picks.txt`
@@ -67,6 +82,8 @@ Active Real Sports files now live here too:
 - `rating.txt`
 - `rank.zip`
 - `tmp/`
+- `output/`
+- `output/dashboard/`
 - `.cache/realsports_multiplier/`
 
 ## Auth files
@@ -92,7 +109,13 @@ python real\bootstrap_realsports_session.py
 python real\read_real_player.py --sport nba --season 2026
 python real\lineup.py --sport nba --date 2026-04-20 --season 2025
 python real\ingest_public_markets.py --providers kalshi --sports nba,mlb,nhl --output real\sportsbook_markets.csv
+python real\ingest_public_markets.py --providers draftkings --sports mlb --force-live --output real\sportsbook_markets.csv
+python real\ingest_public_markets.py --providers draftkings,fanduel --sports mlb,nba,nhl --force-live --output real\sportsbook_markets_consensus_live.csv
+python real\ingest_public_markets.py --providers draftkings,fanduel --sports soccer --force-live --output real\sportsbook_markets_soccer_live.csv
 python real\live_polls.py --source sport-polls --sport mlb --output real\live_polls.csv
+python real\live_polls.py --source game-feed --sport mlb --game-id 823878 --output real\live_polls_game.csv
+python real\recommend_game_feed_polls.py --sport mlb --markets-csv real\sportsbook_markets_consensus_live.csv --output real\poll_vote_recommendations_consensus_mlb.csv
+python real\render_vote_sheet.py --input real\poll_vote_recommendations_consensus_mlb.csv --not-started-only
 python real\poll_market_matcher.py --polls-csv real\live_polls.csv --markets-csv real\sportsbook_markets.csv
 ```
 
@@ -116,6 +139,8 @@ The poll matcher expects a sportsbook market CSV shaped like:
 - `away_team`
 - `over_odds`
 - `under_odds`
+- `draw_odds`
+- `extra_outcomes`
 - `updated_at`
 - `period`
 
@@ -138,14 +163,31 @@ Current public providers:
   - current live NBA coverage now also includes rebounds O/U, assists O/U, threes made O/U, PRA O/U, PR O/U, PA O/U, RA O/U, steals O/U, blocks O/U, steals+blocks O/U, plus main-line 1st quarter spread
   - player milestone ladders like `25+ Points` are currently normalized as synthetic `24.5` over lines so they can participate in fair-line fitting, even when DraftKings does not expose the explicit under side in the captured payload
   - the default live DraftKings path now uses the newer `sportscontent/controldata/...` endpoints instead of the older blocked `eventgroups` API
+  - soccer support currently pulls Champions League markets from the soccer league page, including moneyline, first-half total goals, both teams to score, double chance, and first-half moneyline
 - `FanDuel`
-  - parser and provider wiring are in place, but this host currently gets CloudFront-blocked on direct scripted fetches
+  - live content-page pulls are working for MLB/NBA/NHL when a valid U.S. network path is available
+  - MLB player ladder markets such as home runs, hits, total bases, RBI, and stolen bases are normalized as synthetic over/under rows so they can join the consensus fit
+  - soccer live pulls now use FanDuel's soccer/event-tab/price endpoints for Champions League by default and normalize match result, game totals, first-half totals, both teams to score, double chance, and half-time result
+  - FanDuel soccer can be expanded with `competition_ids`, `event_limit`, and `tab_title_keywords` request-config overrides when we want leagues beyond the default Champions League path
 
 Typical flow:
 
 ```powershell
 python real\ingest_public_markets.py --providers kalshi --sports nba,mlb,nhl --output real\sportsbook_markets.csv
+python real\ingest_public_markets.py --providers draftkings --sports mlb --force-live --output real\sportsbook_markets.csv
+python real\ingest_public_markets.py --providers draftkings,fanduel --sports mlb,nba,nhl --force-live --output real\sportsbook_markets_consensus_live.csv
+python real\ingest_public_markets.py --providers draftkings,fanduel --sports soccer --force-live --output real\sportsbook_markets_soccer_live.csv
 python real\live_polls.py --source sport-polls --sport mlb --output real\live_polls.csv
+python real\predictions.py --kind markets --sport mlb --output real\tmp\mlb_prediction_markets.csv --dump-json real\tmp\mlb_prediction_markets.json
+python real\predictions.py --kind order --market-id 4456 --mode buy --output real\tmp\prediction_marketorder_4456_buy.csv
+python real\predictions.py --kind position --position-id 13926000 --output real\tmp\prediction_position_13926000.csv
+python real\recommend_prediction_markets.py --sport mlb --markets-csv real\sportsbook_markets_consensus_live.csv --output real\prediction_market_recommendations_mlb.csv
+python real\render_prediction_sheet.py --input real\prediction_market_recommendations_mlb.csv --positions-input real\prediction_position_recommendations_mlb.csv
+python real\recommend_prediction_positions.py --sport mlb --markets-csv real\sportsbook_markets_consensus_live.csv --output real\prediction_position_recommendations_mlb.csv
+python real\render_prediction_positions_sheet.py --input real\prediction_position_recommendations_mlb.csv
+python real\recommend_game_feed_polls.py --sport mlb --markets-csv real\sportsbook_markets_consensus_live.csv --output real\poll_vote_recommendations_consensus_mlb.csv
+python real\render_vote_sheet.py --input real\poll_vote_recommendations_consensus_mlb.csv --not-started-only
+python real\render_vote_sheet.py --input real\poll_vote_recommendations_consensus_mlb.csv --not-started-only --refresh-predictions
 python real\poll_market_matcher.py --polls-csv real\live_polls.csv --markets-csv real\sportsbook_markets.csv
 ```
 
@@ -155,10 +197,34 @@ Notes:
   - `--source livefeed` for the older mixed feed
   - `--source home --sport mlb` for the sport home cards
   - `--source sport-polls --sport mlb` for the dedicated MLB Polls tab, which is the cleaner source for current MLB poll posts
+- `live_polls.py --source game-feed --sport <sport> --game-id <id>` now reads a single game feed from `https://web.realapp.com/games/{gameId}/sport/{sport}/feed`
+  - this is the best source when you want the exact pre-game cards shown inside one matchup, including gamewinner, totals, period specials, and player cards tied to that game
+  - not every game-feed card is a wagerable poll; lineup contests and unresolved anytime-play cards may appear alongside normal polls
 - `Kalshi` is currently the stronger fit for the existing Real Sports over/under workflow because it exposes line-based sports markets directly.
 - `Polymarket` is available with `--providers kalshi,polymarket`, but only numeric over/under style sports questions are normalized today. Futures and generic winner markets stay available in the raw dumps, but they are not yet part of the default poll matcher.
-- `DraftKings` and `FanDuel` are now wired into the ingester as providers, but on this machine their official hosts currently reject scripted requests even with browser impersonation. The provider code supports saved official payloads and saved request configs under `real/.cache/sportsbook_payloads/` and `real/.cache/sportsbook_requests/`, so one browser-captured request can unblock them without changing the parser code.
+- `DraftKings` and `FanDuel` are wired into the ingester as sportsbook providers. The provider code also supports saved official payloads and saved request configs under `real/.cache/sportsbook_payloads/` and `real/.cache/sportsbook_requests/`, so one browser-captured request can unblock or replay a provider without changing parser code.
+- Use `--force-live` with DraftKings/FanDuel when you need current odds instead of replaying the saved payload cache. If the live request succeeds, the saved payload is refreshed.
 - DraftKings/FanDuel request configs can now also carry a real provider proxy route with `proxy_url`, plus a custom browser fingerprint via `impersonate`, if you have a working U.S. VPN/proxy path outside the dead repo-wide `127.0.0.1:9` env proxy.
+- FanDuel request configs can use simple GET `urls`, explicit `requests` entries with `method`, `url`, and optional JSON `payload`, or soccer-specific `competition_ids`/`tab_title_keywords` overrides.
+- For consensus voting, point `recommend_game_feed_polls.py` at `real\sportsbook_markets_consensus_live.csv`. Rows that match both books show `books=draftkings | fanduel`; unsupported market families or markets available from only one book remain single-source.
+- Markdown sheet outputs now live under `real\output\` so they are easy to find.
+- If you omit `--output`, `render_vote_sheet.py` writes versioned markdown files like `real\output\mlb_v1.md`, `real\output\nba_v2.md`, or `real\output\nhl_v3.md` instead of date-stamped filenames.
+- `render_vote_sheet.py` automatically includes the matching daily `lineup.py` snapshot from `real\lineups\<sport>.csv` when it exists for that sport and slate date.
+- `render_vote_sheet.py` also auto-includes same-sport prediction buy and open-position sections when matching `prediction_market_recommendations_<sport>.csv` and `prediction_position_recommendations_<sport>.csv` files exist.
+- Use `render_vote_sheet.py --refresh-predictions` when you want the combined vote sheet to pull fresh Real prediction prices and cashout values before rendering.
+- `recommend_anytime_rbi_polls.py` is now CSV-first. It only writes a markdown sheet when you explicitly pass `--sheet-output`.
+- The main MLB vote sheet handles `Anytime RBI` with the weighted zero-cost sportsbook ranking rule when same-game candidate markets exist.
+- `refresh_dashboard_data.py` writes stable files like `real\output\dashboard\nba.md` and `real\output\dashboard\nba_predictions.md` so the local HTML dashboard can refresh in place instead of creating `v15`, `v16`, `v17`, and so on.
+- `dashboard_server.py` serves those stable markdown files as a local HTML interface and can run timed refreshes in the background.
+
+Dashboard commands:
+
+```powershell
+python real\refresh_dashboard_data.py --sports mlb,nba,nhl
+python real\refresh_dashboard_data.py --sports mlb,nba,nhl --refresh-soccer
+python real\dashboard_server.py --host 127.0.0.1 --port 8765
+python real\dashboard_server.py --host 127.0.0.1 --port 8765 --refresh-on-start --refresh-seconds 180
+```
 
 Example request config:
 
@@ -172,8 +238,13 @@ Example request config:
   "sports": {
     "mlb": {
       "urls": [
-        "https://sportsbook.draftkings.com/sites/US-SB/api/v5/eventgroups/84240?format=json"
+        "https://sbapi.nj.sportsbook.fanduel.com/api/content-managed-page?currencyCode=USD&exchangeLocale=en_US&includePrices=true&language=en&regionCode=NAMERICA&timezone=America/New_York&_ak=FhMFpcPWXMeyZxOx&page=SPORT&sport=BASEBALL"
       ]
+    },
+    "soccer": {
+      "competition_ids": [228],
+      "event_limit": 12,
+      "tab_title_keywords": ["popular", "goals", "half"]
     }
   }
 }

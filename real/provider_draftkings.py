@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Iterable, Sequence
 
 from fair_odds import american_to_implied_prob, probability_to_american
@@ -19,9 +20,17 @@ SPORT_TO_EVENTGROUP = {
     "nfl": 88808,
 }
 
+SOCCER_LEAGUE_IDS = {
+    "champions_league": 40685,
+}
+
 NASH_HOST = "https://sportsbook-nash.draftkings.com"
 
-PRIMARY_MARKETS_SUBCATEGORY_ID = 4511
+PRIMARY_MARKETS_SUBCATEGORY_IDS = {
+    "nba": 4511,
+    "mlb": 4519,
+    "nhl": 4525,
+}
 
 NBA_LEAGUE_SUBCATEGORY_IDS = {
     "points_milestones": 16477,
@@ -38,9 +47,54 @@ NBA_LEAGUE_SUBCATEGORY_IDS = {
     "stocks_ou": 13781,
 }
 
+MLB_LEAGUE_SUBCATEGORY_IDS = {
+    "first_inning_runs": 11024,
+    "home_runs": 17319,
+    "hits": 17320,
+    "total_bases": 17321,
+    "hits_runs_rbis": 17843,
+    "rbis": 17322,
+    "stolen_bases": 18726,
+    "pitcher_strikeouts": 17323,
+    "pitcher_hits_allowed": 19457,
+    "pitcher_walks_allowed": 19456,
+    "pitcher_earned_runs_allowed": 19458,
+    "pitcher_hits_walks_earned_runs_allowed": 19460,
+    "pitcher_strikeouts_ou": 15221,
+    "pitcher_outs_recorded_ou": 17413,
+    "pitcher_hits_allowed_ou": 9886,
+    "pitcher_walks_allowed_ou": 15219,
+    "pitcher_earned_runs_allowed_ou": 17412,
+    "pitcher_hits_walks_earned_runs_allowed_ou": 19459,
+}
+
+NHL_LEAGUE_SUBCATEGORY_IDS = {
+    "goal_milestones": 16547,
+    "shots": 16544,
+    "shots_ou": 12040,
+    "points": 16545,
+    "points_ou": 16213,
+    "assists": 16546,
+    "assists_ou": 16215,
+    "blocks": 16548,
+    "blocks_ou": 16257,
+    "saves_ou": 16550,
+    "power_play_points": 18750,
+}
+
+SOCCER_LEAGUE_SUBCATEGORY_IDS = {
+    "moneyline": 4514,
+    "first_half_total_goals": 17903,
+    "both_teams_score": 5645,
+    "double_chance": 8068,
+    "halftime_result": 11273,
+}
+
 NBA_PLAYER_SUBCATEGORY_IDS = {
     "first_quarter_spread": 16822,
 }
+
+SPORTS_WITH_LEAGUE_SUBCATEGORY_FEEDS = {"nba", "mlb", "nhl", "soccer"}
 
 STAT_ALIASES = {
     "hits+runs+rbis": "hitsrunsrbis",
@@ -81,6 +135,26 @@ STAT_ALIASES = {
     "shots on goal": "shots",
     "shotsongoal": "shots",
     "shots": "shots",
+    "playershotsongoalou": "shots",
+    "playerpointsou": "points",
+    "playerassistsou": "assists",
+    "playerblocksou": "blocks",
+    "goaltendersavesou": "saves",
+    "playerpowerplaypointsou": "powerplaypoints",
+    "stolenbases": "stolenbases",
+    "strikeoutsthrown": "strikeouts",
+    "strikeoutsthrownou": "strikeouts",
+    "hitsallowedxorfewer": "hitsallowed",
+    "hitsallowedou": "hitsallowed",
+    "walksallowedxorfewer": "walksallowed",
+    "walksallowedou": "walksallowed",
+    "earnedrunsallowedxorfewer": "earnedrunsallowed",
+    "earnedrunsallowedou": "earnedrunsallowed",
+    "outsou": "outsrecorded",
+    "hitsallowedwalksallowedearnedrunsallowedxorfewer": "hitswalksearnedrunsallowed",
+    "hitsallowedwalksallowedearnedrunsallowedou": "hitswalksearnedrunsallowed",
+    "runs1stinning": "total",
+    "runsfirstinning": "total",
     "total": "total",
     "spread": "spread",
 }
@@ -156,13 +230,26 @@ def _normalize_stat(value: str) -> str:
 def _market_family(subcategory_name: str, outcomes: list[dict[str, Any]], offer_label: str) -> str | None:
     lowered = str(subcategory_name or "").lower()
     labels = {str(outcome.get("label") or "").strip().lower() for outcome in outcomes}
-    if labels == {"over", "under"} and "total" in lowered:
+    if labels == {"over", "under"} and (
+        "total" in lowered or (("inning" in lowered or "innings" in lowered) and "run" in lowered)
+    ):
         return "game_total"
     if labels == {"over", "under"}:
         return "player_over_under"
     if len(outcomes) == 2 and offer_label == "":
         return "game_winner"
     return None
+
+
+def _is_yes_no_first_inning_runs_market(
+    market_name: str,
+    market_type_name: str,
+    labels: set[str],
+) -> bool:
+    if labels != {"yes", "no"}:
+        return False
+    text = f"{market_name} {market_type_name}".lower()
+    return ("inning" in text or "innings" in text) and "run" in text
 
 
 def _event_teams(event: dict[str, Any]) -> tuple[str, str]:
@@ -208,6 +295,28 @@ def _selection_display_odds(selection: dict[str, Any]) -> int | None:
     return _parse_american(((selection.get("displayOdds") or {}).get("american")))
 
 
+def _selection_outcome_key(selection: dict[str, Any]) -> str:
+    label = _selection_label(selection)
+    outcome_type = str(selection.get("outcomeType") or "").strip()
+    return outcome_type or label
+
+
+def _selection_outcomes_json(selections: list[dict[str, Any]]) -> str:
+    outcomes = []
+    for selection in selections:
+        odds = _selection_display_odds(selection)
+        if odds is None:
+            continue
+        outcomes.append(
+            {
+                "key": _selection_outcome_key(selection),
+                "label": _selection_label(selection),
+                "odds": odds,
+            }
+        )
+    return json.dumps(outcomes, separators=(",", ":"), ensure_ascii=True) if outcomes else ""
+
+
 def _selection_points(selection: dict[str, Any]) -> float | None:
     return _parse_line(selection.get("points"))
 
@@ -231,6 +340,14 @@ def _derive_player_stat(market_name: str, player_name: str) -> str:
 
 def _infer_period(market_name: str) -> str:
     lowered = str(market_name or "").lower()
+    if "1st inning" in lowered or "first inning" in lowered:
+        return "1I"
+    if "2nd inning" in lowered or "second inning" in lowered:
+        return "2I"
+    if "3rd inning" in lowered or "third inning" in lowered:
+        return "3I"
+    if "4th inning" in lowered or "fourth inning" in lowered:
+        return "4I"
     if "1st quarter" in lowered or "q1" in lowered:
         return "1Q"
     if "2nd quarter" in lowered or "q2" in lowered:
@@ -239,10 +356,18 @@ def _infer_period(market_name: str) -> str:
         return "3Q"
     if "4th quarter" in lowered or "q4" in lowered:
         return "4Q"
+    if "1st period" in lowered or "p1" in lowered:
+        return "1P"
+    if "2nd period" in lowered or "p2" in lowered:
+        return "2P"
+    if "3rd period" in lowered or "p3" in lowered:
+        return "3P"
     if "1st half" in lowered:
         return "1H"
     if "2nd half" in lowered:
         return "2H"
+    if "overtime" in lowered or "ot" in lowered:
+        return "OT"
     return ""
 
 
@@ -412,27 +537,110 @@ def _parse_controldata_payload(
             )
             continue
 
+        if market_name.lower() == "both teams to score" and labels == {"yes", "no"}:
+            yes_selection = next((selection for selection in selections if _selection_label(selection).lower() == "yes"), None)
+            no_selection = next((selection for selection in selections if _selection_label(selection).lower() == "no"), None)
+            if not yes_selection or not no_selection:
+                continue
+            yes_odds = _selection_display_odds(yes_selection)
+            no_odds = _selection_display_odds(no_selection)
+            if yes_odds is None or no_odds is None:
+                continue
+            rows.append(
+                {
+                    "provider": "draftkings",
+                    "provider_event_id": event_id,
+                    "provider_market_id": market_id,
+                    "provider_league": sport,
+                    "provider_market_name": market_name,
+                    "book": "draftkings",
+                    "sport": sport,
+                    "market_type": "both_teams_score",
+                    "stat": "bothteamsscore",
+                    "player_name": "",
+                    "line": "",
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "over_odds": yes_odds,
+                    "under_odds": no_odds,
+                    "extra_outcomes": _selection_outcomes_json([yes_selection, no_selection]),
+                    "updated_at": updated_at,
+                    "period": period,
+                    "event_date": event.get("startEventDate") or "",
+                    "question": market_name,
+                }
+            )
+            continue
+
+        if _is_yes_no_first_inning_runs_market(market_name, market_type_name, labels):
+            yes_selection = next((selection for selection in selections if _selection_label(selection).lower() == "yes"), None)
+            no_selection = next((selection for selection in selections if _selection_label(selection).lower() == "no"), None)
+            if not yes_selection or not no_selection:
+                continue
+            yes_odds = _selection_display_odds(yes_selection)
+            no_odds = _selection_display_odds(no_selection)
+            if yes_odds is None or no_odds is None:
+                continue
+            rows.append(
+                {
+                    "provider": "draftkings",
+                    "provider_event_id": event_id,
+                    "provider_market_id": market_id,
+                    "provider_league": sport,
+                    "provider_market_name": market_name,
+                    "book": "draftkings",
+                    "sport": sport,
+                    "market_type": "game_total",
+                    "stat": "total",
+                    "player_name": "",
+                    "line": 0.5,
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "over_odds": yes_odds,
+                    "under_odds": no_odds,
+                    "updated_at": updated_at,
+                    "period": period,
+                    "event_date": event.get("startEventDate") or "",
+                    "question": market_name,
+                }
+            )
+            continue
+
+        if market_name.lower() == "double chance":
+            priced = [selection for selection in selections if _selection_display_odds(selection) is not None]
+            if len(priced) < 2:
+                continue
+            rows.append(
+                {
+                    "provider": "draftkings",
+                    "provider_event_id": event_id,
+                    "provider_market_id": market_id,
+                    "provider_league": sport,
+                    "provider_market_name": market_name,
+                    "book": "draftkings",
+                    "sport": sport,
+                    "market_type": "double_chance",
+                    "stat": "doublechance",
+                    "player_name": "",
+                    "line": "",
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "over_odds": _selection_display_odds(priced[0]),
+                    "under_odds": _selection_display_odds(priced[1]),
+                    "extra_outcomes": _selection_outcomes_json(priced),
+                    "updated_at": updated_at,
+                    "period": period,
+                    "event_date": event.get("startEventDate") or "",
+                    "question": market_name,
+                }
+            )
+            continue
+
         if "spread" in market_name.lower() or "spread" in market_type_name.lower():
-            selections_by_line: dict[float, list[dict[str, Any]]] = {}
-            for selection in selections:
-                points = _selection_points(selection)
-                if points is None:
-                    continue
-                selections_by_line.setdefault(abs(points), []).append(selection)
+            selection_groups: list[list[dict[str, Any]]] = []
+            seen_spread_pairs: set[tuple[float, float]] = set()
 
-            mainpoint_lines = {
-                abs(_selection_points(selection))
-                for selection in selections
-                if _selection_points(selection) is not None
-                and "MainPointLine" in (selection.get("tags") or [])
-            }
-
-            for spread_line, grouped in selections_by_line.items():
-                if len(grouped) != 2:
-                    continue
-                if mainpoint_lines and spread_line not in mainpoint_lines:
-                    continue
-
+            def _append_spread_group(grouped: list[dict[str, Any]]) -> None:
                 home_selection = next(
                     (
                         selection
@@ -456,18 +664,55 @@ def _parse_controldata_payload(
                     None,
                 )
                 if not home_selection or not away_selection:
+                    return
+                home_points = _selection_points(home_selection)
+                away_points = _selection_points(away_selection)
+                if home_points is None or away_points is None:
+                    return
+                pair_key = (float(home_points), float(away_points))
+                if pair_key in seen_spread_pairs:
+                    return
+                seen_spread_pairs.add(pair_key)
+                selection_groups.append([home_selection, away_selection])
+
+            mainpoint_group = [
+                selection
+                for selection in selections
+                if _selection_points(selection) is not None
+                and "MainPointLine" in (selection.get("tags") or [])
+            ]
+            if len(mainpoint_group) == 2:
+                _append_spread_group(mainpoint_group)
+            selections_by_line: dict[float, list[dict[str, Any]]] = {}
+            for selection in selections:
+                points = _selection_points(selection)
+                if points is None:
                     continue
+                selections_by_line.setdefault(abs(points), []).append(selection)
+            for grouped in selections_by_line.values():
+                _append_spread_group(grouped)
+
+            for grouped in selection_groups:
+                home_selection, away_selection = grouped
+                spread_line = abs(float(_selection_points(home_selection) or 0.0))
 
                 home_odds = _selection_display_odds(home_selection)
                 away_odds = _selection_display_odds(away_selection)
-                if home_odds is None or away_odds is None:
+                home_points = _selection_points(home_selection)
+                away_points = _selection_points(away_selection)
+                if (
+                    home_odds is None
+                    or away_odds is None
+                    or home_points is None
+                    or away_points is None
+                ):
                     continue
 
                 rows.append(
                     {
                         "provider": "draftkings",
                         "provider_event_id": event_id,
-                        "provider_market_id": f"{market_id}:{spread_line}",
+                        "provider_market_id": f"{market_id}:{home_points}",
                         "provider_league": sport,
                         "provider_market_name": market_name,
                         "book": "draftkings",
@@ -476,6 +721,8 @@ def _parse_controldata_payload(
                         "stat": "spread",
                         "player_name": "",
                         "line": spread_line,
+                        "home_spread": home_points,
+                        "away_spread": away_points,
                         "home_team": home_team,
                         "away_team": away_team,
                         "over_odds": home_odds,
@@ -485,10 +732,10 @@ def _parse_controldata_payload(
                         "event_date": event.get("startEventDate") or "",
                         "question": market_name,
                     }
-                )
+            )
             continue
 
-        if market_name.lower() == "moneyline":
+        if "moneyline" in market_name.lower():
             home_selection = next(
                 (
                     selection
@@ -505,12 +752,26 @@ def _parse_controldata_payload(
                 ),
                 None,
             )
+            draw_selection = next(
+                (
+                    selection
+                    for selection in selections
+                    if str(selection.get("outcomeType") or "").strip().lower() in {"tie", "draw"}
+                    or _selection_label(selection).lower() == "draw"
+                ),
+                None,
+            )
             if not home_selection or not away_selection:
                 continue
             home_odds = _selection_display_odds(home_selection)
             away_odds = _selection_display_odds(away_selection)
             if home_odds is None or away_odds is None:
                 continue
+            draw_odds = _selection_display_odds(draw_selection) if draw_selection else None
+            moneyline_selections = [home_selection]
+            if draw_selection:
+                moneyline_selections.append(draw_selection)
+            moneyline_selections.append(away_selection)
             rows.append(
                 {
                     "provider": "draftkings",
@@ -520,7 +781,7 @@ def _parse_controldata_payload(
                     "provider_market_name": market_name,
                     "book": "draftkings",
                     "sport": sport,
-                    "market_type": "game_winner",
+                    "market_type": "halftime_result" if period == "1H" else "game_winner",
                     "stat": "winner",
                     "player_name": "",
                     "line": "",
@@ -528,6 +789,8 @@ def _parse_controldata_payload(
                     "away_team": away_team,
                     "over_odds": home_odds,
                     "under_odds": away_odds,
+                    "draw_odds": draw_odds if draw_odds is not None else "",
+                    "extra_outcomes": _selection_outcomes_json(moneyline_selections),
                     "updated_at": updated_at,
                     "period": period,
                     "event_date": event.get("startEventDate") or "",
@@ -647,21 +910,93 @@ def _default_urls(sport: str) -> list[str]:
     ]
 
 
+def _is_empty_primary_payload(payload: Any) -> bool:
+    if not isinstance(payload, dict) or "primary_markets" not in payload:
+        return False
+    if payload.get("league_subcategories"):
+        return False
+    primary_payload = payload.get("primary_markets") or {}
+    if not isinstance(primary_payload, dict):
+        return False
+    return not (
+        primary_payload.get("markets")
+        or primary_payload.get("selections")
+        or primary_payload.get("events")
+    )
+
+
+def _missing_league_subcategory_payloads(sport: str, payload: Any) -> bool:
+    if not (
+        sport in SPORTS_WITH_LEAGUE_SUBCATEGORY_FEEDS
+        and isinstance(payload, dict)
+        and "primary_markets" in payload
+    ):
+        return False
+    league_subcategories = payload.get("league_subcategories")
+    if not isinstance(league_subcategories, dict) or not league_subcategories:
+        return True
+    if sport == "nba":
+        expected_keys = set(NBA_LEAGUE_SUBCATEGORY_IDS)
+    elif sport == "mlb":
+        expected_keys = set(MLB_LEAGUE_SUBCATEGORY_IDS)
+    elif sport == "nhl":
+        expected_keys = set(NHL_LEAGUE_SUBCATEGORY_IDS)
+    elif sport == "soccer":
+        expected_keys = {
+            f"{league_key}:{subcategory_key}"
+            for league_key in SOCCER_LEAGUE_IDS
+            for subcategory_key in SOCCER_LEAGUE_SUBCATEGORY_IDS
+        }
+    else:
+        expected_keys = set()
+    return bool(expected_keys - set(league_subcategories))
+
+
 def _fetch_live_nash_sport_payloads(
     sport: str,
     *,
     proxy_url: str | None,
     impersonate: str,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if sport == "soccer":
+        all_rows: list[dict[str, Any]] = []
+        soccer_leagues: dict[str, Any] = {}
+        flattened_subcategories: dict[str, Any] = {}
+        for league_key, league_id in SOCCER_LEAGUE_IDS.items():
+            merged_event_map: dict[str, dict[str, Any]] = {}
+            league_subcategory_payloads: dict[str, Any] = {}
+            for subcategory_key, subcategory_id in SOCCER_LEAGUE_SUBCATEGORY_IDS.items():
+                payload = get_browser_like_json(
+                    _league_subcategory_url(league_id, subcategory_id),
+                    headers=_nash_headers(feature="leagueSubcategory", page="league"),
+                    proxy_url=proxy_url,
+                    impersonate=impersonate,
+                )
+                payload_key = f"{league_key}:{subcategory_key}"
+                league_subcategory_payloads[payload_key] = payload
+                flattened_subcategories[payload_key] = payload
+                merged_event_map = _merge_event_maps(merged_event_map, _event_map(payload))
+                all_rows.extend(parse_payload(payload, sport, event_lookup=merged_event_map))
+            soccer_leagues[league_key] = {
+                "league_id": league_id,
+                "league_subcategories": league_subcategory_payloads,
+            }
+        return all_rows, {
+            "primary_markets": {},
+            "league_subcategories": flattened_subcategories,
+            "soccer_leagues": soccer_leagues,
+        }
+
     league_id = SPORT_TO_EVENTGROUP.get(sport)
     if not league_id:
         return [], {"error": f"unsupported live DraftKings sport: {sport}"}
+    primary_subcategory_id = PRIMARY_MARKETS_SUBCATEGORY_IDS.get(sport, 4511)
 
     raw_payloads: dict[str, Any] = {}
     all_rows: list[dict[str, Any]] = []
 
     primary_payload = get_browser_like_json(
-        _league_subcategory_url(league_id, PRIMARY_MARKETS_SUBCATEGORY_ID),
+        _league_subcategory_url(league_id, primary_subcategory_id),
         headers=_nash_headers(feature="leagueSubcategory", page="league"),
         proxy_url=proxy_url,
         impersonate=impersonate,
@@ -696,6 +1031,34 @@ def _fetch_live_nash_sport_payloads(
             quarter_spread_payloads[event_id] = payload
             all_rows.extend(parse_payload(payload, sport, event_lookup=merged_event_map))
         raw_payloads["first_quarter_spread_by_event"] = quarter_spread_payloads
+    elif sport == "mlb":
+        merged_event_map = dict(primary_event_map)
+        league_subcategory_payloads: dict[str, Any] = {}
+        for key, subcategory_id in MLB_LEAGUE_SUBCATEGORY_IDS.items():
+            payload = get_browser_like_json(
+                _league_subcategory_url(league_id, subcategory_id),
+                headers=_nash_headers(feature="leagueSubcategory", page="league"),
+                proxy_url=proxy_url,
+                impersonate=impersonate,
+            )
+            league_subcategory_payloads[key] = payload
+            merged_event_map = _merge_event_maps(merged_event_map, _event_map(payload))
+            all_rows.extend(parse_payload(payload, sport, event_lookup=merged_event_map))
+        raw_payloads["league_subcategories"] = league_subcategory_payloads
+    elif sport == "nhl":
+        merged_event_map = dict(primary_event_map)
+        league_subcategory_payloads: dict[str, Any] = {}
+        for key, subcategory_id in NHL_LEAGUE_SUBCATEGORY_IDS.items():
+            payload = get_browser_like_json(
+                _league_subcategory_url(league_id, subcategory_id),
+                headers=_nash_headers(feature="leagueSubcategory", page="league"),
+                proxy_url=proxy_url,
+                impersonate=impersonate,
+            )
+            league_subcategory_payloads[key] = payload
+            merged_event_map = _merge_event_maps(merged_event_map, _event_map(payload))
+            all_rows.extend(parse_payload(payload, sport, event_lookup=merged_event_map))
+        raw_payloads["league_subcategories"] = league_subcategory_payloads
 
     return all_rows, raw_payloads
 
@@ -704,19 +1067,15 @@ def fetch_rows(
     sports: Sequence[str],
     *,
     save_payloads: bool = True,
+    use_saved_payloads: bool = True,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     request_config = load_request_config("draftkings")
     all_rows: list[dict[str, Any]] = []
     raw_payloads: dict[str, Any] = {}
 
     for sport in _normalize_sports(sports):
-        payload = load_saved_payload("draftkings", sport)
-        if (
-            sport == "nba"
-            and isinstance(payload, dict)
-            and "primary_markets" in payload
-            and "league_subcategories" not in payload
-        ):
+        payload = load_saved_payload("draftkings", sport) if use_saved_payloads else None
+        if _missing_league_subcategory_payloads(sport, payload) or _is_empty_primary_payload(payload):
             payload = None
         if payload is None:
             headers = dict(request_config.get("headers") or {})

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,15 @@ from realsports_api import build_realsports_client
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUT = BASE_DIR / "live_polls.csv"
 EVEN_MONEY_ODDS = 100
+PLAYER_NAME_WITH_LINE_RE = re.compile(
+    r"^(?P<name>.+?)\s*(?:·|‧|•|-|–|—)\s*\d+(?:\.\d+)?\s+\S",
+    re.IGNORECASE,
+)
+PLAYER_NAME_FALLBACK_RE = re.compile(
+    r"^(?P<name>.+?)\s+\d+(?:\.\d+)?\s+\S",
+    re.IGNORECASE,
+)
+PLAYER_NAME_SPLIT_RE = re.compile(r"\s*[·•\-–—]\s*")
 
 
 def parse_args():
@@ -23,21 +33,44 @@ def parse_args():
     )
     parser.add_argument(
         "--source",
-        choices=("livefeed", "home", "sport-polls"),
+        choices=("livefeed", "home", "sport-polls", "game-feed"),
         default="livefeed",
-        help="Poll source: the legacy livefeed, a sport home-tab feed, or the dedicated sport polls tab.",
+        help=(
+            "Poll source: the legacy livefeed, a sport home-tab feed, "
+            "the dedicated sport polls tab, or a single game feed."
+        ),
     )
     parser.add_argument("--feed", default="all", help="Livefeed segment, e.g. all.")
     parser.add_argument(
         "--sport",
         default="",
-        help="Home-tab sport key such as mlb when --source home is used.",
+        help="Sport key such as mlb when --source home, --source sport-polls, or --source game-feed is used.",
     )
     parser.add_argument(
         "--cohort",
         type=int,
         default=0,
         help="Home-tab cohort index when --source home is used.",
+    )
+    parser.add_argument(
+        "--game-id",
+        default="",
+        help="Game id when --source game-feed is used.",
+    )
+    parser.add_argument(
+        "--view",
+        default="recent",
+        help="Game-feed view name such as recent, top, or all when --source game-feed is used.",
+    )
+    parser.add_argument(
+        "--view-frame",
+        default="default",
+        help="Game-feed frame such as default when --source game-feed is used.",
+    )
+    parser.add_argument(
+        "--version",
+        default="2",
+        help="Game-feed API version when --source game-feed is used.",
     )
     parser.add_argument(
         "--day",
@@ -53,7 +86,17 @@ def parse_args():
     parser.add_argument(
         "--include-locked",
         action="store_true",
-        help="Keep polls that are already locked.",
+        help="Legacy alias; locked polls are included by default.",
+    )
+    parser.add_argument(
+        "--unlocked-only",
+        action="store_true",
+        help="Keep only polls whose options are not all locked.",
+    )
+    parser.add_argument(
+        "--wagerable-only",
+        action="store_true",
+        help="Keep only polls where Real currently reports canWager=true.",
     )
     parser.add_argument(
         "--limit",
@@ -134,43 +177,130 @@ def _choose_over_under_options(options: list[dict[str, Any]]) -> tuple[dict[str,
 
 def _normalize_option_odds(option: dict[str, Any]) -> int:
     additional = option.get("additionalInfo") or {}
-    odds = additional.get("odds", option.get("odds"))
+    odds = additional.get("odds")
+    if odds in (None, "", "None"):
+        odds = option.get("odds")
     if odds in (None, "", "None"):
         return EVEN_MONEY_ODDS
     return int(odds)
 
 
+def _option_additional(option: dict[str, Any]) -> dict[str, Any]:
+    return option.get("additionalInfo") or {}
+
+
+def _option_team_id(option: dict[str, Any]) -> Any:
+    return _option_additional(option).get("teamId") or ""
+
+
+def _option_player_id(option: dict[str, Any]) -> Any:
+    return _option_additional(option).get("playerId") or ""
+
+
+def _normalize_poll_kind(post: dict[str, Any], poll: dict[str, Any]) -> str:
+    additional = poll.get("additionalInfo") or {}
+    post_additional = post.get("additionalInfo") or {}
+    poll_type = str(additional.get("type") or post_additional.get("type") or "").strip().lower()
+    header = str(post.get("header") or "").strip().lower()
+    is_anytime = bool(additional.get("isAnytimePlay") or post_additional.get("isAnytimePlay"))
+    if is_anytime:
+        return "pick_a_player" if header == "pick a player" else "anytime_play"
+    if additional.get("isHeadToHead") or post_additional.get("isHeadToHead"):
+        return "player_head_to_head"
+    if additional.get("isOverUnder") or post_additional.get("isOverUnder"):
+        return "player_over_under" if poll_type == "player" else "game_total"
+    if poll_type == "gamewinner" or additional.get("isPickWinner"):
+        return "game_winner"
+    if poll_type == "midgame":
+        point_spread = additional.get("pointSpread")
+        try:
+            spread_value = float(point_spread)
+        except Exception:
+            spread_value = None
+        if spread_value is not None:
+            return "period_winner" if spread_value == 0 else "game_spread"
+        return "midgame"
+    return poll_type
+
+
+def _extract_player_name(content_text: str, *, poll_kind: str, entity_type: str) -> str:
+    if poll_kind != "player_over_under":
+        return ""
+    if entity_type and entity_type != "player":
+        return ""
+    text = str(content_text or "").strip()
+    if not text:
+        return ""
+    match = PLAYER_NAME_WITH_LINE_RE.match(text) or PLAYER_NAME_FALLBACK_RE.match(text)
+    if match:
+        player_name = str(match.group("name") or "").strip(" .")
+    elif "·" in text:
+        player_name = str(text.split("·", 1)[0] or "").strip(" .")
+    else:
+        return ""
+    if not player_name or player_name.lower().startswith("to "):
+        return ""
+    return player_name
+
+
+def _format_play_types(value: Any) -> str:
+    if isinstance(value, list):
+        parts = [str(item).strip() for item in value if str(item).strip()]
+        return " | ".join(parts)
+    return str(value or "").strip()
+
+
 def _normalize_poll_row(post: dict[str, Any], poll_payload: dict[str, Any]) -> dict[str, Any]:
     poll = poll_payload.get("poll") or {}
     additional = poll.get("additionalInfo") or {}
+    post_additional = post.get("additionalInfo") or {}
     options = poll.get("options") or []
     over_option, under_option = _choose_over_under_options(options)
     explicit_option_odds = any(
         ((option.get("additionalInfo") or {}).get("odds") not in (None, "", "None"))
         for option in options
     )
+    content_text = _first_text(((post.get("content") or {}).get("nodes")) or [])
+    poll_kind = _normalize_poll_kind(post, poll)
+    entity_type = str(additional.get("entityType") or additional.get("type") or "").strip()
 
     return {
+        "source": "livefeed",
         "post_id": post.get("id"),
         "poll_id": poll.get("id"),
         "sport": poll.get("sport") or post.get("sport"),
         "game_id": poll.get("gameId") or post.get("gameId"),
         "day": poll.get("day"),
+        "created_at": post.get("createdAt") or "",
+        "poll_created_at": poll.get("createdAt") or "",
         "header": post.get("header") or "",
-        "content_text": _first_text(((post.get("content") or {}).get("nodes")) or []),
+        "content_text": content_text,
+        "poll_kind": poll_kind,
         "market_type": additional.get("type") or (post.get("additionalInfo") or {}).get("type") or "",
-        "entity_type": additional.get("type") or "",
+        "entity_type": entity_type,
         "stat": additional.get("stat") or "",
         "player_id": additional.get("playerId") or "",
+        "player_name": _extract_player_name(content_text, poll_kind=poll_kind, entity_type=entity_type),
         "period": additional.get("period"),
         "is_over_under": bool(additional.get("isOverUnder")),
         "line": additional.get("overUnderAmount"),
         "point_spread": poll.get("pointSpread"),
+        "spread_team_id": additional.get("spreadTeamId") or "",
         "home_team": poll.get("homeTeamKey"),
         "away_team": poll.get("awayTeamKey"),
         "home_moneyline": poll.get("homeMoneyline"),
         "away_moneyline": poll.get("awayMoneyline"),
         "locks_at": poll.get("locksAt"),
+        "lock_time_elapsed": additional.get("lockTimeElapsed") or "",
+        "after_time_elapsed": additional.get("afterTimeElapsed") or "",
+        "play_type": additional.get("playType") or "",
+        "play_types": _format_play_types(additional.get("playTypes")),
+        "params_json": json.dumps(additional.get("params") or {}, separators=(",", ":"), ensure_ascii=True),
+        "is_anytime_play": bool(additional.get("isAnytimePlay") or post_additional.get("isAnytimePlay")),
+        "is_head_to_head": bool(additional.get("isHeadToHead") or post_additional.get("isHeadToHead")),
+        "is_pick_winner": bool(additional.get("isPickWinner")),
+        "is_moneyline": bool(additional.get("isMoneyline")),
+        "is_midgame": bool(additional.get("isMidgame") or str(poll_kind).startswith("game_") or poll_kind == "period_winner"),
         "can_wager": poll.get("canWager"),
         "min_wager": poll.get("minWager"),
         "max_wager": poll.get("maxWager"),
@@ -179,9 +309,13 @@ def _normalize_poll_row(post: dict[str, Any], poll_payload: dict[str, Any]) -> d
         "option_1_label": (options[0].get("label") if len(options) > 0 else ""),
         "option_1_odds": (_normalize_option_odds(options[0]) if len(options) > 0 else ""),
         "option_1_count": (options[0].get("count") if len(options) > 0 else ""),
+        "option_1_team_id": (_option_team_id(options[0]) if len(options) > 0 else ""),
+        "option_1_player_id": (_option_player_id(options[0]) if len(options) > 0 else ""),
         "option_2_label": (options[1].get("label") if len(options) > 1 else ""),
         "option_2_odds": (_normalize_option_odds(options[1]) if len(options) > 1 else ""),
         "option_2_count": (options[1].get("count") if len(options) > 1 else ""),
+        "option_2_team_id": (_option_team_id(options[1]) if len(options) > 1 else ""),
+        "option_2_player_id": (_option_player_id(options[1]) if len(options) > 1 else ""),
         "over_odds": (_normalize_option_odds(over_option) if over_option else ""),
         "under_odds": (_normalize_option_odds(under_option) if under_option else ""),
         "over_count": over_option.get("count", ""),
@@ -212,7 +346,13 @@ def _filter_requested_sport(post: dict[str, Any], poll_payload: dict[str, Any], 
     return requested in {poll_sport, post_sport}
 
 
-def fetch_live_polls(feed: str = "all", *, include_locked: bool = False, limit: int = 0):
+def fetch_live_polls(
+    feed: str = "all",
+    *,
+    include_locked: bool = True,
+    wagerable_only: bool = False,
+    limit: int = 0,
+):
     client = build_realsports_client()
     payload = client.get_livefeed_posts(feed=feed)
     posts = payload.get("posts") or []
@@ -248,7 +388,8 @@ def fetch_home_tab_polls(
     sport: str,
     *,
     cohort: int = 0,
-    include_locked: bool = False,
+    include_locked: bool = True,
+    wagerable_only: bool = False,
     limit: int = 0,
 ):
     client = build_realsports_client()
@@ -274,7 +415,7 @@ def fetch_home_tab_polls(
 
         seen_poll_ids.add(poll_id)
         poll = poll_payload.get("poll") or {}
-        if not include_locked and not poll.get("canWager", False):
+        if wagerable_only and not poll.get("canWager", False):
             continue
 
         row = _normalize_poll_row(post, poll_payload)
@@ -294,6 +435,71 @@ def fetch_home_tab_polls(
     return rows, raw
 
 
+def fetch_game_feed_polls(
+    sport: str,
+    *,
+    game_id: int | str,
+    view: str = "recent",
+    view_frame: str = "default",
+    version: int | str = 2,
+    include_locked: bool = True,
+    wagerable_only: bool = False,
+    limit: int = 0,
+):
+    client = build_realsports_client()
+    payload = client.get_game_feed(
+        game_id,
+        sport=sport,
+        version=version,
+        view=view,
+        view_frame=view_frame,
+    )
+    posts = payload.get("posts") or []
+    if limit > 0:
+        posts = posts[:limit]
+
+    rows = []
+    entries = []
+    seen_poll_ids: set[int] = set()
+
+    for post in posts:
+        poll_id = _extract_poll_id(post)
+        if not poll_id or poll_id in seen_poll_ids:
+            continue
+
+        poll_payload = client.get_poll(poll_id)
+        if not _filter_requested_sport(post, poll_payload, sport):
+            continue
+
+        seen_poll_ids.add(poll_id)
+        poll = poll_payload.get("poll") or {}
+        if wagerable_only and not poll.get("canWager", False):
+            continue
+
+        row = _normalize_poll_row(post, poll_payload)
+        if not include_locked and row["is_locked"]:
+            continue
+
+        rows.append(row)
+        entries.append(
+            {
+                "post": post,
+                "poll_payload": poll_payload,
+            }
+        )
+
+    raw = {
+        "game_id": str(game_id),
+        "sport": sport,
+        "view": view,
+        "view_frame": view_frame,
+        "version": str(version),
+        "game_payload": payload,
+        "entries": entries,
+    }
+    return rows, raw
+
+
 def _choose_default_poll_day(info_payload: dict[str, Any]) -> str:
     day_options = info_payload.get("dayOptions") or []
     for option in day_options:
@@ -309,7 +515,8 @@ def fetch_sport_tab_polls(
     *,
     day: str = "",
     poll_type: str = "all",
-    include_locked: bool = False,
+    include_locked: bool = True,
+    wagerable_only: bool = False,
     limit: int = 0,
 ):
     client = build_realsports_client()
@@ -338,7 +545,7 @@ def fetch_sport_tab_polls(
 
         seen_poll_ids.add(poll_id)
         poll = poll_payload.get("poll") or {}
-        if not include_locked and not poll.get("canWager", False):
+        if wagerable_only and not poll.get("canWager", False):
             continue
 
         row = _normalize_poll_row(post, poll_payload)
@@ -363,26 +570,42 @@ def write_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
+        "source",
         "post_id",
         "poll_id",
         "sport",
         "game_id",
         "day",
+        "created_at",
+        "poll_created_at",
         "header",
         "content_text",
+        "poll_kind",
         "market_type",
         "entity_type",
         "stat",
         "player_id",
+        "player_name",
         "period",
         "is_over_under",
         "line",
         "point_spread",
+        "spread_team_id",
         "home_team",
         "away_team",
         "home_moneyline",
         "away_moneyline",
         "locks_at",
+        "lock_time_elapsed",
+        "after_time_elapsed",
+        "play_type",
+        "play_types",
+        "params_json",
+        "is_anytime_play",
+        "is_head_to_head",
+        "is_pick_winner",
+        "is_moneyline",
+        "is_midgame",
         "can_wager",
         "min_wager",
         "max_wager",
@@ -391,9 +614,13 @@ def write_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
         "option_1_label",
         "option_1_odds",
         "option_1_count",
+        "option_1_team_id",
+        "option_1_player_id",
         "option_2_label",
         "option_2_odds",
         "option_2_count",
+        "option_2_team_id",
+        "option_2_player_id",
         "over_odds",
         "under_odds",
         "over_count",
@@ -407,13 +634,15 @@ def write_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
 
 def main():
     args = parse_args()
+    include_locked = args.include_locked or not args.unlocked_only
     if args.source == "home":
         if not args.sport:
             raise SystemExit("--sport is required when --source home is used.")
         rows, raw = fetch_home_tab_polls(
             sport=args.sport,
             cohort=args.cohort,
-            include_locked=args.include_locked,
+            include_locked=include_locked,
+            wagerable_only=args.wagerable_only,
             limit=args.limit,
         )
     elif args.source == "sport-polls":
@@ -423,13 +652,30 @@ def main():
             sport=args.sport,
             day=args.day,
             poll_type=args.poll_type,
-            include_locked=args.include_locked,
+            include_locked=include_locked,
+            wagerable_only=args.wagerable_only,
+            limit=args.limit,
+        )
+    elif args.source == "game-feed":
+        if not args.sport:
+            raise SystemExit("--sport is required when --source game-feed is used.")
+        if not args.game_id:
+            raise SystemExit("--game-id is required when --source game-feed is used.")
+        rows, raw = fetch_game_feed_polls(
+            sport=args.sport,
+            game_id=args.game_id,
+            view=args.view,
+            view_frame=args.view_frame,
+            version=args.version,
+            include_locked=include_locked,
+            wagerable_only=args.wagerable_only,
             limit=args.limit,
         )
     else:
         rows, raw = fetch_live_polls(
             feed=args.feed,
-            include_locked=args.include_locked,
+            include_locked=include_locked,
+            wagerable_only=args.wagerable_only,
             limit=args.limit,
         )
     write_csv(args.output, rows)
