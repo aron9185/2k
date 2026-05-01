@@ -8,3 +8,22 @@ real/.cache/
 real/.realsports_auth_cache.json
 real/.realsports_browser_session.json
 real/.realsports_env.ps1
+
+# Real generated artifacts
+real/archive/
+real/lineups/
+real/output/
+real/tmp/
+real/anytime_rbi_recommendations.csv
+real/live_poll_vote_recommendations*.csv
+real/poll_vote_recommendations*.csv
+real/prediction_market_recommendations*.csv
+real/prediction_position_recommendations*.csv
+real/sportsbook_markets_consensus_live.csv
+real/sportsbook_markets_fanduel_live.csv
+real/sportsbook_markets_soccer_live.csv
+
+# Local cache/probe outputs
+rotation/cache/
+rotation/cache_json/box_*.json
+rotation/cache_json/rotowire/*.json
