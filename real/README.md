@@ -2,6 +2,10 @@
 
 `real/` contains the active Real Sports workflow that used to live in the repo root.
 
+Latest focused Real Sports handoff:
+
+- [`HANDOFF_2026-05-07.md`](HANDOFF_2026-05-07.md)
+
 ## Main scripts
 
 - `realsports_api.py`

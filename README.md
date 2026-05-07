@@ -23,7 +23,7 @@ See [`real/README.md`](/c:/2k/real/README.md) for the Real Sports auth flow, act
 
 Latest full-project handoff:
 
-- [`HANDOFF_2026-04-24.md`](/c:/2k/HANDOFF_2026-04-24.md)
+- [`HANDOFF_2026-05-07.md`](HANDOFF_2026-05-07.md)
 
 Current known-good Immerse offsets baseline:
 
@@ -35,6 +35,7 @@ These root files are intentionally still kept because newer `stats/` builders re
 - `HANDOFF_2026-04-20.md`
 - `HANDOFF_2026-04-21.md`
 - `HANDOFF_2026-04-24.md`
+- `HANDOFF_2026-05-07.md`
 
 ## Archived Legacy Files
 
