@@ -30,6 +30,7 @@ FIELDNAMES = [
     "game_time",
     "game_display",
     "game_path",
+    "game_order",
     "market_type",
     "market_label",
     "status",
@@ -69,6 +70,10 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _progress(message: str) -> None:
+    print(message, flush=True)
+
+
 def _safe_float(value: Any) -> float | None:
     if value in (None, "", "None"):
         return None
@@ -82,6 +87,28 @@ def _format_float(value: float | None, digits: int = 6) -> str:
     if value is None:
         return ""
     return f"{float(value):.{digits}f}"
+
+
+def _load_prediction_game_orders(sport: str) -> dict[str, str]:
+    path = BASE_DIR / f"prediction_market_recommendations_{sport}.csv"
+    if not path.exists():
+        return {}
+    orders: dict[str, str] = {}
+    try:
+        with path.open("r", encoding="utf8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+    except Exception:
+        return {}
+    for row in rows:
+        order = str(row.get("game_order") or "").strip()
+        if not order:
+            continue
+        game_id = str(row.get("game_id") or "").strip()
+        display = str(row.get("game_display") or "").strip()
+        for key in (f"id:{game_id}" if game_id else "", f"display:{display}" if display else ""):
+            if key and key not in orders:
+                orders[key] = order
+    return orders
 
 
 def _detail_lookup(details: list[dict[str, Any]], label: str) -> str:
@@ -218,6 +245,7 @@ def _row_for_position(
     sportsbook_markets: list[Any],
     *,
     sport_filter: str,
+    game_order: str = "",
 ) -> dict[str, Any]:
     sport = str(summary_position.get("sport") or "").strip().lower()
     market_id = summary_position.get("marketId") or ""
@@ -237,6 +265,7 @@ def _row_for_position(
         "game_time": "",
         "game_display": game_display,
         "game_path": str(((summary_position.get("marketDisplay") or {}).get("path")) or "").strip(),
+        "game_order": game_order,
         "market_type": market_type,
         "market_label": market_label,
         "status": "unsupported",
@@ -347,24 +376,31 @@ def _write_rows(path: Path, rows: list[dict[str, Any]]) -> None:
 def main() -> int:
     args = parse_args()
     sport = str(args.sport or "").strip().lower()
+    _progress(f"Loading sportsbook markets from {args.markets_csv}...")
     sportsbook_rows = load_csv_rows(args.markets_csv)
     sportsbook_markets = [build_market_row(row) for row in sportsbook_rows]
+    _progress(f"Loaded {len(sportsbook_markets)} sportsbook market rows.")
     client = build_realsports_client()
+    _progress("Fetching Real prediction open positions...")
     open_positions = client.get_prediction_open_positions().get("positions") or []
+    game_orders = _load_prediction_game_orders(sport)
+    supported_positions = [
+        summary_position
+        for summary_position in open_positions
+        if str(summary_position.get("sport") or "").strip().lower() == sport
+        and str(summary_position.get("marketType") or "").strip().lower()
+        in {"gamewinner", "rfi", "pointspread", "totalpoints"}
+    ]
+    _progress(f"Evaluating {len(supported_positions)} open {sport.upper()} prediction positions.")
 
     rows: list[dict[str, Any]] = []
-    for summary_position in open_positions:
-        if str(summary_position.get("sport") or "").strip().lower() != sport:
-            continue
-        if str(summary_position.get("marketType") or "").strip().lower() not in {
-            "gamewinner",
-            "rfi",
-            "pointspread",
-            "totalpoints",
-        }:
-            continue
+    total = len(supported_positions)
+    for index, summary_position in enumerate(supported_positions, start=1):
         position_id = str(summary_position.get("sharedPositionId") or "").strip()
         market_id = summary_position.get("marketId")
+        game_id = str(summary_position.get("gameId") or "").strip()
+        game_display = str(((summary_position.get("marketDisplay") or {}).get("display")) or "").strip()
+        game_order = game_orders.get(f"id:{game_id}") or game_orders.get(f"display:{game_display}") or ""
         position_payload = client.get_prediction_position(position_id) if position_id else {"position": summary_position, "items": []}
         market_payload = client.get_prediction_market_order(market_id, mode="buy")
         rows.append(
@@ -374,13 +410,16 @@ def main() -> int:
                 market_payload,
                 sportsbook_markets,
                 sport_filter=sport,
+                game_order=game_order,
             )
         )
+        if index == total or index % 5 == 0:
+            _progress(f"Prediction positions: {index}/{total} evaluated.")
 
     output_path = Path(args.output)
     _write_rows(output_path, rows)
-    print(output_path)
-    print(f"saved {len(rows)} open-position evaluations")
+    _progress(str(output_path))
+    _progress(f"saved {len(rows)} open-position evaluations")
     return 0
 
 

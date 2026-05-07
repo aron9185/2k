@@ -363,7 +363,7 @@ def fetch_live_polls(
     raw = []
     seen_poll_ids: set[int] = set()
 
-    for post in posts:
+    for feed_order, post in enumerate(posts):
         poll_id = _extract_poll_id(post)
         if not poll_id or poll_id in seen_poll_ids:
             continue
@@ -375,11 +375,12 @@ def fetch_live_polls(
             continue
 
         row = _normalize_poll_row(post, poll_payload)
+        row["feed_order"] = feed_order
         if not include_locked and row["is_locked"]:
             continue
 
         rows.append(row)
-        raw.append({"post": post, "poll_payload": poll_payload})
+        raw.append({"feed_order": feed_order, "post": post, "poll_payload": poll_payload})
 
     return rows, raw
 
@@ -571,6 +572,7 @@ def write_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
         "source",
+        "feed_order",
         "post_id",
         "poll_id",
         "sport",

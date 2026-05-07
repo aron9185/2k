@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import csv
+import json
 import subprocess
 import sys
 from collections import defaultdict
@@ -9,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from fair_odds import net_payout_per_unit, probability_to_american
+from fair_odds import american_to_implied_prob, net_payout_per_unit, probability_to_american
 from poll_market_matcher import normalize_team
 from render_prediction_sheet import prediction_summary_line, render_prediction_sections
 
@@ -39,6 +41,7 @@ POLL_ORDER = {
 }
 
 MLB_DISPLAY_POLL_KINDS = {
+    "daily_pool",
     "game_total",
     "game_winner",
     "period_total_yes_no",
@@ -47,6 +50,7 @@ MLB_DISPLAY_POLL_KINDS = {
     "player_most_stat",
 }
 MLB_POLL_KIND_ORDER = {
+    "daily_pool": -1,
     "player_over_under": 0,
     "game_total": 1,
     "game_winner": 2,
@@ -324,9 +328,48 @@ def _binary_fair_probabilities(row: dict[str, str]) -> dict[str, float]:
     }
 
 
+def _sportsbook_fair_probabilities(row: dict[str, str], options: list[dict[str, str]]) -> dict[str, float]:
+    raw_probs: dict[str, float] = {}
+    for option in options:
+        sportsbook_match = _matching_labeled_odds(
+            row,
+            label_prefix="sportsbook",
+            odds_prefix="sportsbook",
+            selection=option["label"],
+        )
+        if not sportsbook_match:
+            continue
+        _, sportsbook_odds = sportsbook_match
+        odds_value = _safe_int(str(sportsbook_odds or ""))
+        if odds_value is None:
+            continue
+        try:
+            raw_probs[option["slot"]] = american_to_implied_prob(odds_value)
+        except Exception:
+            continue
+    total = sum(raw_probs.values())
+    if total <= 0:
+        return {}
+    return {slot: value / total for slot, value in raw_probs.items()}
+
+
+def _action_fair_probabilities(row: dict[str, str], options: list[dict[str, str]]) -> dict[str, float]:
+    if len(options) == 2:
+        fair_probs = _binary_fair_probabilities(row)
+        if fair_probs:
+            return fair_probs
+    return _sportsbook_fair_probabilities(row, options)
+
+
 def _action_label(label: str) -> str:
     compact = _compact_label(label)
     return "".join(str(compact or "").split())
+
+
+def _format_signed_number(value: float, *, suffix: str = "") -> str:
+    sign = "+" if value >= 0 else ""
+    text = f"{sign}{value:.2f}"
+    return f"{text}{suffix}" if suffix else text
 
 
 def _expected_profit(fair_prob: float, real_odds: int, amount: int) -> float:
@@ -334,6 +377,256 @@ def _expected_profit(fair_prob: float, real_odds: int, amount: int) -> float:
     if amount <= 0:
         return fair_prob * ZERO_PUT_WIN_WAGER
     return amount * ((fair_prob * payout) - (1.0 - fair_prob))
+
+
+def _action_ev_text(fair_prob: float, real_odds: int, amount: int) -> str:
+    expected_profit = _expected_profit(fair_prob, real_odds, amount)
+    if amount <= 0:
+        return _format_signed_number(expected_profit, suffix=" Rax")
+    ev_percent = (expected_profit / max(float(amount), 1.0)) * 100.0
+    return _format_signed_percent(str(round(ev_percent, 4)))
+
+
+def _action_payload_token(payload: dict[str, object]) -> str:
+    encoded = base64.urlsafe_b64encode(
+        json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode("utf8")
+    ).decode("ascii").rstrip("=")
+    return f"<!--REAL_ACTIONS:{encoded}-->"
+
+
+def _source_lines_token(text: str) -> str:
+    encoded = base64.urlsafe_b64encode(str(text or "").encode("utf8")).decode("ascii").rstrip("=")
+    return f"<!--REAL_SOURCE_LINES:{encoded}-->"
+
+
+def _source_lines_text(row: dict[str, str]) -> str:
+    return str(row.get("source_lines") or "").strip()
+
+
+def _player_choice_probability(choice: dict[str, object]) -> float | None:
+    probability = _safe_float(str(choice.get("fair_prob") or ""))
+    if probability is not None:
+        return probability
+    odds = _safe_int(str(choice.get("sportsbook_odds") or ""))
+    if odds is None:
+        return None
+    try:
+        return american_to_implied_prob(odds)
+    except Exception:
+        return None
+
+
+def _player_choices_from_json(row: dict[str, str]) -> list[dict[str, object]]:
+    raw = str(row.get("player_choices_json") or "").strip()
+    if raw:
+        try:
+            payload = json.loads(raw)
+        except Exception:
+            payload = []
+        if isinstance(payload, list):
+            choices = [choice for choice in payload if isinstance(choice, dict)]
+            if choices:
+                return choices
+
+    # Backward-compatible fallback for older CSVs that only exported 3 slots.
+    choices: list[dict[str, object]] = []
+    for rank, option in enumerate(_option_slots(row, prefix="sportsbook"), start=1):
+        name = str(option.get("label") or "").strip()
+        odds = _safe_int(str(option.get("odds") or ""))
+        if not name or odds is None:
+            continue
+        probability = None
+        try:
+            probability = american_to_implied_prob(odds)
+        except Exception:
+            pass
+        choices.append(
+            {
+                "selection": name,
+                "probability_rank": rank,
+                "fair_prob": probability,
+                "fair_odds": probability_to_american(probability) if probability is not None else "",
+                "ranked_payout": "",
+                "expected_value": "",
+                "sportsbook_odds": odds,
+                "books": str(row.get("books") or ""),
+            }
+        )
+    return choices
+
+
+def _ranked_player_choices(row: dict[str, str]) -> list[dict[str, object]]:
+    return sorted(
+        _player_choices_from_json(row),
+        key=lambda choice: (
+            -float(_player_choice_probability(choice) or 0.0),
+            _safe_int(str(choice.get("probability_rank") or "")) or 9999,
+            str(choice.get("selection") or ""),
+        ),
+    )
+
+
+def _selected_player_choice(row: dict[str, str]) -> dict[str, object] | None:
+    choices = _ranked_player_choices(row)
+    if not choices:
+        return None
+    recommended = str(row.get("recommended_option") or "").strip()
+    for choice in choices:
+        if _labels_match(str(choice.get("selection") or ""), recommended):
+            return choice
+    return max(
+        choices,
+        key=lambda choice: (
+            float(_safe_float(str(choice.get("expected_value") or "")) or 0.0),
+            float(_player_choice_probability(choice) or 0.0),
+            -int(_safe_int(str(choice.get("probability_rank") or "")) or 9999),
+            str(choice.get("selection") or ""),
+        ),
+    )
+
+
+def _format_karma_ev(value: object) -> str:
+    number = _safe_float(str(value or ""))
+    if number is None:
+        return "n/a"
+    return _format_signed_number(number, suffix=" karma")
+
+
+def _choice_books_label(value: object) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    return (
+        text.replace("draftkings", "DK")
+        .replace("fanduel", "FD")
+        .replace(" | ", "+")
+    )
+
+
+def _player_choice_sportsbook_text(choice: dict[str, object], fallback: str) -> str:
+    name = _compact_label(str(choice.get("selection") or ""))
+    odds = _format_american(str(choice.get("sportsbook_odds") or ""))
+    if not name and not odds:
+        return fallback
+    text = " ".join(part for part in (name, odds) if part)
+    books = _choice_books_label(choice.get("books"))
+    return f"{books}: {text}" if books and text else text or fallback
+
+
+def _action_choice_payload(row: dict[str, str]) -> dict[str, object] | None:
+    status = str(row.get("status") or "").strip().lower()
+    if status in {"no_market", "missing_poll_data", "unsupported", "pass"}:
+        return None
+    max_wager = _safe_int(str(row.get("max_wager") or ""))
+    if max_wager is None or max_wager <= 0:
+        return None
+
+    options = _option_slots(row)
+    if len(options) < 2:
+        return None
+    fair_probs = _action_fair_probabilities(row, options)
+    if not fair_probs:
+        return None
+
+    actions: list[dict[str, object]] = []
+    source_lines = _source_lines_text(row)
+    for option in options:
+        fair_prob = fair_probs.get(option["slot"])
+        real_odds = _safe_int(str(option.get("odds") or ""))
+        if fair_prob is None or real_odds is None:
+            continue
+        sportsbook_text = _compact_sportsbook_pair(row)
+        for amount in (0, max_wager):
+            selection_put = f"{_action_label(option['label'])}{amount}"
+            actions.append(
+                {
+                    "selection_put": selection_put,
+                    "selection": option["label"],
+                    "amount": amount,
+                    "consensus": (
+                        f"{_format_probability_value(fair_prob)} "
+                        f"({_format_american(str(probability_to_american(fair_prob)))})"
+                    ),
+                    "ev": _action_ev_text(fair_prob, real_odds, amount),
+                    "sportsbook": sportsbook_text,
+                    "source": _source_text(row),
+                    "source_lines": source_lines,
+                }
+            )
+
+    if len(actions) < 2:
+        return None
+    default_text = _selection_put_text(row, include_action_token=False)
+    return {"default": default_text, "actions": actions}
+
+
+def _player_selection_choice_payload(row: dict[str, str]) -> dict[str, object] | None:
+    status = str(row.get("status") or "").strip().lower()
+    poll_kind = str(row.get("poll_kind") or "").strip().lower()
+    if status != "pick" or poll_kind not in ZERO_COST_ACTION_POLL_KINDS:
+        return None
+
+    choices = _ranked_player_choices(row)
+    if len(choices) < 2:
+        return None
+
+    sportsbook_text = _compact_sportsbook_pair(row)
+    source_lines = _source_lines_text(row)
+    actions: list[dict[str, object]] = []
+    for fallback_rank, choice in enumerate(choices, start=1):
+        fair_prob = _player_choice_probability(choice)
+        if fair_prob is None:
+            continue
+        rank = _safe_int(str(choice.get("probability_rank") or "")) or fallback_rank
+        probability = _format_probability_value(fair_prob)
+        fair_odds = _format_american(
+            str(choice.get("fair_odds") or probability_to_american(fair_prob))
+        )
+        name = str(choice.get("selection") or "").strip()
+        choice_source_lines = str(choice.get("source_lines") or source_lines or "").strip()
+        choice_source_note = str(choice.get("source_note") or "").strip()
+        choice_source = (
+            _source_text({**row, "notes": choice_source_note})
+            if choice_source_note
+            else _source_text(row)
+        )
+        actions.append(
+            {
+                "selection_put": name,
+                "display_label": f"{_compact_label(name)} | #{rank} | {probability}",
+                "selection": name,
+                "amount": 0,
+                "consensus": f"{probability} ({fair_odds})",
+                "ev": _format_karma_ev(choice.get("expected_value")),
+                "sportsbook": _player_choice_sportsbook_text(choice, sportsbook_text),
+                "source": choice_source,
+                "source_lines": choice_source_lines,
+                "expected_value": _safe_float(str(choice.get("expected_value") or "")) or 0.0,
+            }
+        )
+
+    if len(actions) < 2:
+        return None
+
+    recommended = str(row.get("recommended_option") or "").strip()
+    default = next(
+        (
+            str(action.get("selection_put") or "")
+            for action in actions
+            if _labels_match(str(action.get("selection") or ""), recommended)
+        ),
+        str(
+            max(
+                actions,
+                key=lambda action: (
+                    float(action.get("expected_value") or 0.0),
+                    str(action.get("selection") or ""),
+                ),
+            ).get("selection_put")
+            or ""
+        ),
+    )
+    return {"default": default, "actions": actions}
 
 
 def _best_action(row: dict[str, str]) -> dict[str, object]:
@@ -382,16 +675,29 @@ def _best_action(row: dict[str, str]) -> dict[str, object]:
     }
 
 
-def _selection_put_text(row: dict[str, str]) -> str:
+def _selection_put_text(row: dict[str, str], *, include_action_token: bool = True) -> str:
     action = _best_action(row)
     label = str(action.get("label") or "").strip()
     status = str(row.get("status") or "").strip().lower()
     poll_kind = str(row.get("poll_kind") or "").strip().lower()
     if not label:
         return "NoMarket" if status == "no_market" else "Skip"
+    if poll_kind == "daily_pool":
+        amount = int(action.get("amount") or 0)
+        return f"{label} | {amount}" if amount > 0 else label
     if status == "pick" and poll_kind in ZERO_COST_PICK_DISPLAY_KINDS:
-        return _compact_label(label)
-    return f"{_action_label(label)}{int(action.get('amount') or 0)}"
+        text = _compact_label(label)
+        if include_action_token:
+            payload = _player_selection_choice_payload(row)
+            if payload:
+                return f"{text} {_action_payload_token(payload)}"
+        return text
+    text = f"{_action_label(label)}{int(action.get('amount') or 0)}"
+    if include_action_token:
+        payload = _action_choice_payload(row)
+        if payload:
+            return f"{text} {_action_payload_token(payload)}"
+    return text
 
 
 def _compact_consensus_text(row: dict[str, str]) -> str:
@@ -515,6 +821,8 @@ def _sportsbook_pair(row: dict[str, str]) -> str:
 
 
 def _compact_sportsbook_pair(row: dict[str, str]) -> str:
+    if str(row.get("poll_kind") or "").strip().lower() == "daily_pool":
+        return str(row.get("sportsbook_a_label") or "").strip()
     parts = []
     for option in _option_slots(row, prefix="sportsbook"):
         odds = _format_american(option["odds"])
@@ -542,6 +850,8 @@ def _compact_sportsbook_pair(row: dict[str, str]) -> str:
 def _source_text(row: dict[str, str]) -> str:
     notes = str(row.get("notes") or "").strip()
     lowered = notes.lower()
+    if "daily pool payout model" in lowered:
+        return "Pool payout model"
     if "real split fallback" in lowered:
         return "Real split fallback"
     if "normalized first-basket implied probabilities" in lowered:
@@ -552,12 +862,18 @@ def _source_text(row: dict[str, str]) -> str:
         return "Sportsbook moneyline proxy"
     if "official playoff" in lowered or "official season-to-date" in lowered:
         return "Official stats proxy"
+    if "integer-goal equivalent exact line" in lowered:
+        return "Integer-equivalent exact line"
+    if "single-book exact line" in lowered:
+        return "Single-book exact line"
     if "exact-line consensus" in lowered:
         return "Exact-line consensus"
     if "nearest-line fallback" in lowered:
         return "Nearest-line fallback"
     if "fitted line curve" in lowered:
         return "Fitted line curve"
+    if "single-book moneyline" in lowered:
+        return "Single-book moneyline"
     if "weighted no-vig moneyline consensus" in lowered:
         return "Moneyline consensus"
     if "weighted daily-stats payout ladder" in lowered:
@@ -571,6 +887,14 @@ def _source_text(row: dict[str, str]) -> str:
     if not notes:
         return ""
     return notes.split(";", 1)[0].strip()
+
+
+def _source_text_with_lines(row: dict[str, str]) -> str:
+    source = _source_text(row)
+    source_lines = _source_lines_text(row)
+    if source and source_lines:
+        return f"{source} {_source_lines_token(source_lines)}"
+    return source
 
 
 def _market_odds_text(row: dict[str, str]) -> str:
@@ -617,6 +941,8 @@ def _poll_title(row: dict[str, str]) -> str:
     line = str(row.get("line") or "").strip()
     poll_kind = str(row.get("poll_kind") or "").strip().lower()
 
+    if poll_kind == "daily_pool":
+        return "Pool of the day"
     if header == "Winner":
         return option or "Winner"
     if poll_kind == "first_basket":
@@ -653,6 +979,8 @@ def _poll_table_label(row: dict[str, str]) -> str:
     content = str(row.get("content_text") or "").strip()
     player = str(row.get("player_name") or "").strip()
     poll_kind = str(row.get("poll_kind") or "").strip().lower()
+    if poll_kind == "daily_pool":
+        return "Pool of the day"
     if str(row.get("poll_kind") or "").strip() == "period_total_yes_no":
         return "Score in 1st inning"
     if header == "Winner":
@@ -680,6 +1008,8 @@ def _poll_table_label(row: dict[str, str]) -> str:
 
 def _skip_title(row: dict[str, str]) -> str:
     header = str(row.get("header") or "").strip()
+    if str(row.get("poll_kind") or "").strip().lower() == "daily_pool":
+        return "Pool of the day"
     if header == "Any runs":
         return "1st runs"
     if header == "Over/under":
@@ -765,7 +1095,13 @@ def _compact_ev_text(row: dict[str, str]) -> str:
     value = _format_signed_percent(str(row.get("recommended_ev_percent") or ""))
     if value:
         return value
-    if str(row.get("status") or "").strip().lower() == "pick":
+    status = str(row.get("status") or "").strip().lower()
+    poll_kind = str(row.get("poll_kind") or "").strip().lower()
+    if status == "pick" and poll_kind in ZERO_COST_ACTION_POLL_KINDS:
+        choice = _selected_player_choice(row)
+        if choice is not None:
+            return _format_karma_ev(choice.get("expected_value"))
+    if status == "pick":
         return "n/a"
     return ""
 
@@ -907,6 +1243,7 @@ def _refresh_prediction_recommendations(
         if prediction_positions_input
         else BASE_DIR / f"prediction_position_recommendations_{sport_key}.csv"
     )
+    print(f"Refreshing {sport_key.upper()} prediction markets...", flush=True)
     subprocess.run(
         [
             sys.executable,
@@ -921,6 +1258,7 @@ def _refresh_prediction_recommendations(
         ],
         check=True,
     )
+    print(f"Refreshing {sport_key.upper()} prediction open positions...", flush=True)
     subprocess.run(
         [
             sys.executable,
@@ -935,6 +1273,7 @@ def _refresh_prediction_recommendations(
         ],
         check=True,
     )
+    print(f"Finished {sport_key.upper()} prediction refresh.", flush=True)
 
 
 def _load_lineup_csv_rows(path: Path) -> list[dict[str, str]]:
@@ -1248,7 +1587,7 @@ def _compact_table_row(row: dict[str, str]) -> str:
         _compact_consensus_text(row),
         _compact_ev_text(row),
         _compact_sportsbook_pair(row),
-        _source_text(row),
+        _source_text_with_lines(row),
     ]
     return "| " + " | ".join(_table_escape(cell) for cell in cells) + " |"
 
@@ -1288,11 +1627,11 @@ def _consensus_explainer() -> list[str]:
         "- Sportsbook odds are first converted from American odds to implied probabilities.",
         "- For two-way markets, the vig is removed per book by normalizing both sides so they sum to 100%.",
         "- DraftKings and FanDuel both default to weight `1.00`; if timestamps are available, older quotes decay with a 20-minute half-life.",
-        "- If the exact Real line exists at the books, the sheet uses the weighted no-vig probability at that line.",
-        "- If the exact line is missing, the model fits a weighted logit curve across nearby lines; if that cannot fit, it falls back to the nearest line with a conservative line adjustment.",
+        "- If a usable alternate-line ladder exists for game totals, the model fits a weighted logit curve across nearby lines.",
+        "- Otherwise, if the exact Real line exists at multiple books, the sheet uses weighted no-vig consensus at that line; if that cannot fit, it falls back to the nearest line with a conservative line adjustment.",
         "- Regular wager polls now choose between `0` and max put in the backend. A max bet is only used when its EV beats the fixed `0`-put -> win `10` alternative.",
-        "- Zero-cost player-pick cards rank same-game candidates by fair win probability, then apply the Real payout ladder: top 10 follow `karmaIncrement`, and rank 11+ stays capped at that rank-10 payout.",
-        "- Daily stats cards rank the full active slate by fair win probability, pay `10, 20, ... 200` through rank 20, then add `+1` per rank after that.",
+        "- Zero-cost player-pick dropdowns list every exported player from highest fair win probability to lowest; the default selection is still the highest expected-karma option.",
+        "- Player-pick EV is `fair win probability * Real ranked karma payout`; Daily stats pay `10, 20, ... 200` through rank 20, then add `+1` per rank after that.",
         "- For max put wager polls, Real EV is `fair win probability * net payout - loss probability`, multiplied by max put.",
         "- For `0`-put wager polls, the comparison baseline is `fair win probability * 10`.",
         "",

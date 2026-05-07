@@ -681,6 +681,32 @@ class RealSportsClient:
             },
         )
 
+    def get_team_compare(
+        self,
+        sport: str,
+        *,
+        first_team_id: int | str,
+        first_team_season: int | str,
+        first_team_season_type: str,
+        second_team_id: int | str,
+        second_team_season: int | str,
+        second_team_season_type: str,
+    ) -> dict[str, Any]:
+        sport_key = str(sport or "").strip().lower()
+        if not sport_key:
+            raise RealSportsError("sport is required for team compare requests")
+        return self.get_json(
+            f"https://web.realapp.com/teams/sport/{sport_key}/compare",
+            params={
+                "firstTeamId": str(first_team_id),
+                "firstTeamSeason": str(first_team_season),
+                "firstTeamSeasonType": str(first_team_season_type),
+                "secondTeamId": str(second_team_id),
+                "secondTeamSeason": str(second_team_season),
+                "secondTeamSeasonType": str(second_team_season_type),
+            },
+        )
+
     def get_polls_info_for_sport(self, sport: str) -> dict[str, Any]:
         sport_key = str(sport or "").strip().lower()
         if not sport_key:

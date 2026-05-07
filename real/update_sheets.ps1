@@ -1,6 +1,7 @@
 param(
     [string[]]$Sports = @("mlb", "nba", "nhl"),
     [string]$MarketsCsv = "real\sportsbook_markets_consensus_live.csv",
+    [string]$SoccerMarketsCsv = "real\sportsbook_markets_soccer_live.csv",
     [string]$Season = "2025",
     [switch]$RefreshSoccer
 )
@@ -37,19 +38,20 @@ if ($RefreshSoccer) {
         "--providers", "draftkings",
         "--sports", "soccer",
         "--force-live",
-        "--output", "real\sportsbook_markets_soccer_live.csv",
+        "--output", $SoccerMarketsCsv,
         "--dump-json-dir", "real\tmp\draftkings_soccer_live_check"
     )
 }
 
 foreach ($sport in $Sports) {
     $recommendationCsv = "real\poll_vote_recommendations_consensus_$sport.csv"
+    $sportMarketsCsv = if ($sport -eq "soccer") { $SoccerMarketsCsv } else { $MarketsCsv }
     Invoke-Step @(
         "python3",
         "-B",
         "real\recommend_game_feed_polls.py",
         "--sport", $sport,
-        "--markets-csv", $MarketsCsv,
+        "--markets-csv", $sportMarketsCsv,
         "--output", $recommendationCsv
     )
 
@@ -65,14 +67,15 @@ foreach ($sport in $Sports) {
         )
     }
 
-    if ($sport -in @("mlb", "nba", "nhl")) {
+    if ($sport -in @("mlb", "nba", "nhl", "soccer")) {
         Invoke-Step @(
             "python3",
             "-B",
             "real\render_vote_sheet.py",
             "--input", $recommendationCsv,
             "--not-started-only",
-            "--refresh-predictions"
+            "--refresh-predictions",
+            "--prediction-markets-csv", $sportMarketsCsv
         )
     } else {
         Invoke-Step @(

@@ -191,12 +191,27 @@ def _books_text(row: dict[str, str]) -> str:
     matched_books = _safe_int(str(row.get("matched_books") or ""))
     if books and matched_books is not None:
         return f"{books} ({matched_books})"
-    return books or str(matched_books or "")
+    if books:
+        return books
+    notes = str(row.get("notes") or "").strip()
+    status = str(row.get("status") or "").strip()
+    if notes and status and status != "ok":
+        return notes
+    return str(matched_books or "")
 
 
-def _market_row_sort_key(row: dict[str, str]) -> tuple[datetime, str, str, int, float, str]:
+def _row_game_order(row: dict[str, str]) -> int:
+    return _safe_int(str(row.get("game_order") or "")) or 999999
+
+
+def _row_game_time(row: dict[str, str]) -> datetime:
+    return _parse_game_time(str(row.get("game_time") or "")) or datetime.max.replace(tzinfo=timezone.utc)
+
+
+def _market_row_sort_key(row: dict[str, str]) -> tuple[int, datetime, str, str, int, float, str]:
     parsed = _parse_game_time(str(row.get("game_time") or ""))
     return (
+        _row_game_order(row),
         parsed or datetime.max.replace(tzinfo=timezone.utc),
         str(row.get("game_display") or "").strip(),
         str(row.get("game_id") or "").strip(),
@@ -206,9 +221,10 @@ def _market_row_sort_key(row: dict[str, str]) -> tuple[datetime, str, str, int, 
     )
 
 
-def _position_row_sort_key(row: dict[str, str]) -> tuple[datetime, str, str, int, str]:
+def _position_row_sort_key(row: dict[str, str]) -> tuple[int, datetime, str, str, int, str]:
     return (
-        _parse_game_time(str(row.get("game_time") or "")) or datetime.max.replace(tzinfo=timezone.utc),
+        _row_game_order(row),
+        _row_game_time(row),
         str(row.get("game_display") or "").strip(),
         str(row.get("game_id") or "").strip(),
         MARKET_ORDER.get(str(row.get("market_type") or "").strip().lower(), 99),
@@ -230,6 +246,8 @@ def _default_output(rows: list[dict[str, str]]) -> Path:
 
 def _market_section_key(row: dict[str, str]) -> tuple[str, str, str]:
     parsed = _parse_game_time(str(row.get("game_time") or ""))
+    if parsed is not None:
+        parsed = parsed.replace(second=0, microsecond=0)
     return (
         parsed.isoformat() if parsed is not None else str(row.get("game_time") or "").strip(),
         str(row.get("game_display") or "").strip(),
@@ -239,6 +257,8 @@ def _market_section_key(row: dict[str, str]) -> tuple[str, str, str]:
 
 def _position_section_key(row: dict[str, str]) -> tuple[str, str, str]:
     parsed = _parse_game_time(str(row.get("game_time") or ""))
+    if parsed is not None:
+        parsed = parsed.replace(second=0, microsecond=0)
     return (
         parsed.isoformat() if parsed is not None else str(row.get("game_time") or "").strip(),
         str(row.get("game_display") or "").strip(),
@@ -344,14 +364,20 @@ def render_prediction_sections(
 
     grouped_markets: dict[tuple[str, str, str], list[dict[str, str]]] = defaultdict(list)
     grouped_positions: dict[tuple[str, str, str], list[dict[str, str]]] = defaultdict(list)
+    section_game_order: dict[tuple[str, str, str], int] = {}
     for row in sorted(market_rows, key=_market_row_sort_key):
-        grouped_markets[_market_section_key(row)].append(row)
+        key = _market_section_key(row)
+        grouped_markets[key].append(row)
+        section_game_order[key] = min(section_game_order.get(key, 999999), _row_game_order(row))
     for row in sorted(position_rows, key=_position_row_sort_key):
-        grouped_positions[_position_section_key(row)].append(row)
+        key = _position_section_key(row)
+        grouped_positions[key].append(row)
+        section_game_order[key] = min(section_game_order.get(key, 999999), _row_game_order(row))
 
     section_keys = sorted(
         set(grouped_markets) | set(grouped_positions),
         key=lambda key: (
+            section_game_order.get(key, 999999),
             _parse_game_time(key[0]) or datetime.max.replace(tzinfo=timezone.utc),
             key[1],
             key[2],

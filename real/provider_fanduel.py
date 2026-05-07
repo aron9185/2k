@@ -52,6 +52,7 @@ FANDUEL_SBAPI_HOST = "https://api.sportsbook.fanduel.com/sbapi"
 FANDUEL_SMP_HOST = "https://smp.nj.sportsbook.fanduel.com"
 FANDUEL_SOCCER_EVENT_TYPE_ID = 1
 FANDUEL_SOCCER_COMPETITION_IDS = [
+    10932509,  # English Premier League
     228,  # UEFA Champions League
     117,  # Spanish La Liga
     81,  # Italian Serie A
@@ -60,7 +61,8 @@ FANDUEL_SOCCER_COMPETITION_IDS = [
     61,  # German Bundesliga 2
     141,  # US MLS
 ]
-FANDUEL_SOCCER_TAB_KEYWORDS = ("popular", "goals", "half")
+FANDUEL_SOCCER_TAB_KEYWORDS = ("popular", "goal scorer", "goals", "half", "assist", "save")
+FANDUEL_SOCCER_GAME_LINE_TAB_KEYWORDS = ("popular", "goals", "half")
 FANDUEL_PRICE_BATCH_SIZE = 70
 FANDUEL_EVENT_TAB_KEYWORDS_BY_SPORT = {
     "mlb": (
@@ -72,17 +74,61 @@ FANDUEL_EVENT_TAB_KEYWORDS_BY_SPORT = {
         "live batter props",
         "live pitcher props",
     ),
-    "nba": ("quick bets", "live", "player props"),
+    "nba": (
+        "quick bets",
+        "live",
+        "1st quarter",
+        "quarter",
+        "player points",
+        "player threes",
+        "player rebounds",
+        "player assists",
+        "player combos",
+        "player defense",
+        "player props",
+    ),
     "wnba": ("quick bets", "live", "player props"),
-    "nhl": ("quick bets", "live", "player props"),
+    "nhl": (
+        "quick bets",
+        "live",
+        "live player props",
+        "player props",
+        "period",
+        "3rd period",
+    ),
     "nfl": ("quick bets", "live", "player props"),
+}
+FANDUEL_GAME_LINE_EVENT_TAB_KEYWORDS_BY_SPORT = {
+    "mlb": ("innings", "quick bets", "live"),
+    "nba": ("quick bets", "live", "1st quarter", "quarter"),
+    "wnba": ("quick bets", "live"),
+    "nhl": ("quick bets", "live", "period", "3rd period"),
+    "nfl": ("quick bets", "live"),
+}
+
+GAME_LINE_MARKET_TYPES = {
+    "both_teams_score",
+    "double_chance",
+    "game_spread",
+    "game_total",
+    "game_winner",
+    "halftime_result",
 }
 
 STAT_ALIASES = {
     "total points": "points",
     "points": "points",
+    "alt points": "points",
     "rebounds": "rebounds",
+    "alt rebounds": "rebounds",
     "assists": "assists",
+    "alt assists": "assists",
+    "made threes": "madethrees",
+    "alt threes": "madethrees",
+    "threes": "madethrees",
+    "three pointers made": "madethrees",
+    "total made 3 point field goals": "madethrees",
+    "made 3 point field goals": "madethrees",
     "total bases": "totalbases",
     "hits": "hits",
     "hits + runs + rbis": "hitsrunsrbis",
@@ -117,6 +163,24 @@ LADDER_MARKET_MAP = (
 
 def _normalize_sports(values: Sequence[str]) -> list[str]:
     return [str(value or "").strip().lower() for value in values if str(value or "").strip()]
+
+
+def _normalize_market_scope(value: str) -> str:
+    return "game-lines" if str(value or "").strip().lower() == "game-lines" else "all"
+
+
+def _is_game_lines_scope(market_scope: str) -> bool:
+    return _normalize_market_scope(market_scope) == "game-lines"
+
+
+def _filter_rows_by_market_scope(rows: list[dict[str, Any]], market_scope: str) -> list[dict[str, Any]]:
+    if not _is_game_lines_scope(market_scope):
+        return rows
+    return [
+        row
+        for row in rows
+        if str(row.get("market_type") or "").strip().lower() in GAME_LINE_MARKET_TYPES
+    ]
 
 
 def _parse_american(value: Any) -> int | None:
@@ -360,7 +424,11 @@ def _find_over_under_runners(runners: list[dict[str, Any]]) -> tuple[dict[str, A
 def _extract_total_line(market_name: str, market_type_name: str, runners: list[dict[str, Any]]) -> float | None:
     for runner in runners:
         label = _runner_label(runner)
-        match = re.search(r"\b(?:over|under)\s+([0-9]+(?:\.[0-9]+)?)", label, flags=re.IGNORECASE)
+        match = re.search(
+            r"\b(?:over|under)\s+\(?([0-9]+(?:\.[0-9]+)?)\)?",
+            label,
+            flags=re.IGNORECASE,
+        )
         if match:
             return float(match.group(1))
 
@@ -374,6 +442,40 @@ def _extract_total_line(market_name: str, market_type_name: str, runners: list[d
         return float(f"{compact_match.group(1)}.{compact_match.group(2)}")
 
     return None
+
+
+def _runner_total_side_line(runner: dict[str, Any]) -> tuple[str, float] | None:
+    label = _runner_label(runner)
+    match = re.search(
+        r"^\s*(over|under)\s+\(?([0-9]+(?:\.[0-9]+)?)\)?\s*$",
+        label,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    return match.group(1).lower(), float(match.group(2))
+
+
+def _alternate_total_runner_pairs(
+    runners: list[dict[str, Any]],
+) -> list[tuple[float, dict[str, Any], dict[str, Any]]]:
+    grouped: dict[float, dict[str, dict[str, Any]]] = {}
+    for runner in runners:
+        if str(runner.get("runnerStatus") or "").upper() in {"REMOVED", "SUSPENDED"}:
+            continue
+        side_line = _runner_total_side_line(runner)
+        if side_line is None:
+            continue
+        side, line = side_line
+        grouped.setdefault(line, {})[side] = runner
+
+    pairs: list[tuple[float, dict[str, Any], dict[str, Any]]] = []
+    for line in sorted(grouped):
+        over_runner = grouped[line].get("over")
+        under_runner = grouped[line].get("under")
+        if over_runner is not None and under_runner is not None:
+            pairs.append((line, over_runner, under_runner))
+    return pairs
 
 
 def _ladder_market(market_name: str) -> tuple[str, float] | None:
@@ -401,7 +503,17 @@ def _single_side_player_market(market_name: str, market_type_name: str) -> tuple
 
     if not market_text and not market_type_key:
         return None
-    if "series" in market_text or "all-in" in market_text:
+    if (
+        "series" in market_text
+        or "all-in" in market_text
+        or "including extra time" in market_text
+        or "INCLUDING_EXTRA_TIME" in market_type_key
+        or "1st quarter" in market_text
+        or "1st qtr" in market_text
+        or "first 3 minutes" in market_text
+        or "first three minutes" in market_text
+        or "1ST_QUARTER" in market_type_key
+    ):
         return None
 
     if (
@@ -410,13 +522,25 @@ def _single_side_player_market(market_name: str, market_type_name: str) -> tuple
         or "anytime goalscorer" in market_text
     ):
         return "goals", 0.5
+    if (
+        market_type_key in {"ANYTIME_ASSIST", "PLAYER_TO_RECORD_AN_ASSIST"}
+        or "anytime assist" in market_text
+        or "any time assist" in market_text
+        or "to record an assist" in market_text
+    ):
+        return "assists", 0.5
 
     type_patterns = (
         (r"PLAYER_TO_SCORE_([0-9]+)\+_GOALS", "goals"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_GOALS", "goals"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_POINTS", "points"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_ASSISTS", "assists"),
+        (r"PLAYER_TO_RECORD_([0-9]+)\+_REBOUNDS", "rebounds"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_SHOTS_ON_GOAL", "shots"),
+        (r"TO_SCORE_([0-9]+)\+_POINTS", "points"),
+        (r"TO_RECORD_([0-9]+)\+_ASSISTS", "assists"),
+        (r"TO_RECORD_([0-9]+)\+_REBOUNDS", "rebounds"),
+        (r"([0-9]+)\+_MADE_THREES", "madethrees"),
     )
     for pattern, stat_key in type_patterns:
         match = re.search(pattern, market_type_key)
@@ -429,13 +553,20 @@ def _single_side_player_market(market_name: str, market_type_name: str) -> tuple
     market_patterns = (
         (r"(?:^|\b)(?:60\s*min\s+)?player\s+to\s+score\s+([0-9]+)\+\s+goals?\b", "goals"),
         (r"(?:^|\b)(?:60\s*min\s+)?player\s+to\s+record\s+([0-9]+)\+\s+goals?\b", "goals"),
+        (r"(?:^|\b)(?:60\s*min\s+)?to\s+score\s+([0-9]+)\+\s+points?\b", "points"),
         (r"(?:^|\b)(?:60\s*min\s+)?player\s+to\s+record\s+([0-9]+)\+\s+points?\b", "points"),
+        (r"(?:^|\b)(?:60\s*min\s+)?to\s+record\s+([0-9]+)\+\s+assists?\b", "assists"),
         (r"(?:^|\b)(?:60\s*min\s+)?player\s+to\s+record\s+([0-9]+)\+\s+assists?\b", "assists"),
+        (r"(?:^|\b)(?:60\s*min\s+)?to\s+record\s+([0-9]+)\+\s+rebounds?\b", "rebounds"),
+        (r"(?:^|\b)(?:60\s*min\s+)?player\s+to\s+record\s+([0-9]+)\+\s+rebounds?\b", "rebounds"),
         (r"(?:^|\b)(?:60\s*min\s+)?player\s+to\s+record\s+([0-9]+)\+\s+shots?\s+on\s+goal\b", "shots"),
         (r"(?:^|\b)player\s+([0-9]+)\+\s+points?\b", "points"),
         (r"(?:^|\b)player\s+([0-9]+)\+\s+assists?\b", "assists"),
+        (r"(?:^|\b)player\s+([0-9]+)\+\s+rebounds?\b", "rebounds"),
         (r"(?:^|\b)player\s+([0-9]+)\+\s+goals?\b", "goals"),
         (r"(?:^|\b)player\s+([0-9]+)\+\s+shots?\s+on\s+goal\b", "shots"),
+        (r"(?:^|\b)([0-9]+)\+\s+made\s+threes?\b", "madethrees"),
+        (r"(?:^|\b)([0-9]+)\+\s+threes?\b", "madethrees"),
     )
     for pattern, stat_key in market_patterns:
         match = re.search(pattern, market_text, flags=re.IGNORECASE)
@@ -462,10 +593,16 @@ def _is_moneyline_market(market_name: str, market_type_name: str) -> bool:
             "90 minute result",
             "moneyline 1st half",
             "1st half moneyline",
+            "1st quarter moneyline",
+            "2nd quarter moneyline",
+            "3rd quarter moneyline",
+            "4th quarter moneyline",
             "half time result",
             "half-time result",
             "halftime result",
         }
+        or re.search(r"\b[123](?:st|nd|rd)\s+period\s+money\s+line\b", market_key) is not None
+        or re.search(r"\b[1234](?:st|nd|rd|th)\s+quarter\s+money\s*line\b", market_key) is not None
         or type_key
         in {
             "MONEY_LINE",
@@ -473,11 +610,22 @@ def _is_moneyline_market(market_name: str, market_type_name: str) -> bool:
             "MATCH_RESULT",
             "MATCH_BETTING",
             "1ST_HALF_MONEY_LINE",
+            "1ST_QUARTER_MONEY_LINE",
+            "2ND_QUARTER_MONEY_LINE",
+            "3RD_QUARTER_MONEY_LINE",
+            "4TH_QUARTER_MONEY_LINE",
             "HALF_TIME_RESULT",
             "HALF-TIME_RESULT",
             "HALFTIME_RESULT",
         }
+        or re.fullmatch(r"[1234](?:ST|ND|RD|TH)_QUARTER_MONEY_LINE", type_key) is not None
+        or re.fullmatch(r"[123](?:ST|ND|RD)_PERIOD_MONEY_LINE", type_key) is not None
     )
+
+
+def _is_spread_market(market_name: str, market_type_name: str) -> bool:
+    text = f"{market_name} {market_type_name}".lower()
+    return "run line" in text or "spread" in text or "handicap" in text
 
 
 def _is_halftime_market(market_name: str, market_type_name: str) -> bool:
@@ -492,8 +640,12 @@ def _is_first_five_market(market_name: str, market_type_name: str) -> bool:
 
 def _infer_period_code(market_name: str, market_type_name: str) -> str:
     text = f"{market_name} {market_type_name}".lower()
+    if "first 3" in text or "1st 3" in text:
+        return "F3"
     if "first 5" in text or "1st 5" in text:
         return "F5"
+    if "first 7" in text or "1st 7" in text:
+        return "F7"
     if "1st inning" in text or "first inning" in text:
         return "1I"
     if "2nd inning" in text or "second inning" in text:
@@ -556,6 +708,28 @@ def _is_game_total_market(market_name: str, market_type_name: str, sport: str) -
             or (("inning" in market_key or "innings" in market_key) and "run" in market_key)
         )
     return "total" in market_key and "player" not in market_key
+
+
+def _player_name_from_alt_saves_market(market_name: str, market_type_name: str) -> str:
+    market_text = " ".join(str(market_name or "").strip().split())
+    type_key = str(market_type_name or "").strip().upper()
+    if "ALT_SAVES" not in type_key and "alt saves" not in market_text.lower():
+        return ""
+    text = re.sub(
+        r"^(?:1st|2nd|3rd)\s+period\s+",
+        "",
+        market_text,
+        flags=re.IGNORECASE,
+    )
+    match = re.match(r"(.+?)\s+alt\s+saves$", text, flags=re.IGNORECASE)
+    return match.group(1).strip() if match else ""
+
+
+def _plus_threshold_line(value: Any) -> float | None:
+    match = re.search(r"\b([0-9]+)\s*\+", str(value or ""))
+    if not match:
+        return None
+    return _line_from_plus_threshold(match.group(1))
 
 
 def _payload_attachments(payload: dict[str, Any]) -> dict[str, Any]:
@@ -656,6 +830,44 @@ def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
                     }
                 )
             continue
+
+        alt_saves_player = _player_name_from_alt_saves_market(market_name, market_type_name)
+        if alt_saves_player and home_team and away_team:
+            period = _infer_period_code(market_name, market_type_name)
+            added_rows = False
+            for runner in runner_rows:
+                if str(runner.get("runnerStatus") or "").upper() in {"REMOVED", "SUSPENDED"}:
+                    continue
+                over_odds = _runner_odds(runner)
+                line = _plus_threshold_line(runner.get("runnerName"))
+                if over_odds is None or line is None:
+                    continue
+                added_rows = True
+                rows.append(
+                    {
+                        "provider": "fanduel",
+                        "provider_event_id": event_id,
+                        "provider_market_id": f"{market_id}:{runner.get('selectionId') or runner.get('runnerName')}",
+                        "provider_league": sport,
+                        "provider_market_name": market_name,
+                        "book": "fanduel",
+                        "sport": sport,
+                        "market_type": "player_over_under",
+                        "stat": "saves",
+                        "player_name": alt_saves_player,
+                        "line": line,
+                        "home_team": home_team,
+                        "away_team": away_team,
+                        "over_odds": over_odds,
+                        "under_odds": _synthetic_under_odds(over_odds),
+                        "updated_at": updated_at,
+                        "period": period,
+                        "event_date": event_date,
+                        "question": f"{alt_saves_player} {market_name} {runner.get('runnerName') or ''}".strip(),
+                    }
+                )
+            if added_rows:
+                continue
 
         single_side_player_market = _single_side_player_market(market_name, market_type_name)
         if single_side_player_market is not None and home_team and away_team:
@@ -766,6 +978,43 @@ def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
             )
             continue
 
+        alternate_total_pairs = _alternate_total_runner_pairs(runner_rows)
+        if (
+            len(alternate_total_pairs) >= 2
+            and _is_game_total_market(market_name, market_type_name, sport)
+            and home_team
+            and away_team
+        ):
+            for line, over_runner, under_runner in alternate_total_pairs:
+                over_odds = _runner_odds(over_runner)
+                under_odds = _runner_odds(under_runner)
+                if over_odds is None or under_odds is None:
+                    continue
+                rows.append(
+                    {
+                        "provider": "fanduel",
+                        "provider_event_id": event_id,
+                        "provider_market_id": f"{market_id}:{line:g}",
+                        "provider_league": sport,
+                        "provider_market_name": market_name,
+                        "book": "fanduel",
+                        "sport": sport,
+                        "market_type": "game_total",
+                        "stat": "total",
+                        "player_name": "",
+                        "line": line,
+                        "home_team": home_team,
+                        "away_team": away_team,
+                        "over_odds": over_odds,
+                        "under_odds": under_odds,
+                        "updated_at": updated_at,
+                        "period": _infer_period_code(market_name, market_type_name),
+                        "event_date": event_date,
+                        "question": market_name,
+                    }
+                )
+            continue
+
         if _is_double_chance_market(market_name, market_type_name):
             if not home_team or not away_team:
                 continue
@@ -825,7 +1074,7 @@ def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
                 player_name = _player_name_from_market_or_runners(market_name, over, under)
 
             line = _parse_line(over.get("handicap") or under.get("handicap") or market.get("handicap"))
-            if (line is None or line == 0.0) and market_type == "game_total":
+            if line is None or line == 0.0:
                 line = _extract_total_line(market_name, market_type_name, runner_rows)
             rows.append(
                 {
@@ -1097,6 +1346,121 @@ def _merge_market_prices(markets: dict[str, dict[str, Any]], price_rows: list[di
                     runner[key] = detail[key]
 
 
+def _is_first_basket_market(market: dict[str, Any]) -> bool:
+    market_name = str(market.get("marketName") or market.get("name") or "").strip().lower()
+    market_type = str(market.get("marketType") or market.get("marketTypeName") or "").strip().upper()
+    return market_name in {"first basket", "next basket"} or market_type.startswith("FIRST_BASKET")
+
+
+def _inline_runner_rows(market: dict[str, Any]) -> list[dict[str, Any]]:
+    runners = market.get("runners") or []
+    if not isinstance(runners, list):
+        return []
+    return [runner for runner in runners if isinstance(runner, dict)]
+
+
+def _market_needs_runner_prices(market: dict[str, Any], sport: str = "") -> bool:
+    if str(market.get("marketStatus") or "").upper() not in {"", "OPEN"}:
+        return False
+    market_name = str(market.get("marketName") or market.get("name") or "").strip()
+    market_type = str(market.get("marketType") or market.get("marketTypeName") or "").strip()
+    needs_player_prices = (
+        _ladder_market(market_name) is not None
+        or _single_side_player_market(market_name, market_type) is not None
+    )
+    runner_rows = [
+        runner
+        for runner in _inline_runner_rows(market)
+        if str(runner.get("runnerStatus") or "").upper() not in {"REMOVED", "SUSPENDED"}
+    ]
+    if not runner_rows or all(_runner_odds(runner) is not None for runner in runner_rows):
+        return False
+    if _is_first_basket_market(market) or needs_player_prices:
+        return True
+    return (
+        _is_moneyline_market(market_name, market_type)
+        or _is_spread_market(market_name, market_type)
+        or _is_game_total_market(market_name, market_type, str(sport or "").strip().lower())
+        or _is_double_chance_market(market_name, market_type)
+        or _is_both_teams_score_market(market_name, market_type)
+    )
+
+
+def _market_ids_missing_runner_prices(
+    markets: dict[str, dict[str, Any]],
+    sport: str = "",
+) -> list[str]:
+    missing_ids: list[str] = []
+    for market_id, market in markets.items():
+        if isinstance(market, dict) and _market_needs_runner_prices(market, sport):
+            missing_ids.append(str(market.get("marketId") or market_id))
+    return missing_ids
+
+
+def _saved_payload_needs_price_refresh(payload: Any, sport: str) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    attachments = _payload_attachments(payload)
+    markets = attachments.get("markets") or attachments.get("sportsBookMarkets") or {}
+    return isinstance(markets, dict) and bool(_market_ids_missing_runner_prices(markets, sport))
+
+
+def _saved_payload_missing_core_nba_player_props(payload: Any, sport: str) -> bool:
+    if sport not in {"nba", "wnba"} or not isinstance(payload, dict):
+        return False
+    attachments = _payload_attachments(payload)
+    events = attachments.get("events") or {}
+    markets = attachments.get("markets") or attachments.get("sportsBookMarkets") or {}
+    if not isinstance(events, dict) or not any(
+        isinstance(event, dict) and _is_match_event(event) for event in events.values()
+    ):
+        return False
+    if not isinstance(markets, dict):
+        return True
+    found_stats: set[str] = set()
+    for market in markets.values():
+        if not isinstance(market, dict):
+            continue
+        market_name = str(market.get("marketName") or market.get("name") or "").strip()
+        market_type = str(market.get("marketType") or market.get("marketTypeName") or "").strip()
+        if "1st quarter" in market_name.lower() or "1st qtr" in market_name.lower():
+            continue
+        stat_key = _single_side_player_market(market_name, market_type)
+        if stat_key:
+            found_stats.add(stat_key[0])
+            continue
+        if len(_inline_runner_rows(market)) == 2:
+            found_stats.add(_player_stat_from_market_name(market_name))
+    return not {"points", "rebounds", "assists", "madethrees"}.issubset(found_stats)
+
+
+def _saved_payload_missing_nba_quarter_game_lines(payload: Any, sport: str) -> bool:
+    if sport not in {"nba", "wnba"} or not isinstance(payload, dict):
+        return False
+    attachments = _payload_attachments(payload)
+    events = attachments.get("events") or {}
+    markets = attachments.get("markets") or attachments.get("sportsBookMarkets") or {}
+    if not isinstance(events, dict) or not any(
+        isinstance(event, dict) and _is_match_event(event) for event in events.values()
+    ):
+        return False
+    if not isinstance(markets, dict):
+        return True
+    for market in markets.values():
+        if not isinstance(market, dict):
+            continue
+        market_name = str(market.get("marketName") or market.get("name") or "").strip()
+        market_type = str(market.get("marketType") or market.get("marketTypeName") or "").strip()
+        period = _infer_period_code(market_name, market_type)
+        if period in {"1Q", "2Q", "3Q", "4Q"} and (
+            _is_moneyline_market(market_name, market_type)
+            or _is_spread_market(market_name, market_type)
+            or _is_game_total_market(market_name, market_type, sport)
+        ):
+            return False
+    return True
+
+
 def _fetch_soccer_competition_page(
     competition_id: int,
     *,
@@ -1280,8 +1644,14 @@ def _enrich_payload_with_event_tabs(
     headers: dict[str, str],
     proxy_url: str | None,
     impersonate: str,
+    market_scope: str = "all",
 ) -> None:
-    tab_keywords = FANDUEL_EVENT_TAB_KEYWORDS_BY_SPORT.get(sport)
+    market_scope = _normalize_market_scope(market_scope)
+    tab_keywords = (
+        FANDUEL_GAME_LINE_EVENT_TAB_KEYWORDS_BY_SPORT.get(sport)
+        if _is_game_lines_scope(market_scope)
+        else FANDUEL_EVENT_TAB_KEYWORDS_BY_SPORT.get(sport)
+    )
     if not tab_keywords:
         return
     attachments = _payload_attachments(payload)
@@ -1324,10 +1694,12 @@ def _enrich_payload_with_event_tabs(
             _merge_payload_attachments(attachments, tab_payload)
     markets = _ensure_canonical_market_bucket(payload)
     new_market_ids = sorted(set(markets.keys()) - existing_market_ids)
-    if not new_market_ids:
+    missing_price_market_ids = set(_market_ids_missing_runner_prices(markets, sport))
+    market_ids_requiring_prices = sorted(set(new_market_ids) | missing_price_market_ids)
+    if not market_ids_requiring_prices:
         return
     price_rows = _fetch_market_prices(
-        new_market_ids,
+        market_ids_requiring_prices,
         headers=headers,
         proxy_url=proxy_url,
         impersonate=impersonate,
@@ -1341,14 +1713,18 @@ def _fetch_live_soccer_payload(
     headers: dict[str, str],
     proxy_url: str | None,
     impersonate: str,
+    market_scope: str = "all",
 ) -> dict[str, Any]:
+    market_scope = _normalize_market_scope(market_scope)
     competition_ids = _configured_ints(
         sport_config.get("competition_ids"),
         FANDUEL_SOCCER_COMPETITION_IDS,
     )
     tab_keywords = _configured_strings(
         sport_config.get("tab_title_keywords") or sport_config.get("tab_keywords"),
-        FANDUEL_SOCCER_TAB_KEYWORDS,
+        FANDUEL_SOCCER_GAME_LINE_TAB_KEYWORDS
+        if _is_game_lines_scope(market_scope)
+        else FANDUEL_SOCCER_TAB_KEYWORDS,
     )
     try:
         event_limit = int(sport_config.get("event_limit") or 12)
@@ -1426,6 +1802,19 @@ def _fetch_live_soccer_payload(
     }
 
 
+def _missing_live_soccer_competitions(payload: Any, sport_config: dict[str, Any]) -> bool:
+    if not isinstance(payload, dict) or payload.get("source") != "fanduel_live_soccer":
+        return False
+    expected_ids = set(
+        _configured_ints(
+            sport_config.get("competition_ids"),
+            FANDUEL_SOCCER_COMPETITION_IDS,
+        )
+    )
+    payload_ids = set(_configured_ints(payload.get("competition_ids"), ()))
+    return bool(expected_ids - payload_ids)
+
+
 def _default_urls(sport: str) -> list[str]:
     page_sport = SPORT_TO_PAGE.get(sport)
     host = SPORT_TO_HOST.get(sport)
@@ -1466,16 +1855,26 @@ def fetch_rows(
     *,
     save_payloads: bool = True,
     use_saved_payloads: bool = True,
+    market_scope: str = "all",
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    market_scope = _normalize_market_scope(market_scope)
     request_config = load_request_config("fanduel")
     all_rows: list[dict[str, Any]] = []
     raw_payloads: dict[str, Any] = {}
 
     for sport in _normalize_sports(sports):
+        sport_config = (request_config.get("sports") or {}).get(sport) or {}
         payload = load_saved_payload("fanduel", sport) if use_saved_payloads else None
+        if market_scope == "all" and _saved_payload_needs_price_refresh(payload, sport):
+            payload = None
+        if market_scope == "all" and _saved_payload_missing_core_nba_player_props(payload, sport):
+            payload = None
+        if _saved_payload_missing_nba_quarter_game_lines(payload, sport):
+            payload = None
+        if sport == "soccer" and _missing_live_soccer_competitions(payload, sport_config):
+            payload = None
         if payload is None:
             headers = dict(request_config.get("headers") or {})
-            sport_config = (request_config.get("sports") or {}).get(sport) or {}
             request_specs = _request_specs_from_config(sport_config)
             proxy_url = str(
                 sport_config.get("proxy_url")
@@ -1496,8 +1895,9 @@ def fetch_rows(
                             headers=headers,
                             proxy_url=proxy_url,
                             impersonate=impersonate,
+                            market_scope=market_scope,
                         )
-                        if save_payloads:
+                        if save_payloads and market_scope == "all":
                             save_payload("fanduel", sport, payload)
                     except Exception as exc:
                         last_error = exc
@@ -1531,8 +1931,9 @@ def fetch_rows(
                             headers=headers,
                             proxy_url=proxy_url,
                             impersonate=impersonate,
+                            market_scope=market_scope,
                         )
-                    if save_payloads:
+                    if save_payloads and market_scope == "all":
                         save_payload("fanduel", sport, payload)
                     break
                 except Exception as exc:
@@ -1541,6 +1942,6 @@ def fetch_rows(
                 raw_payloads[sport] = {"error": str(last_error)}
                 continue
         raw_payloads[sport] = payload
-        all_rows.extend(parse_payload(payload, sport))
+        all_rows.extend(_filter_rows_by_market_scope(parse_payload(payload, sport), market_scope))
 
     return all_rows, raw_payloads

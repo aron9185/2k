@@ -8,6 +8,7 @@ import requests
 
 from fair_odds import probability_to_american
 from poll_market_matcher import normalize_team
+from realsports_api import build_realsports_client
 
 
 NBA_STATS_URL = "https://stats.nba.com/stats/leaguedashteamstats"
@@ -35,6 +36,8 @@ NBA_STATS_HEADERS = {
 
 TEAM_STAT_METRICS = {
     "higher fg %": ("FG_PCT", "higher", 0.03),
+    "higher 3fg %": ("FG3_PCT", "higher", 0.035),
+    "higher 3fg%": ("FG3_PCT", "higher", 0.035),
     "higher 3pt %": ("FG3_PCT", "higher", 0.035),
     "higher 3-point %": ("FG3_PCT", "higher", 0.035),
     "higher ft %": ("FT_PCT", "higher", 0.05),
@@ -54,6 +57,20 @@ TEAM_STAT_ID_METRICS = {
     11: ("FT_PCT", "higher", 0.05),
 }
 
+REAL_COMPARE_STAT_IDS = {
+    "AST": 2,
+    "STL": 4,
+    "REB": 3,
+    "TOV": 6,
+    "FG_PCT": 9,
+    "FG3_PCT": 10,
+    "FT_PCT": 11,
+    "PTS": 17,
+    "BLK": 5,
+}
+
+PERCENT_METRICS = {"FG_PCT", "FG3_PCT", "FT_PCT"}
+
 
 def _safe_float(value: Any) -> float:
     try:
@@ -68,6 +85,12 @@ def _season_for_day(day: str) -> str:
     if month >= 10:
         return f"{year}-{str(year + 1)[-2:]}"
     return f"{year - 1}-{str(year)[-2:]}"
+
+
+def _real_season_for_day(day: str) -> int:
+    year = int(str(day).split("-", 1)[0])
+    month = int(str(day).split("-", 2)[1])
+    return year + 1 if month >= 10 else year
 
 
 def _team_stats_params(season: str) -> dict[str, str]:
@@ -187,6 +210,174 @@ def _bounded_logit_prob(diff: float, scale: float) -> float:
     return 1.0 / (1.0 + math.exp(-z_score))
 
 
+def _normalize_real_metric_value(metric_key: str, value: Any) -> float:
+    number = _safe_float(value)
+    if metric_key in PERCENT_METRICS and number > 1.0:
+        return number / 100.0
+    return number
+
+
+def _format_metric_value(metric_key: str, value: float) -> str:
+    if metric_key in PERCENT_METRICS:
+        return f"{value * 100.0:.1f}%"
+    return f"{value:.1f}".rstrip("0").rstrip(".")
+
+
+def _compare_stat_value(stats: list[dict[str, Any]], metric_key: str) -> float | None:
+    stat_id = REAL_COMPARE_STAT_IDS.get(metric_key)
+    if stat_id is None:
+        return None
+    for item in stats:
+        try:
+            item_stat = int(item.get("stat"))
+        except Exception:
+            continue
+        if item_stat != stat_id:
+            continue
+        return _normalize_real_metric_value(metric_key, item.get("value"))
+    return None
+
+
+@lru_cache(maxsize=64)
+def _fetch_real_compare_metric(
+    *,
+    first_team_id: str,
+    first_team_season: str,
+    first_team_season_type: str,
+    second_team_id: str,
+    second_team_season: str,
+    second_team_season_type: str,
+    metric_key: str,
+) -> dict[str, Any] | None:
+    if not first_team_id or not second_team_id:
+        return None
+    client = build_realsports_client()
+    payload = client.get_team_compare(
+        "nba",
+        first_team_id=first_team_id,
+        first_team_season=first_team_season,
+        first_team_season_type=first_team_season_type,
+        second_team_id=second_team_id,
+        second_team_season=second_team_season,
+        second_team_season_type=second_team_season_type,
+    )
+    first_team = payload.get("firstTeam") or {}
+    second_team = payload.get("secondTeam") or {}
+    first_key = normalize_team(str(first_team.get("key") or ""))
+    second_key = normalize_team(str(second_team.get("key") or ""))
+    first_value = _compare_stat_value(payload.get("firstTeamCompareStats") or [], metric_key)
+    second_value = _compare_stat_value(payload.get("secondTeamCompareStats") or [], metric_key)
+    if not first_key or not second_key or first_value is None or second_value is None:
+        return None
+    first_season_stats = payload.get("firstTeamSeasonStats") or {}
+    second_season_stats = payload.get("secondTeamSeasonStats") or {}
+    return {
+        first_key: {
+            "value": first_value,
+            "team": str(first_team.get("key") or ""),
+            "games": int(_safe_float(first_season_stats.get("games"))),
+        },
+        second_key: {
+            "value": second_value,
+            "team": str(second_team.get("key") or ""),
+            "games": int(_safe_float(second_season_stats.get("games"))),
+        },
+    }
+
+
+def _recommend_from_real_compare(
+    *,
+    day: str,
+    home_team: str,
+    away_team: str,
+    home_team_id: Any,
+    away_team_id: Any,
+    season: Any,
+    season_type: str,
+    metric_key: str,
+    direction: str,
+    scale: float,
+) -> dict[str, Any] | None:
+    home_id = str(home_team_id or "").strip()
+    away_id = str(away_team_id or "").strip()
+    if not home_id or not away_id:
+        return None
+    real_season = str(season or _real_season_for_day(day))
+    real_season_type = str(season_type or "").strip() or "regular"
+    compare = _fetch_real_compare_metric(
+        first_team_id=home_id,
+        first_team_season=real_season,
+        first_team_season_type=real_season_type,
+        second_team_id=away_id,
+        second_team_season=real_season,
+        second_team_season_type=real_season_type,
+        metric_key=metric_key,
+    )
+    if not compare:
+        return None
+
+    home_key = normalize_team(home_team)
+    away_key = normalize_team(away_team)
+    home_record = compare.get(home_key)
+    away_record = compare.get(away_key)
+    if not home_record or not away_record:
+        return None
+
+    home_value = float(home_record["value"])
+    away_value = float(away_record["value"])
+    diff = home_value - away_value
+    if direction == "lower":
+        diff *= -1.0
+
+    home_prob = _bounded_logit_prob(diff, scale)
+    away_prob = 1.0 - home_prob
+    if home_prob >= away_prob:
+        selection = home_team
+        fair_prob = home_prob
+        leader_value = home_value
+        trailing_value = away_value
+        trailing_team = away_team
+    else:
+        selection = away_team
+        fair_prob = away_prob
+        leader_value = away_value
+        trailing_value = home_value
+        trailing_team = home_team
+
+    leader_display = _format_metric_value(metric_key, leader_value)
+    trailing_display = _format_metric_value(metric_key, trailing_value)
+    home_display = _format_metric_value(metric_key, home_value)
+    away_display = _format_metric_value(metric_key, away_value)
+    sample_label = "playoff" if real_season_type == "postseason" else real_season_type
+    sample_text = (
+        f"{home_team} {int(home_record.get('games') or 0)} games, "
+        f"{away_team} {int(away_record.get('games') or 0)} games"
+    )
+    return {
+        "selection": selection,
+        "fair_prob": fair_prob,
+        "fair_odds": probability_to_american(fair_prob),
+        "metric_key": metric_key,
+        "metric_direction": direction,
+        "leader_value": leader_value,
+        "trailing_value": trailing_value,
+        "season": real_season,
+        "season_type": real_season_type,
+        "matched_books": 0,
+        "books": "realapp",
+        "sportsbook_a_label": home_team,
+        "sportsbook_a_odds": home_display,
+        "sportsbook_b_label": away_team,
+        "sportsbook_b_odds": away_display,
+        "source_lines": f"Real compare {real_season_type}: {home_team} {home_display}; {away_team} {away_display}",
+        "notes": (
+            f"NBA official {sample_label} team-stat proxy from Real compare for {metric_key}: "
+            f"{selection} {leader_display} vs {trailing_team} {trailing_display} "
+            f"({sample_text})"
+        ),
+    }
+
+
 def recommend_nba_team_stat(
     *,
     day: str,
@@ -194,12 +385,31 @@ def recommend_nba_team_stat(
     away_team: str,
     content_text: str,
     stat_ids: list[Any] | None = None,
+    home_team_id: Any = "",
+    away_team_id: Any = "",
+    season: Any = "",
+    season_type: str = "",
 ) -> dict[str, Any] | None:
     metric_context = _metric_context_from_ids(stat_ids) or _metric_context(content_text)
     if metric_context is None:
         return None
 
     metric_key, direction, scale = metric_context
+    real_recommendation = _recommend_from_real_compare(
+        day=day,
+        home_team=home_team,
+        away_team=away_team,
+        home_team_id=home_team_id,
+        away_team_id=away_team_id,
+        season=season,
+        season_type=season_type,
+        metric_key=metric_key,
+        direction=direction,
+        scale=scale,
+    )
+    if real_recommendation is not None:
+        return real_recommendation
+
     season = _season_for_day(day)
     team_stats = fetch_nba_team_base_stats(season)
     home_key = normalize_team(home_team)

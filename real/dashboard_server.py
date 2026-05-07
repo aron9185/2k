@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import html
 import json
+import os
 import re
 import subprocess
 import sys
@@ -22,6 +24,8 @@ DASHBOARD_DIR = BASE_DIR / "output" / "dashboard"
 CORE_MARKETS_CSV = BASE_DIR / "sportsbook_markets_consensus_live.csv"
 SOCCER_MARKETS_CSV = BASE_DIR / "sportsbook_markets_soccer_live.csv"
 LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+ACTION_TOKEN_RE = re.compile(r"\s*<!--REAL_ACTIONS:([A-Za-z0-9_\-=]+)-->\s*$")
+SOURCE_LINES_TOKEN_RE = re.compile(r"\s*<!--REAL_SOURCE_LINES:([A-Za-z0-9_\-=]+)-->\s*$")
 DOC_SPECS = [
     {
         "id": "mlb-vote",
@@ -48,12 +52,37 @@ DOC_SPECS = [
         "fallback_glob": "nhl_v*.md",
     },
     {
+        "id": "wnba-vote",
+        "category": "Vote Sheets",
+        "label": "WNBA Vote Sheet",
+        "sport": "wnba",
+        "stable_path": DASHBOARD_DIR / "wnba.md",
+        "fallback_glob": "wnba_v*.md",
+    },
+    {
         "id": "soccer-vote",
         "category": "Vote Sheets",
         "label": "Soccer Vote Sheet",
         "sport": "soccer",
         "stable_path": DASHBOARD_DIR / "soccer.md",
         "fallback_glob": "soccer_v*.md",
+    },
+    {
+        "id": "live-polls",
+        "category": "Live",
+        "label": "Live Poll Recommendations",
+        "sport": "live",
+        "refresh_target": "live-polls",
+        "stable_path": DASHBOARD_DIR / "live_polls.md",
+        "fallback_glob": "live_polls_v*.md",
+    },
+    {
+        "id": "live-predictions",
+        "category": "Live",
+        "label": "Live Prediction Markets",
+        "sport": "predictions",
+        "stable_path": DASHBOARD_DIR / "live_predictions.md",
+        "fallback_glob": "live_predictions_v*.md",
     },
     {
         "id": "mlb-predictions",
@@ -79,10 +108,36 @@ DOC_SPECS = [
         "stable_path": DASHBOARD_DIR / "nhl_predictions.md",
         "fallback_glob": "nhl_predictions_v*.md",
     },
+    {
+        "id": "soccer-predictions",
+        "category": "Predictions",
+        "label": "Soccer Predictions",
+        "sport": "soccer",
+        "stable_path": DASHBOARD_DIR / "soccer_predictions.md",
+        "fallback_glob": "soccer_predictions_v*.md",
+    },
 ]
 CATEGORY_ORDER = {
     "Vote Sheets": 0,
-    "Predictions": 1,
+    "Live": 1,
+    "Predictions": 2,
+}
+REFRESHABLE_VOTE_SPORTS = {"mlb", "nba", "nhl", "wnba", "soccer"}
+REFRESHABLE_PREDICTION_SPORTS = {"mlb", "nba", "nhl", "soccer"}
+REFRESHABLE_TARGETS = {"live-polls"}
+REFRESH_TARGET_ALIASES = {
+    "live": "live-polls",
+    "live_poll": "live-polls",
+    "live-poll": "live-polls",
+    "live_polls": "live-polls",
+    "live-polls": "live-polls",
+}
+SPORT_LABELS = {
+    "mlb": "MLB",
+    "nba": "NBA",
+    "nhl": "NHL",
+    "wnba": "WNBA",
+    "soccer": "Soccer",
 }
 
 
@@ -108,7 +163,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sports",
-        default="mlb,nba,nhl",
+        default="mlb,nba,nhl,wnba",
         help="Comma-separated sports passed through to refresh_dashboard_data.py.",
     )
     parser.add_argument(
@@ -157,6 +212,30 @@ def _odds_updated_at_for_sport(sport: str) -> str:
     return _path_updated_at(_odds_source_path_for_sport(sport))
 
 
+def _refresh_label_for_doc(spec: dict[str, object]) -> str:
+    target = str(spec.get("refresh_target") or "").strip().lower()
+    if target == "live-polls":
+        return "Refresh live polls"
+    sport = str(spec.get("sport") or "").strip().lower()
+    label = SPORT_LABELS.get(sport, sport.upper())
+    if str(spec.get("category") or "") == "Predictions":
+        return f"Refresh {label} predictions"
+    return f"Refresh {label} pre-game data"
+
+
+def _can_refresh_doc(spec: dict[str, object]) -> bool:
+    target = str(spec.get("refresh_target") or "").strip().lower()
+    if target in REFRESHABLE_TARGETS:
+        return True
+    sport = str(spec.get("sport") or "").strip().lower()
+    category = str(spec.get("category") or "")
+    if category == "Vote Sheets":
+        return sport in REFRESHABLE_VOTE_SPORTS
+    if category == "Predictions":
+        return sport in REFRESHABLE_PREDICTION_SPORTS
+    return False
+
+
 def _existing_document_paths() -> list[dict[str, object]]:
     documents: list[dict[str, object]] = []
     for order, spec in enumerate(DOC_SPECS):
@@ -177,6 +256,10 @@ def _existing_document_paths() -> list[dict[str, object]]:
                 "odds_updated_at": _odds_updated_at_for_sport(str(spec["sport"])),
                 "filename": source_path.name,
                 "order": order,
+                "can_refresh": _can_refresh_doc(spec),
+                "refresh_sport": str(spec["sport"]) if _can_refresh_doc(spec) else "",
+                "refresh_target": str(spec.get("refresh_target") or "") if _can_refresh_doc(spec) else "",
+                "refresh_label": _refresh_label_for_doc(spec) if _can_refresh_doc(spec) else "",
             }
         )
     documents.sort(
@@ -269,8 +352,122 @@ def _render_inline(text: str) -> str:
     return "".join(parts)
 
 
+def _decode_action_payload(cell: str) -> tuple[str, dict[str, object] | None]:
+    text = str(cell or "")
+    match = ACTION_TOKEN_RE.search(text)
+    if not match:
+        return text, None
+    visible_text = text[: match.start()].strip()
+    encoded = match.group(1)
+    try:
+        padded = encoded + ("=" * (-len(encoded) % 4))
+        decoded = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf8")
+        payload = json.loads(decoded)
+    except Exception:
+        return visible_text, None
+    return visible_text, payload if isinstance(payload, dict) else None
+
+
+def _decode_source_lines(cell: str) -> tuple[str, str]:
+    text = str(cell or "")
+    match = SOURCE_LINES_TOKEN_RE.search(text)
+    if not match:
+        return text, ""
+    visible_text = text[: match.start()].strip()
+    encoded = match.group(1)
+    try:
+        padded = encoded + ("=" * (-len(encoded) % 4))
+        decoded = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf8")
+    except Exception:
+        return visible_text, ""
+    return visible_text, decoded.strip()
+
+
+def _header_index(header_cells: list[str], target: str) -> int | None:
+    normalized_target = target.strip().lower()
+    for index, cell in enumerate(header_cells):
+        if str(cell or "").strip().lower() == normalized_target:
+            return index
+    return None
+
+
+def _compact_decimal_label(number_text: str) -> str:
+    return number_text.rstrip("0").rstrip(".") if "." in number_text else number_text
+
+
+def _compact_action_ev_label(ev_text: str) -> str:
+    text = str(ev_text or "").strip()
+    percent_match = re.fullmatch(r"([+-]?)(\d+(?:\.\d+)?)%", text)
+    if percent_match:
+        sign, number_text = percent_match.groups()
+        return f"{sign}{_compact_decimal_label(number_text)}%"
+
+    rax_match = re.fullmatch(r"([+-]?)(\d+(?:\.\d+)?)(\s+Rax)", text)
+    if rax_match:
+        sign, number_text, suffix = rax_match.groups()
+        return f"{sign}{_compact_decimal_label(number_text)}{suffix}"
+
+    return text
+
+
+def _source_tooltip_text(row: list[str], sportsbook_index: int | None) -> str:
+    if sportsbook_index is None or sportsbook_index >= len(row):
+        return ""
+    text = str(row[sportsbook_index] or "").strip()
+    if not text or text.lower() in {"no sportsbook match", "proxy unavailable"}:
+        return ""
+    return text
+
+
+def _source_tooltip_attr(source_lines: str) -> str:
+    text = str(source_lines or "").strip()
+    if not text:
+        return ""
+    tooltip = "Sportsbook lines:\n" + text
+    return f' title="{html.escape(tooltip, quote=True)}"'
+
+
+def _render_action_select(visible_text: str, payload: dict[str, object]) -> str:
+    actions = payload.get("actions")
+    if not isinstance(actions, list) or not actions:
+        return _render_inline(visible_text)
+    default_text = str(payload.get("default") or visible_text or "").strip()
+    html_parts = ['<select class="selection-put-select" onchange="updateSelectionPut(this)">']
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        selection_put = str(action.get("selection_put") or "").strip()
+        if not selection_put:
+            continue
+        selected = " selected" if selection_put == default_text else ""
+        attrs = {
+            "value": selection_put,
+            "data-consensus": str(action.get("consensus") or ""),
+            "data-ev": str(action.get("ev") or ""),
+            "data-sportsbook": str(action.get("sportsbook") or ""),
+            "data-source": str(action.get("source") or ""),
+            "data-source-lines": str(action.get("source_lines") or ""),
+        }
+        attr_text = "".join(
+            f' {name}="{html.escape(value, quote=True)}"'
+            for name, value in attrs.items()
+        )
+        label = str(action.get("display_label") or "").strip() or selection_put
+        ev_text = str(action.get("ev") or "").strip()
+        if ev_text and not action.get("display_label"):
+            label = f"{label} | {_compact_action_ev_label(ev_text)}"
+        html_parts.append(f"<option{attr_text}{selected}>{html.escape(label)}</option>")
+    html_parts.append("</select>")
+    return "".join(html_parts)
+
+
 def _render_table(lines: list[str], start_index: int) -> tuple[str, int]:
     header_cells = _split_markdown_row(lines[start_index])
+    selection_index = _header_index(header_cells, "Selection+Put")
+    consensus_index = _header_index(header_cells, "Consensus Prob (Odds)")
+    ev_index = _header_index(header_cells, "EV")
+    sportsbook_index = _header_index(header_cells, "Sportsbook Odds")
+    source_index = _header_index(header_cells, "Source")
     body_start = start_index + 2
     body_rows: list[list[str]] = []
     index = body_start
@@ -282,9 +479,34 @@ def _render_table(lines: list[str], start_index: int) -> tuple[str, int]:
         html_parts.append(f"<th>{_render_inline(cell)}</th>")
     html_parts.append("</tr></thead><tbody>")
     for row in body_rows:
+        row_source_lines = ""
+        if source_index is not None and source_index < len(row):
+            visible_source, row_source_lines = _decode_source_lines(row[source_index])
+            if row_source_lines:
+                row = list(row)
+                row[source_index] = visible_source
         html_parts.append("<tr>")
-        for cell in row:
-            html_parts.append(f"<td>{_render_inline(cell)}</td>")
+        for cell_index, cell in enumerate(row):
+            data_field = ""
+            if cell_index == consensus_index:
+                data_field = ' data-action-field="consensus"'
+            elif cell_index == ev_index:
+                data_field = ' data-action-field="ev"'
+            elif cell_index == sportsbook_index:
+                data_field = ' data-action-field="sportsbook"'
+                if row_source_lines:
+                    data_field += _source_tooltip_attr(row_source_lines)
+            elif cell_index == source_index:
+                data_field = ' data-action-field="source"'
+                if row_source_lines:
+                    data_field += _source_tooltip_attr(row_source_lines)
+            if cell_index == selection_index:
+                visible_cell, action_payload = _decode_action_payload(cell)
+                if action_payload is not None:
+                    html_parts.append(f"<td>{_render_action_select(visible_cell, action_payload)}</td>")
+                    continue
+                cell = visible_cell
+            html_parts.append(f"<td{data_field}>{_render_inline(cell)}</td>")
         html_parts.append("</tr>")
     html_parts.append("</tbody></table></div>")
     return "".join(html_parts), index
@@ -354,6 +576,9 @@ def markdown_to_html(markdown_text: str) -> str:
 @dataclass
 class RefreshState:
     running: bool = False
+    active_label: str = ""
+    progress_line: str = ""
+    progress_log: list[str] = field(default_factory=list)
     last_started_at: str = ""
     last_finished_at: str = ""
     last_succeeded_at: str = ""
@@ -377,42 +602,103 @@ class DashboardContext:
     def documents(self) -> list[dict[str, object]]:
         return _existing_document_paths()
 
-    def _refresh_command(self) -> list[str]:
+    def _refresh_command(
+        self,
+        *,
+        target: str | None = None,
+        sports: str | None = None,
+        refresh_soccer: bool | None = None,
+        only_predictions: bool = False,
+    ) -> list[str]:
+        if str(target or "").strip().lower() == "live-polls":
+            return [
+                sys.executable,
+                "-B",
+                str(BASE_DIR / "refresh_dashboard_data.py"),
+                "--only-live-polls",
+                "--markets-csv",
+                str(CORE_MARKETS_CSV),
+                "--dashboard-dir",
+                str(DASHBOARD_DIR),
+            ]
+        selected_sports = _normalize_sports_arg(self.sports if sports is None else sports)
+        selected_refresh_soccer = self.refresh_soccer if refresh_soccer is None else bool(refresh_soccer)
         command = [
             sys.executable,
             "-B",
             str(BASE_DIR / "refresh_dashboard_data.py"),
             "--sports",
-            self.sports,
+            selected_sports,
             "--season",
             self.season,
             "--dashboard-dir",
             str(DASHBOARD_DIR),
         ]
-        if self.refresh_soccer:
+        if selected_refresh_soccer:
             command.append("--refresh-soccer")
+        if only_predictions:
+            command.append("--only-predictions")
+        if sports is not None and not only_predictions:
+            command.append("--skip-live-polls")
         return command
 
-    def trigger_refresh(self) -> bool:
+    def trigger_refresh(
+        self,
+        *,
+        target: str | None = None,
+        sports: str | None = None,
+        refresh_soccer: bool | None = None,
+        only_predictions: bool = False,
+        label: str = "",
+    ) -> bool:
+        command = self._refresh_command(
+            target=target,
+            sports=sports,
+            refresh_soccer=refresh_soccer,
+            only_predictions=only_predictions,
+        )
         with self.state.lock:
             if self.state.running:
                 return False
             self.state.running = True
+            self.state.active_label = label or "configured sports"
+            self.state.progress_line = "Starting refresh..."
+            self.state.progress_log = [self.state.progress_line]
             self.state.last_started_at = datetime.now(timezone.utc).isoformat()
             self.state.last_error = ""
-        thread = threading.Thread(target=self._run_refresh, daemon=True)
+        thread = threading.Thread(target=self._run_refresh, args=(command,), daemon=True)
         thread.start()
         return True
 
-    def _run_refresh(self) -> None:
+    def _run_refresh(self, command: list[str]) -> None:
         started = time.time()
         exit_code = 0
         error_text = ""
         try:
-            subprocess.run(self._refresh_command(), check=True, cwd=str(ROOT_DIR))
-        except subprocess.CalledProcessError as exc:
-            exit_code = int(exc.returncode or 1)
-            error_text = str(exc)
+            env = dict(os.environ)
+            env["PYTHONUNBUFFERED"] = "1"
+            process = subprocess.Popen(
+                command,
+                cwd=str(ROOT_DIR),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                env=env,
+            )
+            assert process.stdout is not None
+            for raw_line in process.stdout:
+                line = raw_line.rstrip()
+                if not line:
+                    continue
+                print(line, flush=True)
+                with self.state.lock:
+                    self.state.progress_line = line
+                    self.state.progress_log.append(line)
+                    self.state.progress_log = self.state.progress_log[-12:]
+            exit_code = int(process.wait() or 0)
+            if exit_code:
+                error_text = f"Refresh command failed with exit code {exit_code}."
         except Exception as exc:
             exit_code = 1
             error_text = str(exc)
@@ -420,6 +706,16 @@ class DashboardContext:
         duration = time.time() - started
         with self.state.lock:
             self.state.running = False
+            self.state.active_label = ""
+            final_progress = (
+                f"Refresh finished in {duration:.1f}s."
+                if exit_code == 0
+                else error_text
+            )
+            self.state.progress_line = final_progress
+            if final_progress:
+                self.state.progress_log.append(final_progress)
+                self.state.progress_log = self.state.progress_log[-12:]
             self.state.last_finished_at = finished_at
             self.state.last_duration_seconds = duration
             self.state.last_exit_code = exit_code
@@ -430,13 +726,13 @@ class DashboardContext:
 
     def start_refresh_loop(self, *, refresh_on_start: bool) -> None:
         if refresh_on_start:
-            self.trigger_refresh()
+            self.trigger_refresh(label="configured sports")
         if self.refresh_seconds <= 0:
             return
 
         def _loop() -> None:
             while not self._stop_event.wait(self.refresh_seconds):
-                self.trigger_refresh()
+                self.trigger_refresh(label="configured sports")
 
         self._loop_thread = threading.Thread(target=_loop, daemon=True)
         self._loop_thread.start()
@@ -448,6 +744,9 @@ class DashboardContext:
         with self.state.lock:
             return {
                 "running": self.state.running,
+                "active_refresh": self.state.active_label,
+                "progress_line": self.state.progress_line,
+                "progress_log": list(self.state.progress_log),
                 "last_started_at": self.state.last_started_at,
                 "last_finished_at": self.state.last_finished_at,
                 "last_succeeded_at": self.state.last_succeeded_at,
@@ -648,10 +947,19 @@ def _html_shell() -> str:
     }
     .doc-header {
       display: flex;
-      align-items: baseline;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 1rem;
       margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+    }
+    .doc-header-main {
+      min-width: 16rem;
+    }
+    .doc-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
       flex-wrap: wrap;
     }
     .doc-title {
@@ -660,8 +968,12 @@ def _html_shell() -> str:
       font-size: 2rem;
     }
     .doc-updated {
+      margin-top: 0.25rem;
       color: var(--muted);
       font-size: 0.92rem;
+    }
+    .doc-refresh[hidden] {
+      display: none;
     }
     .doc-html h1, .doc-html h2, .doc-html h3 {
       font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
@@ -725,6 +1037,29 @@ def _html_shell() -> str:
       text-transform: uppercase;
     }
     tr:last-child td { border-bottom: none; }
+    td[data-action-field="sportsbook"][title],
+    td[data-action-field="source"][title] {
+      cursor: help;
+      text-decoration: underline dotted rgba(15, 92, 77, 0.45);
+      text-underline-offset: 0.18rem;
+    }
+    .selection-put-select {
+      width: 100%;
+      min-width: 12rem;
+      border: 1px solid rgba(15, 92, 77, 0.24);
+      border-radius: 0.72rem;
+      background: linear-gradient(180deg, #fffaf1, #f6ead7);
+      color: var(--ink);
+      padding: 0.48rem 2rem 0.48rem 0.62rem;
+      font: inherit;
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(87, 62, 32, 0.08);
+      cursor: pointer;
+    }
+    .selection-put-select:focus {
+      outline: 3px solid rgba(15, 92, 77, 0.18);
+      border-color: var(--accent);
+    }
     .empty {
       padding: 2rem 1rem;
       text-align: center;
@@ -747,7 +1082,7 @@ def _html_shell() -> str:
       <div class="brand">
         <div class="eyebrow">Real Sports</div>
         <h1>Odds Board</h1>
-        <p class="subcopy">Pregame sheets and prediction sheets in one place, with live refresh support.</p>
+        <p class="subcopy">Pregame sheets, live recommendations, and prediction sheets in one place.</p>
       </div>
       <div id="doc-groups"></div>
     </aside>
@@ -764,8 +1099,13 @@ def _html_shell() -> str:
       </section>
       <section class="content-card">
         <div class="doc-header">
-          <h2 class="doc-title" id="doc-title">Loading…</h2>
-          <div class="doc-updated" id="doc-updated"></div>
+          <div class="doc-header-main">
+            <h2 class="doc-title" id="doc-title">Loading…</h2>
+            <div class="doc-updated" id="doc-updated"></div>
+          </div>
+          <div class="doc-header-actions">
+            <button id="refresh-doc" class="doc-refresh" type="button" hidden>Refresh sport</button>
+          </div>
         </div>
         <div class="doc-html" id="doc-html">
           <div class="empty">Loading dashboard content…</div>
@@ -777,8 +1117,12 @@ def _html_shell() -> str:
     const state = {
       docs: [],
       activeId: null,
+      activeDoc: null,
       activeUpdatedAt: "",
+      refreshRunning: false,
       pollMs: 15000,
+      livePollAutoRefreshMs: 60000,
+      lastLivePollAutoRefreshAt: 0,
     };
 
     async function fetchJson(url, options) {
@@ -831,6 +1175,38 @@ def _html_shell() -> str:
       }
     }
 
+    function updateSelectionPut(select) {
+      const option = select.selectedOptions && select.selectedOptions[0];
+      const row = select.closest("tr");
+      if (!option || !row) return;
+      const fieldMap = {
+        consensus: option.dataset.consensus || "",
+        ev: option.dataset.ev || "",
+        sportsbook: option.dataset.sportsbook || "",
+        source: option.dataset.source || "",
+      };
+      for (const [field, value] of Object.entries(fieldMap)) {
+        const cell = row.querySelector(`[data-action-field="${field}"]`);
+        if (cell) {
+          cell.textContent = value;
+          if (field === "source" || field === "sportsbook") {
+            const sourceLines = option.dataset.sourceLines || "";
+            if (sourceLines) {
+              cell.title = `Sportsbook lines:\n${sourceLines}`;
+            } else {
+              cell.removeAttribute("title");
+            }
+          }
+        }
+      }
+    }
+
+    function hydrateSelectionPutControls() {
+      for (const select of document.querySelectorAll(".selection-put-select")) {
+        updateSelectionPut(select);
+      }
+    }
+
     async function loadDocuments() {
       const payload = await fetchJson("/api/documents");
       state.docs = payload.documents || [];
@@ -852,6 +1228,7 @@ def _html_shell() -> str:
         return;
       }
       state.activeId = doc.id;
+      state.activeDoc = doc;
       state.activeUpdatedAt = doc.updated_at || "";
       document.getElementById("doc-title").textContent = doc.label;
       const updatedBits = [`Sheet updated ${formatTimestamp(doc.updated_at)}`];
@@ -860,7 +1237,20 @@ def _html_shell() -> str:
       }
       document.getElementById("doc-updated").textContent = updatedBits.join(" • ");
       document.getElementById("doc-html").innerHTML = doc.html || '<div class="empty">No content found.</div>';
+      hydrateSelectionPutControls();
+      updateDocumentRefreshButton(doc);
       renderDocGroups();
+    }
+
+    function updateDocumentRefreshButton(doc) {
+      const button = document.getElementById("refresh-doc");
+      if (!doc || !doc.can_refresh) {
+        button.hidden = true;
+        return;
+      }
+      button.hidden = false;
+      button.textContent = doc.refresh_label || `Refresh ${doc.sport.toUpperCase()} pre-game data`;
+      button.disabled = state.refreshRunning;
     }
 
     async function loadStatus() {
@@ -870,11 +1260,17 @@ def _html_shell() -> str:
       const detail = document.getElementById("status-detail");
       const pill = document.getElementById("refresh-pill");
       const button = document.getElementById("refresh-now");
+      state.refreshRunning = running;
       line.textContent = running ? "Refreshing sportsbook and Real data…" : "Dashboard ready";
       const parts = [];
-      line.textContent = running ? "Refreshing sportsbook and Real data..." : "Dashboard ready";
+      line.textContent = running
+        ? `Refreshing ${payload.active_refresh || "sportsbook and Real data"}...`
+        : "Dashboard ready";
       if (payload.core_odds_updated_at) {
         parts.push(`Odds updated: ${formatTimestamp(payload.core_odds_updated_at)}`);
+      }
+      if (running && payload.progress_line) {
+        parts.push(`Progress: ${payload.progress_line}`);
       }
       if (payload.refresh_soccer && payload.soccer_odds_updated_at) {
         parts.push(`Soccer odds: ${formatTimestamp(payload.soccer_odds_updated_at)}`);
@@ -891,11 +1287,51 @@ def _html_shell() -> str:
       detail.textContent = parts.join(" • ");
       pill.textContent = running ? "Refreshing" : "Idle";
       button.disabled = running;
+      updateDocumentRefreshButton(state.activeDoc);
+    }
+
+    function isLivePollDocument(doc) {
+      return !!doc && (doc.id === "live-polls" || doc.refresh_target === "live-polls");
     }
 
     async function triggerRefresh() {
       await fetchJson("/api/refresh", { method: "POST" });
       await loadStatus();
+    }
+
+    async function triggerDocumentRefresh(options = {}) {
+      const doc = state.activeDoc;
+      if (!doc || !doc.can_refresh) return;
+      if (options.auto && (state.refreshRunning || !isLivePollDocument(doc))) return;
+      await fetchJson("/api/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          doc.refresh_target
+            ? { target: doc.refresh_target }
+            : {
+                sport: doc.refresh_sport || doc.sport,
+                category: doc.category || "",
+                only_predictions: doc.category === "Predictions",
+              }
+        ),
+      });
+      if (isLivePollDocument(doc)) {
+        state.lastLivePollAutoRefreshAt = Date.now();
+      }
+      await loadStatus();
+    }
+
+    async function maybeAutoRefreshLivePolls() {
+      if (document.hidden || state.refreshRunning || !isLivePollDocument(state.activeDoc)) return;
+      const now = Date.now();
+      if (now - state.lastLivePollAutoRefreshAt < state.livePollAutoRefreshMs) return;
+      state.lastLivePollAutoRefreshAt = now;
+      try {
+        await triggerDocumentRefresh({ auto: true });
+      } catch (error) {
+        document.getElementById("status-detail").textContent = String(error);
+      }
     }
 
     async function poll() {
@@ -912,8 +1348,10 @@ def _html_shell() -> str:
     }
 
     document.getElementById("refresh-now").addEventListener("click", triggerRefresh);
+    document.getElementById("refresh-doc").addEventListener("click", triggerDocumentRefresh);
     poll();
     setInterval(poll, state.pollMs);
+    setInterval(maybeAutoRefreshLivePolls, state.livePollAutoRefreshMs);
   </script>
 </body>
 </html>"""
@@ -933,9 +1371,74 @@ def _document_payload(doc_id: str) -> dict[str, object] | None:
             "filename": doc["filename"],
             "updated_at": doc["updated_at"],
             "odds_updated_at": doc["odds_updated_at"],
+            "can_refresh": doc["can_refresh"],
+            "refresh_sport": doc["refresh_sport"],
+            "refresh_target": doc["refresh_target"],
+            "refresh_label": doc["refresh_label"],
             "html": markdown_to_html(markdown_text),
         }
     return None
+
+
+def _request_json(handler: BaseHTTPRequestHandler) -> dict[str, object]:
+    length_text = handler.headers.get("Content-Length") or "0"
+    try:
+        length = int(length_text)
+    except ValueError:
+        length = 0
+    if length <= 0:
+        return {}
+    raw = handler.rfile.read(length)
+    if not raw:
+        return {}
+    try:
+        payload = json.loads(raw.decode("utf8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _truthy_payload_flag(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    if text in {"1", "true", "yes", "y", "on"}:
+        return True
+    if text in {"0", "false", "no", "n", "off", ""}:
+        return False
+    return bool(value)
+
+
+def _refresh_request_scope(
+    payload: dict[str, object],
+) -> tuple[str | None, str | None, bool | None, bool, str, str] | None:
+    raw_target = str(payload.get("target") or "").strip().lower()
+    if raw_target:
+        target = REFRESH_TARGET_ALIASES.get(raw_target, raw_target)
+        if target not in REFRESHABLE_TARGETS:
+            return ("", "", False, False, "", "Unsupported refresh target.")
+        return (target, None, None, False, "live poll recommendations", "")
+
+    raw_sport = str(payload.get("sport") or payload.get("sports") or "").strip().lower()
+    if not raw_sport:
+        return None
+    if raw_sport in REFRESH_TARGET_ALIASES:
+        return (REFRESH_TARGET_ALIASES[raw_sport], None, None, False, "live poll recommendations", "")
+    sports = _normalize_sports_arg(raw_sport)
+    requested = [sport for sport in sports.split(",") if sport]
+    only_predictions = (
+        str(payload.get("category") or "").strip().lower() == "predictions"
+        or str(payload.get("mode") or "").strip().lower() in {"prediction", "predictions"}
+        or str(payload.get("refresh_mode") or "").strip().lower() in {"prediction", "predictions"}
+        or _truthy_payload_flag(payload.get("only_predictions"))
+        or _truthy_payload_flag(payload.get("prediction_only"))
+    )
+    allowed_sports = REFRESHABLE_PREDICTION_SPORTS if only_predictions else REFRESHABLE_VOTE_SPORTS
+    if not requested or any(sport not in allowed_sports for sport in requested):
+        return ("", "", False, only_predictions, "", "Unsupported refresh sport.")
+    label = ", ".join(SPORT_LABELS.get(sport, sport.upper()) for sport in requested)
+    label_suffix = "predictions" if only_predictions else "pre-game data"
+    return (None, sports, ("soccer" in requested), only_predictions, f"{label} {label_suffix}", "")
 
 
 def build_handler(context: DashboardContext) -> type[BaseHTTPRequestHandler]:
@@ -963,6 +1466,10 @@ def build_handler(context: DashboardContext) -> type[BaseHTTPRequestHandler]:
                         "filename": doc["filename"],
                         "updated_at": doc["updated_at"],
                         "odds_updated_at": doc["odds_updated_at"],
+                        "can_refresh": doc["can_refresh"],
+                        "refresh_sport": doc["refresh_sport"],
+                        "refresh_target": doc["refresh_target"],
+                        "refresh_label": doc["refresh_label"],
                     }
                     for doc in context.documents()
                 ]
@@ -984,7 +1491,22 @@ def build_handler(context: DashboardContext) -> type[BaseHTTPRequestHandler]:
             if parsed.path != "/api/refresh":
                 _json_response(self, {"error": "not found"}, status=404)
                 return
-            started = context.trigger_refresh()
+            payload = _request_json(self)
+            scope = _refresh_request_scope(payload)
+            if scope is None:
+                started = context.trigger_refresh(label="configured sports")
+            else:
+                target, sports, refresh_soccer, only_predictions, label, error = scope
+                if error:
+                    _json_response(self, {"error": error}, status=400)
+                    return
+                started = context.trigger_refresh(
+                    target=target,
+                    sports=sports,
+                    refresh_soccer=refresh_soccer,
+                    only_predictions=only_predictions,
+                    label=label,
+                )
             _json_response(self, {"started": started, "status": context.status_payload()})
 
         def log_message(self, format: str, *args: object) -> None:  # noqa: A003

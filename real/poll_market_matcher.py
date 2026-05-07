@@ -45,9 +45,13 @@ TEAM_ALIASES = {
     "buf": "buf",
     "bufsabres": "buf",
     "car": "car",
+    "carhurricanes": "car",
     "cbj": "cbj",
+    "cbjbluejackets": "cbj",
     "cgy": "cgy",
+    "cgyflames": "cgy",
     "chi": "chi",
+    "chiblackhawks": "chi",
     "bayernmunchen": "fcb",
     "bayernmunich": "fcb",
     "cha": "cha",
@@ -64,6 +68,7 @@ TEAM_ALIASES = {
     "clecavaliers": "cle",
     "cleguardians": "cle",
     "col": "col",
+    "colavalanche": "col",
     "colrockies": "col",
     "dal": "dal",
     "dalmavericks": "dal",
@@ -73,10 +78,12 @@ TEAM_ALIASES = {
     "dennuggets": "den",
     "det": "det",
     "detpistons": "det",
+    "detredwings": "det",
     "dettigers": "det",
     "edm": "edm",
     "edmoilers": "edm",
     "fla": "fla",
+    "flapanthers": "fla",
     "gs": "gsw",
     "gsw": "gsw",
     "gswarriors": "gsw",
@@ -99,6 +106,7 @@ TEAM_ALIASES = {
     "lad": "lad",
     "ladodgers": "lad",
     "lak": "lak",
+    "lakings": "lak",
     "lal": "lal",
     "lalakers": "lal",
     "lv": "vgk",
@@ -115,8 +123,13 @@ TEAM_ALIASES = {
     "mtl": "mtl",
     "mtlcanadiens": "mtl",
     "nsh": "nsh",
+    "nshpredators": "nsh",
+    "njdevils": "njd",
     "njd": "njd",
+    "njddevils": "njd",
     "nyi": "nyi",
+    "nyiislanders": "nyi",
+    "nyislanders": "nyi",
     "ny": "nyk",
     "nyknicks": "nyk",
     "nym": "nym",
@@ -130,6 +143,7 @@ TEAM_ALIASES = {
     "okc": "okc",
     "okcthunder": "okc",
     "ott": "ott",
+    "ottsenators": "ott",
     "orl": "orl",
     "orlmagic": "orl",
     "phi": "phi",
@@ -155,9 +169,12 @@ TEAM_ALIASES = {
     "sdp": "sdp",
     "sdpadres": "sdp",
     "sea": "sea",
+    "seakraken": "sea",
     "seamariners": "sea",
     "sj": "sj",
+    "sjsharks": "sj",
     "sjs": "sj",
+    "sjssharks": "sj",
     "sas": "sas",
     "saspurs": "sas",
     "sf": "sfg",
@@ -165,6 +182,7 @@ TEAM_ALIASES = {
     "sfgiants": "sfg",
     "stl": "stl",
     "stlcardinals": "stl",
+    "stlblues": "stl",
     "tb": "tb",
     "tbl": "tb",
     "tblightning": "tb",
@@ -173,12 +191,14 @@ TEAM_ALIASES = {
     "texrangers": "tex",
     "tor": "tor",
     "torbluejays": "tor",
+    "tormapleleafs": "tor",
     "torraptors": "tor",
     "uta": "uta",
     "utah": "uta",
     "utahjazz": "uta",
     "utamammoth": "uta",
     "van": "van",
+    "vancanucks": "van",
     "veg": "vgk",
     "vgk": "vgk",
     "vgkgoldenknights": "vgk",
@@ -187,6 +207,7 @@ TEAM_ALIASES = {
     "wasnationals": "was",
     "wsh": "was",
     "wpg": "wpg",
+    "wpgjets": "wpg",
 }
 
 TEAM_ALIASES.update(
@@ -282,6 +303,28 @@ TEAM_ALIASES.update(
         "washingtonnationals": "was",
         "washingtonwizards": "was",
         "winnipegjets": "wpg",
+        "che": "che",
+        "chelsea": "che",
+        "cre": "cre",
+        "cremonese": "cre",
+        "uscremonese": "cre",
+        "eve": "eve",
+        "everton": "eve",
+        "fio": "fio",
+        "fiorentina": "fio",
+        "laz": "laz",
+        "lazio": "laz",
+        "mancity": "mci",
+        "manchestercity": "mci",
+        "mci": "mci",
+        "nfo": "nfo",
+        "nottinghamforest": "nfo",
+        "realsociedad": "rso",
+        "rom": "rom",
+        "roma": "rom",
+        "rso": "rso",
+        "sev": "sev",
+        "sevilla": "sev",
     }
 )
 
@@ -304,6 +347,10 @@ STAT_ALIASES = {
     "threepointsmade": "madethrees",
     "3pointersmade": "madethrees",
     "madethrees": "madethrees",
+    "chancescreated": "chancescreated",
+    "chancecreated": "chancescreated",
+    "keypasses": "chancescreated",
+    "shotsassisted": "chancescreated",
     "total": "total",
     "totalpoints": "total",
     "totalruns": "total",
@@ -410,6 +457,15 @@ def normalize_text(value: str) -> str:
     return " ".join("".join(cleaned).split())
 
 
+def clean_player_name(value: str) -> str:
+    text = re.sub(r"\s+\([A-Za-z0-9 .'-]{2,20}\)\s*$", "", str(value or "").strip())
+    return text
+
+
+def normalize_player_name(value: str) -> str:
+    return normalize_text(clean_player_name(value))
+
+
 def normalize_team(value: str) -> str:
     key = normalize_text(value).replace(" ", "")
     return TEAM_ALIASES.get(key, key)
@@ -507,7 +563,7 @@ def build_poll_context(row: dict[str, str]) -> PollContext:
         sport=normalize_text(row.get("sport", "")).replace(" ", ""),
         market_family=market_family,
         stat_key=normalize_stat(row.get("stat", "")),
-        player_name=normalize_text(player_name),
+        player_name=normalize_player_name(player_name),
         line=line_value,
         home_team=normalize_team(row.get("home_team", "")),
         away_team=normalize_team(row.get("away_team", "")),
@@ -533,7 +589,7 @@ def build_market_row(row: dict[str, str]) -> MarketRow:
         sport=sport,
         market_family=market_family,
         stat_key=stat,
-        player_name=normalize_text(player_name_raw),
+        player_name=normalize_player_name(player_name_raw),
         line=parse_float(get_first(row, MARKET_COLUMN_ALIASES["line"])),
         home_team=normalize_team(get_first(row, MARKET_COLUMN_ALIASES["home_team"])),
         away_team=normalize_team(get_first(row, MARKET_COLUMN_ALIASES["away_team"])),

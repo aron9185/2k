@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import datetime as dt
+import ipaddress
 import json
 import os
 import re
 import socket
+import subprocess
 import time
 import unicodedata
 from html import unescape
@@ -755,11 +757,166 @@ def _status_text(game_status: Any, fallback: Any) -> str:
     return "Unknown"
 
 
+def _is_private_lan_ip(value: str) -> bool:
+    try:
+        address = ipaddress.ip_address(str(value or "").strip())
+    except Exception:
+        return False
+    return (
+        address.version == 4
+        and address.is_private
+        and not address.is_loopback
+        and not address.is_link_local
+    )
+
+
+def _adapter_is_virtual_or_vpn(name: str) -> bool:
+    lowered = str(name or "").lower()
+    return any(
+        marker in lowered
+        for marker in (
+            "bluetooth",
+            "docker",
+            "hyper-v",
+            "loopback",
+            "tap",
+            "tunnel",
+            "virtual",
+            "virtualbox",
+            "vmware",
+            "vpn",
+            "wsl",
+            "zerotier",
+            "藍牙",
+        )
+    )
+
+
+def _ipconfig_lan_candidates() -> list[dict[str, Any]]:
+    if os.name != "nt":
+        return []
+    try:
+        ipconfig = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "ipconfig.exe")
+        command = [ipconfig if os.path.exists(ipconfig) else "ipconfig"]
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            check=False,
+            encoding="utf-8",
+            errors="ignore",
+            timeout=3,
+        )
+    except Exception:
+        return []
+
+    candidates: list[dict[str, Any]] = []
+    current: dict[str, Any] | None = None
+
+    def flush_current() -> None:
+        if not current:
+            return
+        ip = _safe_str(current.get("ip"))
+        if not _is_private_lan_ip(ip):
+            return
+        if current.get("disconnected"):
+            return
+        candidates.append(dict(current))
+
+    for raw_line in result.stdout.splitlines():
+        line = raw_line.rstrip()
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if not raw_line.startswith(" ") and stripped.endswith(":"):
+            flush_current()
+            current = {
+                "adapter": stripped[:-1],
+                "ip": "",
+                "gateway": "",
+                "disconnected": False,
+            }
+            continue
+        if current is None:
+            continue
+        lowered = stripped.lower()
+        if "media disconnected" in lowered:
+            current["disconnected"] = True
+        if "ipv4" in lowered:
+            match = re.search(r":\s*([0-9]+(?:\.[0-9]+){3})", stripped)
+            if match:
+                current["ip"] = match.group(1)
+        if "default gateway" in lowered:
+            match = re.search(r":\s*([0-9]+(?:\.[0-9]+){3})", stripped)
+            if match:
+                current["gateway"] = match.group(1)
+
+    flush_current()
+    return candidates
+
+
+def _socket_lan_candidates() -> list[dict[str, Any]]:
+    addresses: list[str] = []
+    for target in ("192.168.0.1", "192.168.1.1", "1.1.1.1", "8.8.8.8"):
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            # No packets need to complete; this only asks the OS which local
+            # interface would be used for the route.
+            probe.connect((target, 80))
+            addresses.append(probe.getsockname()[0])
+        except Exception:
+            pass
+        finally:
+            probe.close()
+    try:
+        addresses.extend(socket.gethostbyname_ex(socket.gethostname())[2])
+    except Exception:
+        pass
+
+    seen: set[str] = set()
+    candidates: list[dict[str, Any]] = []
+    for ip in addresses:
+        if ip in seen or not _is_private_lan_ip(ip):
+            continue
+        seen.add(ip)
+        candidates.append({"adapter": "route", "ip": ip, "gateway": "", "disconnected": False})
+    return candidates
+
+
+def _rank_lan_candidate(candidate: dict[str, Any]) -> tuple[int, int, int, str]:
+    adapter = _safe_str(candidate.get("adapter"))
+    ip = _safe_str(candidate.get("ip"))
+    has_gateway = 0 if _safe_str(candidate.get("gateway")) else 1
+    virtual = 1 if _adapter_is_virtual_or_vpn(adapter) else 0
+    if ip.startswith("192.168."):
+        ip_family = 0
+    elif re.match(r"^172\.(1[6-9]|2[0-9]|3[0-1])\.", ip):
+        ip_family = 1
+    elif ip.startswith("10."):
+        ip_family = 2
+    else:
+        ip_family = 3
+    return (virtual, has_gateway, ip_family, ip)
+
+
+def _lan_ip_candidates() -> list[str]:
+    candidates = _ipconfig_lan_candidates() or _socket_lan_candidates()
+    candidates = sorted(candidates, key=_rank_lan_candidate)
+    ips: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        ip = _safe_str(candidate.get("ip"))
+        if ip and ip not in seen:
+            seen.add(ip)
+            ips.append(ip)
+    return ips
+
+
 def _best_lan_ip() -> str:
+    candidates = _lan_ip_candidates()
+    if candidates:
+        return candidates[0]
     probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        # No packets need to complete; this is just a common way to discover
-        # the primary local interface address.
         probe.connect(("8.8.8.8", 80))
         return probe.getsockname()[0]
     except Exception:
@@ -1365,8 +1522,10 @@ def api_matchups(game_id: str):
 if __name__ == "__main__":
     host = os.environ.get("ROTATION_HOST", "0.0.0.0")
     port = int(os.environ.get("ROTATION_PORT", "5000"))
-    lan_ip = _best_lan_ip()
     print(f"[rotation] local: http://127.0.0.1:{port}")
-    print(f"[rotation] mobile/LAN: http://{lan_ip}:{port}")
-    print("[rotation] phone/tablet access requires the device to be on the same network.")
+    lan_ips = _lan_ip_candidates() or [_best_lan_ip()]
+    for lan_ip in lan_ips:
+        print(f"[rotation] mobile/LAN: http://{lan_ip}:{port}")
+    print(f"[rotation] listening on {host}:{port}")
+    print("[rotation] phone/tablet access requires the same Wi-Fi/LAN plus firewall/VPN LAN access.")
     app.run(debug=True, host=host, port=port)

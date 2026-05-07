@@ -14,6 +14,11 @@ from realsports_api import build_realsports_client
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_MARKETS_CSV = BASE_DIR / "sportsbook_markets_consensus_live.csv"
 DEFAULT_OUTPUT = BASE_DIR / "prediction_market_recommendations.csv"
+DEFAULT_MARKET_SETTINGS = {
+    "maxValue": 10000,
+    "presets": [{"value": 10}, {"value": 100}, {"value": 500}],
+    "allowAcceptPriceChanges": False,
+}
 FIELDNAMES = [
     "market_id",
     "sport",
@@ -21,6 +26,7 @@ FIELDNAMES = [
     "game_time",
     "game_display",
     "game_path",
+    "game_order",
     "market_type",
     "market_label",
     "status",
@@ -76,7 +82,19 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Optional max number of prediction markets to evaluate.",
     )
+    parser.add_argument(
+        "--use-market-orders",
+        action="store_true",
+        help=(
+            "Fetch each market-order payload before evaluating. This is slower and "
+            "kept as a fallback; by default the live game-market list payload is used."
+        ),
+    )
     return parser.parse_args()
+
+
+def _progress(message: str) -> None:
+    print(message, flush=True)
 
 
 def _parse_game_display(display: str) -> tuple[str, str]:
@@ -132,6 +150,102 @@ def _preset_values(settings: dict[str, Any]) -> str:
     return " | ".join(value for value in values if value)
 
 
+def _bool_from_text(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    if text in {"1", "true", "yes", "y", "on"}:
+        return True
+    if text in {"0", "false", "no", "n", "off", ""}:
+        return False
+    return bool(value)
+
+
+def _settings_from_existing_output(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf8", newline="") as handle:
+            row = next(csv.DictReader(handle), None)
+    except Exception:
+        return None
+    if not row:
+        return None
+    try:
+        max_value = int(float(str(row.get("max_value") or "").strip()))
+    except Exception:
+        return None
+    preset_values = []
+    for value in str(row.get("preset_values") or "").split("|"):
+        text = value.strip()
+        if not text:
+            continue
+        try:
+            preset_values.append({"value": int(float(text))})
+        except Exception:
+            preset_values.append({"value": text})
+    return {
+        "maxValue": max_value,
+        "presets": preset_values or list(DEFAULT_MARKET_SETTINGS["presets"]),
+        "allowAcceptPriceChanges": _bool_from_text(row.get("allow_accept_price_changes")),
+    }
+
+
+def _summary_market_type(game_market: dict[str, Any]) -> str:
+    explicit = str(
+        game_market.get("marketType")
+        or game_market.get("market_type")
+        or game_market.get("type")
+        or ""
+    ).strip().lower()
+    if explicit:
+        return explicit
+
+    label = str(game_market.get("label") or "").strip().lower()
+    outcomes = game_market.get("outcomes") or []
+    outcome_labels = [
+        str((outcome or {}).get("label") or "").strip().lower()
+        for outcome in outcomes
+        if isinstance(outcome, dict)
+    ]
+    outcome_keys = [
+        str((outcome or {}).get("key") or "").strip().lower()
+        for outcome in outcomes
+        if isinstance(outcome, dict)
+    ]
+    outcome_text = " ".join(outcome_labels + outcome_keys)
+
+    if "winner" in label or label in {"moneyline", "money line"}:
+        return "gamewinner"
+    if "rfi" in label or "1st inning" in label or "first inning" in label:
+        return "rfi"
+    if "spread" in label:
+        return "pointspread"
+    if "total" in label or (
+        ("over" in outcome_text or any(text.startswith("o ") for text in outcome_labels))
+        and ("under" in outcome_text or any(text.startswith("u ") for text in outcome_labels))
+    ):
+        return "totalpoints"
+    return label.replace(" ", "")
+
+
+def _order_payload_from_summary(
+    game_market: dict[str, Any],
+    *,
+    settings: dict[str, Any],
+) -> dict[str, Any]:
+    market_id = game_market.get("id") or game_market.get("marketId") or ""
+    return {
+        "market": {
+            "marketId": market_id,
+            "marketType": _summary_market_type(game_market),
+            "label": str(game_market.get("label") or "").strip(),
+            "outcomes": game_market.get("outcomes") or [],
+        },
+        "settings": dict(settings),
+    }
+
+
 def _empty_row(
     market_id: Any,
     *,
@@ -140,6 +254,7 @@ def _empty_row(
     game_time: str,
     game_display: str,
     game_path: str,
+    game_order: int | str,
     market_type: str,
     market_label: str,
     buy_url: str,
@@ -154,6 +269,7 @@ def _empty_row(
         "game_time": game_time,
         "game_display": game_display,
         "game_path": game_path,
+        "game_order": game_order,
         "market_type": market_type,
         "market_label": market_label,
         "status": status,
@@ -543,6 +659,7 @@ def _evaluate_market(
     game_id: Any,
     game_display: str,
     game_path: str,
+    game_order: int | str,
     sport: str,
     sportsbook_markets: list[Any],
 ) -> dict[str, Any]:
@@ -559,6 +676,7 @@ def _evaluate_market(
         game_time="",
         game_display=game_display,
         game_path=game_path,
+        game_order=game_order,
         market_type=market_type,
         market_label=market_label,
         buy_url=buy_url,
@@ -680,34 +798,48 @@ def _write_rows(path: Path, rows: list[dict[str, Any]]) -> None:
 
 def main() -> int:
     args = parse_args()
+    output_path = Path(args.output)
+    settings = _settings_from_existing_output(output_path) or dict(DEFAULT_MARKET_SETTINGS)
+    _progress(f"Loading sportsbook markets from {args.markets_csv}...")
     sportsbook_rows = load_csv_rows(args.markets_csv)
     sportsbook_markets = [build_market_row(row) for row in sportsbook_rows]
+    _progress(f"Loaded {len(sportsbook_markets)} sportsbook market rows.")
     client = build_realsports_client()
+    _progress(f"Fetching Real prediction market list for {args.sport}...")
     payload = client.get_prediction_game_markets(args.sport)
     game_markets = payload.get("gameMarkets") or []
     if args.limit > 0:
         game_markets = game_markets[: args.limit]
+    mode = "market-order endpoint" if args.use_market_orders else "game-market list payload"
+    _progress(f"Evaluating {len(game_markets)} prediction markets using {mode}.")
 
     rows: list[dict[str, Any]] = []
-    for game_market in game_markets:
+    total = len(game_markets)
+    for index, game_market in enumerate(game_markets, start=1):
         if not isinstance(game_market, dict):
             continue
         market_id = game_market.get("id")
-        order_payload = client.get_prediction_market_order(market_id, mode="buy")
+        order_payload = (
+            client.get_prediction_market_order(market_id, mode="buy")
+            if args.use_market_orders
+            else _order_payload_from_summary(game_market, settings=settings)
+        )
         row = _evaluate_market(
             order_payload,
             game_id=game_market.get("gameId"),
             game_display=str((game_market.get("gameDisplay") or {}).get("display") or "").strip(),
             game_path=str((game_market.get("gameDisplay") or {}).get("path") or "").strip(),
+            game_order=index - 1,
             sport=str(game_market.get("sport") or args.sport).strip().lower(),
             sportsbook_markets=sportsbook_markets,
         )
         rows.append(row)
+        if index == total or index % 5 == 0:
+            _progress(f"Prediction markets: {index}/{total} evaluated.")
 
-    output_path = Path(args.output)
     _write_rows(output_path, rows)
-    print(output_path)
-    print(f"saved {len(rows)} prediction market evaluations")
+    _progress(str(output_path))
+    _progress(f"saved {len(rows)} prediction market evaluations")
     return 0
 
 

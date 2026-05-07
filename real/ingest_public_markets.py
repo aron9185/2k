@@ -15,6 +15,14 @@ from provider_polymarket import fetch_rows as fetch_polymarket_rows
 
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUT = BASE_DIR / "sportsbook_markets.csv"
+GAME_LINE_MARKET_TYPES = {
+    "both_teams_score",
+    "double_chance",
+    "game_spread",
+    "game_total",
+    "game_winner",
+    "halftime_result",
+}
 
 
 def parse_args():
@@ -62,6 +70,15 @@ def parse_args():
         action="store_true",
         help="Allow writing a header-only market CSV when providers return zero normalized rows.",
     )
+    parser.add_argument(
+        "--market-scope",
+        choices=("all", "game-lines"),
+        default="all",
+        help=(
+            "Limit sportsbook ingestion to a market family. Use game-lines for "
+            "prediction refreshes that only need team/game prices."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -74,10 +91,21 @@ def _write_json_dump(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf8")
 
 
+def _filter_rows_by_market_scope(rows: list[dict[str, Any]], market_scope: str) -> list[dict[str, Any]]:
+    if market_scope != "game-lines":
+        return rows
+    return [
+        row
+        for row in rows
+        if str(row.get("market_type") or "").strip().lower() in GAME_LINE_MARKET_TYPES
+    ]
+
+
 def main():
     args = parse_args()
     providers = _parse_csv_arg(args.providers)
     sports = _parse_csv_arg(args.sports)
+    market_scope = str(args.market_scope or "all").strip().lower()
 
     provider_rows: list[dict[str, Any]] = []
     raw_payloads: dict[str, Any] = {}
@@ -103,15 +131,20 @@ def main():
             rows, raw = fetch_draftkings_rows(
                 sports,
                 use_saved_payloads=not args.force_live,
+                save_payloads=market_scope == "all",
+                market_scope=market_scope,
             )
         elif provider_key == "fanduel":
             rows, raw = fetch_fanduel_rows(
                 sports,
                 use_saved_payloads=not args.force_live,
+                save_payloads=market_scope == "all",
+                market_scope=market_scope,
             )
         else:
             raise SystemExit(f"Unsupported provider: {provider}")
 
+        rows = _filter_rows_by_market_scope(rows, market_scope)
         raw_payloads[provider_key] = raw
         provider_rows.extend(rows)
         counts_by_provider[provider_key] += len(rows)

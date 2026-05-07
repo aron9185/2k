@@ -72,7 +72,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sports",
-        default="nba,mlb,nhl",
+        default="nba,mlb,nhl,wnba,soccer",
         help="Comma-separated sports to refresh when --refresh-markets is enabled.",
     )
     parser.add_argument(
@@ -130,6 +130,11 @@ def _to_int(value: Any) -> int | None:
         return None
 
 
+def _sort_int(value: Any, default: int = 999999) -> int:
+    parsed = _to_int(value)
+    return parsed if parsed is not None else default
+
+
 def _to_float(value: Any) -> float | None:
     if value in (None, "", "None"):
         return None
@@ -143,6 +148,31 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _parse_utc_datetime(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except Exception:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _is_open_live_poll(row: dict[str, Any], observed_at: datetime) -> bool:
+    can_wager = row.get("can_wager")
+    if can_wager not in (None, "") and not _to_bool(can_wager):
+        return False
+    if _to_bool(row.get("is_locked")):
+        return False
+    locks_at = _parse_utc_datetime(row.get("locks_at"))
+    if locks_at is not None and locks_at <= observed_at:
+        return False
+    return True
+
+
 def _refresh_markets_csv(
     *,
     providers: list[str],
@@ -154,9 +184,17 @@ def _refresh_markets_csv(
     for provider in providers:
         key = provider.lower()
         if key == "draftkings":
-            provider_rows, _raw = fetch_draftkings_rows(sports, use_saved_payloads=False)
+            provider_rows, _raw = fetch_draftkings_rows(
+                sports,
+                use_saved_payloads=False,
+                save_payloads=False,
+            )
         elif key == "fanduel":
-            provider_rows, _raw = fetch_fanduel_rows(sports, use_saved_payloads=False)
+            provider_rows, _raw = fetch_fanduel_rows(
+                sports,
+                use_saved_payloads=False,
+                save_payloads=False,
+            )
         else:
             raise RuntimeError(f"Unsupported live-market provider: {provider}")
         provider_counts[key] = len(provider_rows)
@@ -188,7 +226,11 @@ def _load_game_feed_payload(
     if cache_key in cache:
         return cache[cache_key]
     try:
-        payload = client.get_game_feed(game_key, sport=sport_key)
+        payload = client.get_game_feed(
+            game_key,
+            sport=sport_key,
+            view="all" if sport_key == "nhl" else "recent",
+        )
         cache[cache_key] = payload if isinstance(payload, dict) else {}
     except Exception:
         cache[cache_key] = {}
@@ -240,6 +282,7 @@ def _unsupported_recommendation(
         "observed_at": observed_at,
         "feed": feed,
         "source": "livefeed",
+        "feed_order": row.get("feed_order") or "",
         "day": row.get("day") or "",
         "sport": row.get("sport") or "",
         "game_id": row.get("game_id") or "",
@@ -296,6 +339,7 @@ def _decorate_recommendation(
     decorated["observed_at"] = observed_at
     decorated["feed"] = feed
     decorated["source"] = "livefeed"
+    decorated["feed_order"] = row.get("feed_order") or ""
     decorated["day"] = row.get("day") or decorated.get("day") or ""
     decorated["poll_kind"] = row.get("poll_kind") or decorated.get("poll_kind") or ""
     decorated["option_a_count"] = row.get("option_1_count") or ""
@@ -313,13 +357,16 @@ def recommend_live_rows(
     include_locked: bool = True,
     limit: int = 0,
 ) -> list[dict[str, Any]]:
-    rows, raw_entries = fetch_live_polls(feed=feed, include_locked=include_locked, limit=limit)
     client = build_realsports_client()
     game_feed_cache: dict[tuple[str, str], dict[str, Any]] = {}
     observed_at = _iso_now()
+    observed_at_dt = _parse_utc_datetime(observed_at) or datetime.now(timezone.utc)
+    rows, raw_entries = fetch_live_polls(feed=feed, include_locked=include_locked, limit=limit)
     recommendations: list[dict[str, Any]] = []
 
     for row, raw_entry in zip(rows, raw_entries):
+        if not _is_open_live_poll(row, observed_at_dt):
+            continue
         poll_kind = str(row.get("poll_kind") or "").strip()
         sport = str(row.get("sport") or "").strip().lower()
         game_feed_payload = _load_game_feed_payload(
@@ -381,8 +428,9 @@ def recommend_live_rows(
 
     recommendations.sort(
         key=lambda item: (
-            str(item.get("sport") or ""),
             str(item.get("locks_at") or item.get("game_time") or ""),
+            _sort_int(item.get("feed_order")),
+            str(item.get("sport") or ""),
             str(item.get("poll_created_at") or item.get("created_at") or ""),
             str(item.get("poll_id") or ""),
         )
@@ -397,6 +445,7 @@ def write_snapshot_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
         "observed_at",
         "feed",
         "source",
+        "feed_order",
         "day",
         "sport",
         "game_id",
@@ -440,6 +489,8 @@ def write_snapshot_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
         "consensus_fair_line",
         "matched_books",
         "books",
+        "source_lines",
+        "player_choices_json",
         "notes",
     ]
     with output_path.open("w", newline="", encoding="utf8") as handle:

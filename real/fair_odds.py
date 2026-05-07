@@ -233,6 +233,7 @@ def estimate_fair_line(
     half_life_minutes: float = 20.0,
     default_scale: float = 1.5,
     book_weights: dict[str, float] | None = None,
+    prefer_fitted_ladder: bool = False,
 ) -> FairLineEstimate:
     devigged_quotes = [
         devig_quote(
@@ -250,16 +251,25 @@ def estimate_fair_line(
     exact_quotes = [
         quote for quote in devigged_quotes if abs(quote.line - target_line) <= EPSILON
     ]
-    if exact_quotes:
+    fit = _fit_logit_curve(devigged_quotes)
+    unique_exact_books = {normalize_book_name(quote.book) for quote in exact_quotes}
+    unique_lines = {round(float(quote.line), 6) for quote in devigged_quotes}
+    use_fitted_ladder = bool(fit is not None and len(unique_lines) >= 3) and (
+        prefer_fitted_ladder or len(unique_exact_books) <= 1
+    )
+    use_exact_quotes = bool(exact_quotes) and not use_fitted_ladder
+    if use_exact_quotes:
         fair_over_prob = _weighted_average(
             [quote.over_prob for quote in exact_quotes],
             [quote.weight for quote in exact_quotes],
         )
-        source = "exact-line consensus"
-        fit = _fit_logit_curve(devigged_quotes)
+        source = (
+            "exact-line consensus"
+            if len(unique_exact_books) > 1
+            else "single-book exact line"
+        )
         fair_line, fitted_scale = fit if fit else (target_line, None)
     else:
-        fit = _fit_logit_curve(devigged_quotes)
         if fit:
             fair_line, fitted_scale = fit
             fair_over_prob = logistic((fair_line - target_line) / fitted_scale)
@@ -333,6 +343,7 @@ def consensus_snapshot(
     half_life_minutes: float = 20.0,
     default_scale: float = 1.5,
     book_weights: dict[str, float] | None = None,
+    prefer_fitted_ladder: bool = False,
 ) -> dict[str, object]:
     estimate = estimate_fair_line(
         quotes,
@@ -341,6 +352,7 @@ def consensus_snapshot(
         half_life_minutes=half_life_minutes,
         default_scale=default_scale,
         book_weights=book_weights,
+        prefer_fitted_ladder=prefer_fitted_ladder,
     )
     over_eval = evaluate_offer(
         estimate,
