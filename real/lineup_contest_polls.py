@@ -5,10 +5,16 @@ from pathlib import Path
 from typing import Any
 
 from lineup import (
+    ROTOWIRE_SITES,
+    build_rotowire_session,
     choose_rotowire_projection_set,
     is_unavailable_or_questionable_record,
+    is_standard_projection_slate,
+    parse_iso_date,
     player_full_name,
+    rotowire_get_json,
     safe_float,
+    slate_target_rank,
 )
 from poll_market_matcher import normalize_team, team_pair
 
@@ -88,21 +94,28 @@ def _game_has_started(entry: dict[str, Any]) -> bool:
 
 
 def _ranked_player_rows(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    rows = []
+    rows_by_player: dict[str, dict[str, Any]] = {}
     for record in records:
         if is_unavailable_or_questionable_record(record):
             continue
         points = _projected_points(record)
         if points <= 0:
             continue
-        rows.append(
-            {
-                "name": player_full_name(record) or str(record.get("fullName") or "").strip(),
-                "points": points,
-                "team": str(((record.get("team") or {}).get("abbr")) or "").strip(),
-                "position": "/".join(str(pos).strip() for pos in (record.get("pos") or []) if str(pos).strip()),
-            }
-        )
+        player_name = player_full_name(record) or str(record.get("fullName") or "").strip()
+        team_abbr = str(((record.get("team") or {}).get("abbr")) or "").strip()
+        player_id = str(record.get("rwID") or "").strip()
+        dedupe_key = player_id or f"{player_name.lower()}|{_normalize_lineup_team(team_abbr)}"
+
+        row = {
+            "name": player_name,
+            "points": points,
+            "team": team_abbr,
+            "position": "/".join(str(pos).strip() for pos in (record.get("pos") or []) if str(pos).strip()),
+        }
+        existing = rows_by_player.get(dedupe_key)
+        if existing is None or float(row["points"]) > float(existing["points"]):
+            rows_by_player[dedupe_key] = row
+    rows = list(rows_by_player.values())
     rows.sort(
         key=lambda row: (
             -float(row["points"]),
@@ -110,6 +123,79 @@ def _ranked_player_rows(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
         )
     )
     return rows
+
+
+def _nonstandard_records_by_pair(
+    *,
+    sport: str,
+    day: str,
+    site: str,
+) -> dict[tuple[str, str], list[dict[str, Any]]]:
+    site_id = ROTOWIRE_SITES.get(site)
+    if site_id is None:
+        return {}
+    target_date = parse_iso_date(day)
+    session = build_rotowire_session()
+    payload = rotowire_get_json(session, sport, "slate-list.php", params={"siteID": site_id})
+    slates = payload.get("slates") or []
+    records_by_pair: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for slate in slates:
+        if slate_target_rank(sport, slate, target_date) is None:
+            continue
+        players = rotowire_get_json(session, sport, "players.php", params={"slateID": slate["slateID"]})
+        if not isinstance(players, list) or not players:
+            continue
+        if is_standard_projection_slate(slate.get("contestType", ""), players):
+            continue
+        for record in players:
+            if not isinstance(record, dict):
+                continue
+            pair = _record_team_pair(record)
+            if pair is None:
+                continue
+            records_by_pair.setdefault(pair, []).append(record)
+    return records_by_pair
+
+
+def _build_lineup_candidate_row(
+    *,
+    post_id: str,
+    matchup_key: str,
+    ranked_players: list[dict[str, Any]],
+    lineup_size: int,
+    projection_site: str,
+    candidate_count: int,
+    note: str,
+    entry_order: int,
+) -> dict[str, Any]:
+    top_five = ranked_players[:lineup_size]
+    sixth_points = ranked_players[lineup_size]["points"] if len(ranked_players) > lineup_size else 0.0
+    cutoff_gap = float(top_five[-1]["points"]) - float(sixth_points)
+    adjacent_gaps = [
+        float(top_five[index]["points"]) - float(top_five[index + 1]["points"])
+        for index in range(len(top_five) - 1)
+    ]
+    min_rank_gap = min(adjacent_gaps) if adjacent_gaps else 0.0
+    avg_rank_gap = sum(adjacent_gaps) / len(adjacent_gaps) if adjacent_gaps else 0.0
+    top5_total = sum(float(player["points"]) for player in top_five)
+    lineup_players = " > ".join(
+        f"{index + 1}. {player['name']}"
+        for index, player in enumerate(top_five)
+    )
+    return {
+        "post_id": post_id,
+        "lineup_matchup_key": matchup_key,
+        "recommended_option": lineup_players,
+        "lineup_players": lineup_players,
+        "lineup_cutoff_gap": round(cutoff_gap, 4),
+        "lineup_min_rank_gap": round(min_rank_gap, 4),
+        "lineup_avg_rank_gap": round(avg_rank_gap, 4),
+        "lineup_top5_total": round(top5_total, 4),
+        "lineup_projection_site": projection_site,
+        "lineup_candidate_count": candidate_count,
+        "notes": note,
+        "entry_order": entry_order,
+    }
 
 
 def build_lineup_contest_rankings(
@@ -123,6 +209,11 @@ def build_lineup_contest_rankings(
     projection_summary = choose_rotowire_projection_set(sport, day, site="auto")
     records_by_pair: dict[tuple[str, str], list[dict[str, Any]]] = {}
     all_ranked_players = _ranked_player_rows(projection_summary.get("records") or [])
+    nonstandard_by_pair = _nonstandard_records_by_pair(
+        sport=sport,
+        day=day,
+        site=str(projection_summary.get("site") or ""),
+    )
     for record in projection_summary.get("records") or []:
         pair = _record_team_pair(record)
         if pair is None:
@@ -131,7 +222,7 @@ def build_lineup_contest_rankings(
 
     candidate_rows: list[dict[str, Any]] = []
     by_post_id: dict[str, dict[str, Any]] = {}
-    for entry in entries:
+    for entry_order, entry in enumerate(entries):
         post = entry.get("post") or {}
         post_id = str(post.get("id") or "").strip()
         pair = _entry_team_pair(entry)
@@ -152,12 +243,35 @@ def build_lineup_contest_rankings(
                 "notes": "Game already started; lineup contest skipped.",
             }
             continue
+        note_text = (
+            f"Rotowire {projection_summary.get('site') or ''} lineup contest score uses "
+            "5v6 gap first, then rank separation, then top-five total."
+        ).strip()
         if pair is None:
             ranked_players = all_ranked_players if len(entries) == 1 else []
+            if len(entries) == 1 and ranked_players:
+                note_text = (
+                    f"Fallback lineup from Rotowire {projection_summary.get('site') or ''} "
+                    "global slate pool because only one lineup contest was available."
+                ).strip()
         else:
-            ranked_players = _ranked_player_rows(records_by_pair.get(pair, []))
+            primary_ranked = _ranked_player_rows(records_by_pair.get(pair, []))
+            showdown_ranked = _ranked_player_rows(nonstandard_by_pair.get(pair, []))
+            ranked_players = primary_ranked
+            if len(showdown_ranked) > len(ranked_players):
+                ranked_players = showdown_ranked
+            if ranked_players is showdown_ranked and ranked_players:
+                note_text = (
+                    f"Fallback lineup from Rotowire {projection_summary.get('site') or ''} "
+                    "single-game slate for this matchup."
+                ).strip()
             if not ranked_players and len(entries) == 1:
                 ranked_players = all_ranked_players
+                if ranked_players:
+                    note_text = (
+                        f"Fallback lineup from Rotowire {projection_summary.get('site') or ''} "
+                        "global slate pool because only one lineup contest was available."
+                    ).strip()
         if len(ranked_players) < lineup_size:
             by_post_id[post_id] = {
                 "status": "no_market",
@@ -175,39 +289,17 @@ def build_lineup_contest_rankings(
                 ),
             }
             continue
-
-        top_five = ranked_players[:lineup_size]
-        sixth_points = ranked_players[lineup_size]["points"] if len(ranked_players) > lineup_size else 0.0
-        cutoff_gap = float(top_five[-1]["points"]) - float(sixth_points)
-        adjacent_gaps = [
-            float(top_five[index]["points"]) - float(top_five[index + 1]["points"])
-            for index in range(len(top_five) - 1)
-        ]
-        min_rank_gap = min(adjacent_gaps) if adjacent_gaps else 0.0
-        avg_rank_gap = sum(adjacent_gaps) / len(adjacent_gaps) if adjacent_gaps else 0.0
-        top5_total = sum(float(player["points"]) for player in top_five)
-        lineup_players = " > ".join(
-            f"{index + 1}. {player['name']}"
-            for index, player in enumerate(top_five)
-        )
-        note = (
-            f"Rotowire {projection_summary.get('site') or ''} lineup contest score uses "
-            f"5v6 gap first, then rank separation, then top-five total."
-        ).strip()
         candidate_rows.append(
-            {
-                "post_id": post_id,
-                "lineup_matchup_key": "|".join(pair) if pair is not None else post_id,
-                "recommended_option": lineup_players,
-                "lineup_players": lineup_players,
-                "lineup_cutoff_gap": round(cutoff_gap, 4),
-                "lineup_min_rank_gap": round(min_rank_gap, 4),
-                "lineup_avg_rank_gap": round(avg_rank_gap, 4),
-                "lineup_top5_total": round(top5_total, 4),
-                "lineup_projection_site": projection_summary.get("site") or "",
-                "lineup_candidate_count": len(ranked_players),
-                "notes": note,
-            }
+            _build_lineup_candidate_row(
+                post_id=post_id,
+                matchup_key="|".join(pair) if pair is not None else post_id,
+                ranked_players=ranked_players,
+                lineup_size=lineup_size,
+                projection_site=projection_summary.get("site") or "",
+                candidate_count=len(ranked_players),
+                note=note_text,
+                entry_order=entry_order,
+            )
         )
 
     candidate_rows.sort(
@@ -216,6 +308,7 @@ def build_lineup_contest_rankings(
             -float(row["lineup_min_rank_gap"]),
             -float(row["lineup_top5_total"]),
             -float(row["lineup_avg_rank_gap"]),
+            int(row.get("entry_order") or 0),
             str(row["post_id"]),
         )
     )
@@ -236,6 +329,7 @@ def build_lineup_contest_rankings(
         else:
             row["lineup_rank"] = ""
             row["status"] = "pass"
+        row.pop("entry_order", None)
         by_post_id[str(row["post_id"])] = row
 
     return by_post_id, projection_summary

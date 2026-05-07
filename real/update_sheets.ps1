@@ -7,6 +7,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$providers = "draftkings,fanduel"
+if ($env:ODDS_API_IO_KEY -or $env:ODDS_API_KEY) {
+    $providers = "draftkings,fanduel,betmgm"
+}
 
 function Invoke-Step {
     param(
@@ -23,7 +27,7 @@ Invoke-Step @(
     "python3",
     "-B",
     "real\ingest_public_markets.py",
-    "--providers", "draftkings,fanduel",
+    "--providers", $providers,
     "--sports", $joinedSports,
     "--force-live",
     "--output", $MarketsCsv,

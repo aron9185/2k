@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from market_csv import dedupe_market_rows, write_market_rows
+from provider_betmgm import fetch_rows as fetch_betmgm_rows
 from provider_draftkings import fetch_rows as fetch_draftkings_rows
 from provider_fanduel import fetch_rows as fetch_fanduel_rows
 from provider_kalshi import fetch_rows as fetch_kalshi_rows
@@ -15,14 +16,6 @@ from provider_polymarket import fetch_rows as fetch_polymarket_rows
 
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUT = BASE_DIR / "sportsbook_markets.csv"
-GAME_LINE_MARKET_TYPES = {
-    "both_teams_score",
-    "double_chance",
-    "game_spread",
-    "game_total",
-    "game_winner",
-    "halftime_result",
-}
 
 
 def parse_args():
@@ -35,7 +28,7 @@ def parse_args():
     parser.add_argument(
         "--providers",
         default="kalshi",
-        help="Comma-separated provider list. Supported: kalshi, polymarket, draftkings, fanduel.",
+        help="Comma-separated provider list. Supported: kalshi, polymarket, draftkings, fanduel, betmgm.",
     )
     parser.add_argument(
         "--sports",
@@ -70,15 +63,6 @@ def parse_args():
         action="store_true",
         help="Allow writing a header-only market CSV when providers return zero normalized rows.",
     )
-    parser.add_argument(
-        "--market-scope",
-        choices=("all", "game-lines"),
-        default="all",
-        help=(
-            "Limit sportsbook ingestion to a market family. Use game-lines for "
-            "prediction refreshes that only need team/game prices."
-        ),
-    )
     return parser.parse_args()
 
 
@@ -91,24 +75,29 @@ def _write_json_dump(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf8")
 
 
-def _filter_rows_by_market_scope(rows: list[dict[str, Any]], market_scope: str) -> list[dict[str, Any]]:
-    if market_scope != "game-lines":
-        return rows
-    return [
-        row
-        for row in rows
-        if str(row.get("market_type") or "").strip().lower() in GAME_LINE_MARKET_TYPES
-    ]
+def _provider_errors(raw: Any) -> list[str]:
+    errors: list[str] = []
+    if isinstance(raw, dict):
+        top_error = str(raw.get("error") or "").strip()
+        if top_error:
+            errors.append(top_error)
+        else:
+            for key, value in raw.items():
+                if isinstance(value, dict):
+                    error = str(value.get("error") or "").strip()
+                    if error:
+                        errors.append(f"{key}: {error}")
+    return errors
 
 
 def main():
     args = parse_args()
     providers = _parse_csv_arg(args.providers)
     sports = _parse_csv_arg(args.sports)
-    market_scope = str(args.market_scope or "all").strip().lower()
 
     provider_rows: list[dict[str, Any]] = []
     raw_payloads: dict[str, Any] = {}
+    provider_errors: dict[str, list[str]] = {}
     counts_by_provider: Counter[str] = Counter()
     counts_by_market_type: Counter[str] = Counter()
 
@@ -131,21 +120,22 @@ def main():
             rows, raw = fetch_draftkings_rows(
                 sports,
                 use_saved_payloads=not args.force_live,
-                save_payloads=market_scope == "all",
-                market_scope=market_scope,
             )
         elif provider_key == "fanduel":
             rows, raw = fetch_fanduel_rows(
                 sports,
                 use_saved_payloads=not args.force_live,
-                save_payloads=market_scope == "all",
-                market_scope=market_scope,
+            )
+        elif provider_key == "betmgm":
+            rows, raw = fetch_betmgm_rows(
+                sports,
+                use_saved_payloads=not args.force_live,
             )
         else:
             raise SystemExit(f"Unsupported provider: {provider}")
 
-        rows = _filter_rows_by_market_scope(rows, market_scope)
         raw_payloads[provider_key] = raw
+        provider_errors[provider_key] = _provider_errors(raw)
         provider_rows.extend(rows)
         counts_by_provider[provider_key] += len(rows)
         counts_by_market_type.update(str(row.get("market_type") or "") for row in rows)
@@ -168,6 +158,10 @@ def main():
     print(f"Saved {written} normalized public-market rows to {args.output}")
     for provider, count in sorted(counts_by_provider.items()):
         print(f"  {provider}: {count} row(s)")
+        errors = provider_errors.get(provider) or []
+        if errors:
+            for error in errors[:3]:
+                print(f"    warning: {error}")
     if counts_by_market_type:
         print("  market types:")
         for market_type, count in sorted(counts_by_market_type.items()):

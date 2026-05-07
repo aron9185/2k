@@ -4,6 +4,7 @@ import argparse
 import csv
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,12 @@ from realsports_api import build_realsports_client
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUT = BASE_DIR / "live_polls.csv"
 EVEN_MONEY_ODDS = 100
+ZERO_COST_LIVE_POLL_KINDS = {
+    "anytime_play",
+    "pick_a_player",
+    "player_most_stat",
+    "first_basket",
+}
 PLAYER_NAME_WITH_LINE_RE = re.compile(
     r"^(?P<name>.+?)\s*(?:·|‧|•|-|–|—)\s*\d+(?:\.\d+)?\s+\S",
     re.IGNORECASE,
@@ -128,23 +135,69 @@ def _first_text(nodes: list[dict[str, Any]] | None) -> str:
 
 
 def _extract_poll_id(post: dict[str, Any]) -> int | None:
+    poll_ids = _extract_poll_ids(post)
+    return poll_ids[0] if poll_ids else None
+
+
+def _extract_poll_ids(post: dict[str, Any]) -> list[int]:
     additional_info = post.get("additionalInfo") or {}
-    poll_id = additional_info.get("pollId")
-    if poll_id:
-        try:
-            return int(poll_id)
-        except Exception:
-            pass
+    values: list[Any] = []
+    poll_ids_value = additional_info.get("pollIds")
+    if isinstance(poll_ids_value, list):
+        values.extend(poll_ids_value)
+    values.append(additional_info.get("pollId"))
 
     nodes = ((post.get("content") or {}).get("nodes")) or []
     for node in nodes:
-        poll_id = node.get("pollId")
-        if poll_id:
-            try:
-                return int(poll_id)
-            except Exception:
-                return None
-    return None
+        values.append(node.get("pollId"))
+
+    poll_ids: list[int] = []
+    seen: set[int] = set()
+    for poll_id in values:
+        if poll_id in (None, "", "None"):
+            continue
+        try:
+            parsed = int(poll_id)
+        except Exception:
+            continue
+        if parsed in seen:
+            continue
+        seen.add(parsed)
+        poll_ids.append(parsed)
+    return poll_ids
+
+
+def _parse_datetime(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    text = text.replace("Z", "+00:00")
+    if re.search(r"[+-]\d{2}$", text):
+        text = f"{text}:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except Exception:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _lock_time_elapsed(value: Any, *, now_utc: datetime | None = None) -> bool:
+    parsed = _parse_datetime(value)
+    if parsed is None:
+        return False
+    return parsed <= (now_utc or datetime.now(timezone.utc))
+
+
+def _is_closed_poll_row(row: dict[str, Any], poll: dict[str, Any]) -> bool:
+    if bool(row.get("is_locked")):
+        return True
+    if _lock_time_elapsed(row.get("locks_at")):
+        return True
+    if poll.get("canWager", False):
+        return False
+    return str(row.get("poll_kind") or "").strip().lower() not in ZERO_COST_LIVE_POLL_KINDS
 
 
 def _extract_option_flags(option: dict[str, Any]) -> tuple[bool | None, bool | None]:
@@ -211,6 +264,12 @@ def _normalize_poll_kind(post: dict[str, Any], poll: dict[str, Any]) -> str:
         return "player_over_under" if poll_type == "player" else "game_total"
     if poll_type == "gamewinner" or additional.get("isPickWinner"):
         return "game_winner"
+    if poll_type == "bothteamsscore":
+        return "both_teams_score"
+    if poll_type == "doublechance":
+        return "double_chance"
+    if poll_type == "halftimeresult":
+        return "halftime_result"
     if poll_type == "midgame":
         point_spread = additional.get("pointSpread")
         try:
@@ -363,24 +422,23 @@ def fetch_live_polls(
     raw = []
     seen_poll_ids: set[int] = set()
 
-    for feed_order, post in enumerate(posts):
-        poll_id = _extract_poll_id(post)
-        if not poll_id or poll_id in seen_poll_ids:
-            continue
-        seen_poll_ids.add(poll_id)
+    for post in posts:
+        for poll_id in _extract_poll_ids(post):
+            if poll_id in seen_poll_ids:
+                continue
+            seen_poll_ids.add(poll_id)
 
-        poll_payload = client.get_poll(poll_id)
-        poll = poll_payload.get("poll") or {}
-        if not include_locked and not poll.get("canWager", False):
-            continue
+            poll_payload = client.get_poll(poll_id)
+            poll = poll_payload.get("poll") or {}
+            if wagerable_only and not poll.get("canWager", False):
+                continue
 
-        row = _normalize_poll_row(post, poll_payload)
-        row["feed_order"] = feed_order
-        if not include_locked and row["is_locked"]:
-            continue
+            row = _normalize_poll_row(post, poll_payload)
+            if not include_locked and _is_closed_poll_row(row, poll):
+                continue
 
-        rows.append(row)
-        raw.append({"feed_order": feed_order, "post": post, "poll_payload": poll_payload})
+            rows.append(row)
+            raw.append({"post": post, "poll_payload": poll_payload})
 
     return rows, raw
 
@@ -406,32 +464,32 @@ def fetch_home_tab_polls(
     for post_ref in post_refs:
         post_payload = client.get_post(post_ref["id"])
         post = post_payload.get("post") or {}
-        poll_id = _extract_poll_id(post)
-        if not poll_id or poll_id in seen_poll_ids:
-            continue
+        for poll_id in _extract_poll_ids(post):
+            if poll_id in seen_poll_ids:
+                continue
 
-        poll_payload = client.get_poll(poll_id)
-        if not _filter_requested_sport(post, poll_payload, sport):
-            continue
+            poll_payload = client.get_poll(poll_id)
+            if not _filter_requested_sport(post, poll_payload, sport):
+                continue
 
-        seen_poll_ids.add(poll_id)
-        poll = poll_payload.get("poll") or {}
-        if wagerable_only and not poll.get("canWager", False):
-            continue
+            seen_poll_ids.add(poll_id)
+            poll = poll_payload.get("poll") or {}
+            if wagerable_only and not poll.get("canWager", False):
+                continue
 
-        row = _normalize_poll_row(post, poll_payload)
-        if not include_locked and row["is_locked"]:
-            continue
+            row = _normalize_poll_row(post, poll_payload)
+            if not include_locked and _is_closed_poll_row(row, poll):
+                continue
 
-        rows.append(row)
-        raw.append(
-            {
-                "home_payload": payload,
-                "post_ref": post_ref,
-                "post_payload": post_payload,
-                "poll_payload": poll_payload,
-            }
-        )
+            rows.append(row)
+            raw.append(
+                {
+                    "home_payload": payload,
+                    "post_ref": post_ref,
+                    "post_payload": post_payload,
+                    "poll_payload": poll_payload,
+                }
+            )
 
     return rows, raw
 
@@ -464,30 +522,30 @@ def fetch_game_feed_polls(
     seen_poll_ids: set[int] = set()
 
     for post in posts:
-        poll_id = _extract_poll_id(post)
-        if not poll_id or poll_id in seen_poll_ids:
-            continue
+        for poll_id in _extract_poll_ids(post):
+            if poll_id in seen_poll_ids:
+                continue
 
-        poll_payload = client.get_poll(poll_id)
-        if not _filter_requested_sport(post, poll_payload, sport):
-            continue
+            poll_payload = client.get_poll(poll_id)
+            if not _filter_requested_sport(post, poll_payload, sport):
+                continue
 
-        seen_poll_ids.add(poll_id)
-        poll = poll_payload.get("poll") or {}
-        if wagerable_only and not poll.get("canWager", False):
-            continue
+            seen_poll_ids.add(poll_id)
+            poll = poll_payload.get("poll") or {}
+            if wagerable_only and not poll.get("canWager", False):
+                continue
 
-        row = _normalize_poll_row(post, poll_payload)
-        if not include_locked and row["is_locked"]:
-            continue
+            row = _normalize_poll_row(post, poll_payload)
+            if not include_locked and _is_closed_poll_row(row, poll):
+                continue
 
-        rows.append(row)
-        entries.append(
-            {
-                "post": post,
-                "poll_payload": poll_payload,
-            }
-        )
+            rows.append(row)
+            entries.append(
+                {
+                    "post": post,
+                    "poll_payload": poll_payload,
+                }
+            )
 
     raw = {
         "game_id": str(game_id),
@@ -536,33 +594,33 @@ def fetch_sport_tab_polls(
     seen_poll_ids: set[int] = set()
 
     for post in posts:
-        poll_id = _extract_poll_id(post)
-        if not poll_id or poll_id in seen_poll_ids:
-            continue
+        for poll_id in _extract_poll_ids(post):
+            if poll_id in seen_poll_ids:
+                continue
 
-        poll_payload = client.get_poll(poll_id)
-        if not _filter_requested_sport(post, poll_payload, sport):
-            continue
+            poll_payload = client.get_poll(poll_id)
+            if not _filter_requested_sport(post, poll_payload, sport):
+                continue
 
-        seen_poll_ids.add(poll_id)
-        poll = poll_payload.get("poll") or {}
-        if wagerable_only and not poll.get("canWager", False):
-            continue
+            seen_poll_ids.add(poll_id)
+            poll = poll_payload.get("poll") or {}
+            if wagerable_only and not poll.get("canWager", False):
+                continue
 
-        row = _normalize_poll_row(post, poll_payload)
-        if not include_locked and row["is_locked"]:
-            continue
+            row = _normalize_poll_row(post, poll_payload)
+            if not include_locked and _is_closed_poll_row(row, poll):
+                continue
 
-        rows.append(row)
-        raw.append(
-            {
-                "poll_info": info_payload,
-                "resolved_day": resolved_day,
-                "poll_type": poll_type,
-                "post": post,
-                "poll_payload": poll_payload,
-            }
-        )
+            rows.append(row)
+            raw.append(
+                {
+                    "poll_info": info_payload,
+                    "resolved_day": resolved_day,
+                    "poll_type": poll_type,
+                    "post": post,
+                    "poll_payload": poll_payload,
+                }
+            )
 
     return rows, raw
 
@@ -572,7 +630,6 @@ def write_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
         "source",
-        "feed_order",
         "post_id",
         "poll_id",
         "sport",

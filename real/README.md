@@ -2,9 +2,9 @@
 
 `real/` contains the active Real Sports workflow that used to live in the repo root.
 
-Latest focused Real Sports handoff:
+Current organized behavior/spec:
 
-- [`HANDOFF_2026-05-07.md`](HANDOFF_2026-05-07.md)
+- [`CURRENT_SPEC.md`](/c:/2k/real/CURRENT_SPEC.md)
 
 ## Main scripts
 
@@ -43,7 +43,7 @@ Latest focused Real Sports handoff:
 - `poll_market_matcher.py`
   - matches Real Sports polls to sportsbook markets and evaluates fair line / EV
 - `ingest_public_markets.py`
-  - the main market ingester for `Kalshi`, `Polymarket`, `DraftKings`, and `FanDuel`
+  - the main market ingester for `Kalshi`, `Polymarket`, `DraftKings`, `FanDuel`, and `BetMGM` (BetMGM via odds-api.io key)
 - `provider_kalshi.py`
   - normalizes public Kalshi sports markets into the shared market schema
 - `provider_polymarket.py`
@@ -52,6 +52,8 @@ Latest focused Real Sports handoff:
   - parses DraftKings sportsbook payloads and can replay saved browser-backed requests
 - `provider_fanduel.py`
   - parses FanDuel sportsbook payloads and can replay saved browser-backed requests
+- `provider_betmgm.py`
+  - pulls BetMGM odds via odds-api.io and normalizes them into the shared market schema
 - `ingest_odds_api_io.py`
   - optional paid fallback adapter for odds-api.io
 - `market_csv.py`
@@ -115,6 +117,7 @@ python real\lineup.py --sport nba --date 2026-04-20 --season 2025
 python real\ingest_public_markets.py --providers kalshi --sports nba,mlb,nhl --output real\sportsbook_markets.csv
 python real\ingest_public_markets.py --providers draftkings --sports mlb --force-live --output real\sportsbook_markets.csv
 python real\ingest_public_markets.py --providers draftkings,fanduel --sports mlb,nba,nhl --force-live --output real\sportsbook_markets_consensus_live.csv
+python real\ingest_public_markets.py --providers draftkings,fanduel,betmgm --sports mlb,nba,nhl --force-live --output real\sportsbook_markets_consensus_live.csv
 python real\ingest_public_markets.py --providers draftkings,fanduel --sports soccer --force-live --output real\sportsbook_markets_soccer_live.csv
 python real\live_polls.py --source sport-polls --sport mlb --output real\live_polls.csv
 python real\live_polls.py --source game-feed --sport mlb --game-id 823878 --output real\live_polls_game.csv
@@ -180,6 +183,7 @@ Typical flow:
 python real\ingest_public_markets.py --providers kalshi --sports nba,mlb,nhl --output real\sportsbook_markets.csv
 python real\ingest_public_markets.py --providers draftkings --sports mlb --force-live --output real\sportsbook_markets.csv
 python real\ingest_public_markets.py --providers draftkings,fanduel --sports mlb,nba,nhl --force-live --output real\sportsbook_markets_consensus_live.csv
+python real\ingest_public_markets.py --providers draftkings,fanduel,betmgm --sports mlb,nba,nhl --force-live --output real\sportsbook_markets_consensus_live.csv
 python real\ingest_public_markets.py --providers draftkings,fanduel --sports soccer --force-live --output real\sportsbook_markets_soccer_live.csv
 python real\live_polls.py --source sport-polls --sport mlb --output real\live_polls.csv
 python real\predictions.py --kind markets --sport mlb --output real\tmp\mlb_prediction_markets.csv --dump-json real\tmp\mlb_prediction_markets.json
@@ -206,11 +210,13 @@ Notes:
   - not every game-feed card is a wagerable poll; lineup contests and unresolved anytime-play cards may appear alongside normal polls
 - `Kalshi` is currently the stronger fit for the existing Real Sports over/under workflow because it exposes line-based sports markets directly.
 - `Polymarket` is available with `--providers kalshi,polymarket`, but only numeric over/under style sports questions are normalized today. Futures and generic winner markets stay available in the raw dumps, but they are not yet part of the default poll matcher.
-- `DraftKings` and `FanDuel` are wired into the ingester as sportsbook providers. The provider code also supports saved official payloads and saved request configs under `real/.cache/sportsbook_payloads/` and `real/.cache/sportsbook_requests/`, so one browser-captured request can unblock or replay a provider without changing parser code.
+- `DraftKings` and `FanDuel` are wired into the ingester as sportsbook providers. `BetMGM` is currently supported through the odds-api.io-backed provider (`provider_betmgm.py`) when `ODDS_API_IO_KEY` (or `ODDS_API_KEY`) is set.
+- Direct BetMGM website scraping is not part of the default flow because the public site/API is protected (captcha and affiliate `AccessId`/token gating), so headless pulls are frequently blocked without partner credentials.
+- DraftKings/FanDuel providers support saved official payloads and saved request configs under `real/.cache/sportsbook_payloads/` and `real/.cache/sportsbook_requests/`, so one browser-captured request can unblock or replay a provider without changing parser code.
 - Use `--force-live` with DraftKings/FanDuel when you need current odds instead of replaying the saved payload cache. If the live request succeeds, the saved payload is refreshed.
 - DraftKings/FanDuel request configs can now also carry a real provider proxy route with `proxy_url`, plus a custom browser fingerprint via `impersonate`, if you have a working U.S. VPN/proxy path outside the dead repo-wide `127.0.0.1:9` env proxy.
 - FanDuel request configs can use simple GET `urls`, explicit `requests` entries with `method`, `url`, and optional JSON `payload`, or soccer-specific `competition_ids`/`tab_title_keywords` overrides.
-- For consensus voting, point `recommend_game_feed_polls.py` at `real\sportsbook_markets_consensus_live.csv`. Rows that match both books show `books=draftkings | fanduel`; unsupported market families or markets available from only one book remain single-source.
+- For consensus voting, point `recommend_game_feed_polls.py` at `real\sportsbook_markets_consensus_live.csv`. Rows expose all matched books (for example `draftkings | fanduel`, and `betmgm` when enabled); unsupported market families or markets available from only one book remain single-source.
 - Markdown sheet outputs now live under `real\output\` so they are easy to find.
 - If you omit `--output`, `render_vote_sheet.py` writes versioned markdown files like `real\output\mlb_v1.md`, `real\output\nba_v2.md`, or `real\output\nhl_v3.md` instead of date-stamped filenames.
 - `render_vote_sheet.py` automatically includes the matching daily `lineup.py` snapshot from `real\lineups\<sport>.csv` when it exists for that sport and slate date.
@@ -225,10 +231,39 @@ Dashboard commands:
 
 ```powershell
 python real\refresh_dashboard_data.py --sports mlb,nba,nhl
-python real\refresh_dashboard_data.py --sports mlb,nba,nhl --refresh-soccer
+python real\refresh_dashboard_data.py --sports mlb,nba,nhl,soccer
 python real\dashboard_server.py --host 127.0.0.1 --port 8765
 python real\dashboard_server.py --host 127.0.0.1 --port 8765 --refresh-on-start --refresh-seconds 180
+powershell -ExecutionPolicy Bypass -File real\start_dashboard.ps1
+powershell -ExecutionPolicy Bypass -File real\start_dashboard.ps1 -NoSoccer
+powershell -ExecutionPolicy Bypass -File real\stop_dashboard.ps1
 ```
+
+The PowerShell wrappers run the dashboard as a local background service and write logs/PID files under `real\.cache\dashboard\`.
+Soccer is included in dashboard refreshes by default; use `-NoSoccer` only when you intentionally want MLB/NBA/NHL without soccer.
+By default the wrappers do **not** start a timed data refresh loop; use `-RefreshSeconds 180` only when you intentionally want the upstream dashboard refresh job to run repeatedly.
+Sport pre-game pages include their own refresh button, so `/sheet/pregame/mlb` refreshes MLB only, `/sheet/pregame/nba` refreshes NBA only, and so on.
+Live-poll and prediction pages auto-refresh while the tab is open; those refreshes update live polls, sportsbook lines, and prediction buy/sell sheets without continuously touching pre-game lineups.
+If a sheet refresh succeeds but the provider odds do not cover the Real games, the dashboard shows an odds-coverage warning with the Real games and the sportsbook-cache games side by side.
+To debug the running service, tail the server log:
+
+```powershell
+Get-Content -Path real\.cache\dashboard\dashboard_server.log -Wait -Tail 80
+```
+
+The dashboard page also writes request/status/refresh events to the browser DevTools console.
+
+Direct local sheet URLs:
+
+- `http://127.0.0.1:8765/sheet`
+- `http://127.0.0.1:8765/sheet/pregame/mlb`
+- `http://127.0.0.1:8765/sheet/pregame/nba`
+- `http://127.0.0.1:8765/sheet/pregame/nhl`
+- `http://127.0.0.1:8765/sheet/pregame/soccer`
+- `http://127.0.0.1:8765/sheet/lineups/mlb`
+- `http://127.0.0.1:8765/sheet/predictions/mlb`
+- `http://127.0.0.1:8765/sheet/live`
+- `http://127.0.0.1:8765/sheet/markets`
 
 Example request config:
 
