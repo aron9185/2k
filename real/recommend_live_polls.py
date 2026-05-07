@@ -10,21 +10,15 @@ from typing import Any
 
 from live_polls import fetch_live_polls
 from market_csv import dedupe_market_rows, write_market_rows
-from poll_market_matcher import MarketRow, build_market_row, load_csv_rows, normalize_stat, team_pair
-from provider_betmgm import fetch_rows as fetch_betmgm_rows
+from poll_market_matcher import MarketRow, build_market_row, load_csv_rows
 from provider_draftkings import fetch_rows as fetch_draftkings_rows
 from provider_fanduel import fetch_rows as fetch_fanduel_rows
 from realsports_api import build_realsports_client
 from recommend_game_feed_polls import (
-    _recommend_both_teams_score,
-    _recommend_double_chance,
     _player_lookup,
     _recommend_game_spread,
     _recommend_game_total,
-    _recommend_team_next_points,
     _recommend_game_winner,
-    _recommend_halftime_result,
-    _recommend_period_total_yes_no,
     _recommend_period_winner,
     _recommend_player_over_under,
     _recommend_special_or_unpriced,
@@ -33,7 +27,6 @@ from recommend_game_feed_polls import (
 
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_MARKETS_CSV = BASE_DIR / "sportsbook_markets_consensus_live.csv"
-DEFAULT_SOCCER_MARKETS_CSV = BASE_DIR / "sportsbook_markets_soccer_live.csv"
 DEFAULT_OUTPUT = BASE_DIR / "live_poll_vote_recommendations.csv"
 DEFAULT_HISTORY = BASE_DIR / "live_poll_vote_history.jsonl"
 
@@ -43,37 +36,9 @@ SUPPORTED_POLL_KINDS = {
     "player_over_under",
     "game_total",
     "game_winner",
-    "teamnextpoints",
     "game_spread",
     "period_winner",
     "teamtowinperiod",
-    "minimumperiodtotalpoints",
-    "period_total_yes_no",
-    "both_teams_score",
-    "double_chance",
-    "halftime_result",
-}
-
-LIVE_POLL_KIND_ALIASES: dict[str, str] = {
-    "minimumperiodtotalpoints": "period_total_yes_no",
-}
-
-LIVE_POLL_MARKET_FAMILIES: dict[str, set[str]] = {
-    "player_over_under": {"player_over_under"},
-    "game_total": {"game_total"},
-    "game_winner": {"game_winner"},
-    "teamnextpoints": {"teamnextpoints", "game_winner"},
-    "period_winner": {"game_winner", "game_spread"},
-    "teamtowinperiod": {"game_winner", "game_spread"},
-    "period_total_yes_no": {"game_total"},
-    "game_spread": {"game_spread"},
-    "both_teams_score": {"both_teams_score"},
-    "double_chance": {"double_chance"},
-    "halftime_result": {"halftime_result"},
-    "anytime_play": {"player_over_under", "first_basket"},
-    "pick_a_player": {"player_over_under", "first_basket"},
-    "first_basket": {"first_basket"},
-    "player_most_stat": {"player_over_under"},
 }
 
 
@@ -89,11 +54,6 @@ def parse_args() -> argparse.Namespace:
         "--markets-csv",
         default=str(DEFAULT_MARKETS_CSV),
         help="Normalized sportsbook market CSV to use for consensus matching.",
-    )
-    parser.add_argument(
-        "--soccer-markets-csv",
-        default=str(DEFAULT_SOCCER_MARKETS_CSV),
-        help="Optional supplemental soccer sportsbook market CSV used for soccer live poll matching.",
     )
     parser.add_argument(
         "--output",
@@ -112,7 +72,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sports",
-        default="nba,mlb,nhl",
+        default="nba,mlb,nhl,wnba,soccer",
         help="Comma-separated sports to refresh when --refresh-markets is enabled.",
     )
     parser.add_argument(
@@ -170,6 +130,11 @@ def _to_int(value: Any) -> int | None:
         return None
 
 
+def _sort_int(value: Any, default: int = 999999) -> int:
+    parsed = _to_int(value)
+    return parsed if parsed is not None else default
+
+
 def _to_float(value: Any) -> float | None:
     if value in (None, "", "None"):
         return None
@@ -183,6 +148,31 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _parse_utc_datetime(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except Exception:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _is_open_live_poll(row: dict[str, Any], observed_at: datetime) -> bool:
+    can_wager = row.get("can_wager")
+    if can_wager not in (None, "") and not _to_bool(can_wager):
+        return False
+    if _to_bool(row.get("is_locked")):
+        return False
+    locks_at = _parse_utc_datetime(row.get("locks_at"))
+    if locks_at is not None and locks_at <= observed_at:
+        return False
+    return True
+
+
 def _refresh_markets_csv(
     *,
     providers: list[str],
@@ -194,11 +184,17 @@ def _refresh_markets_csv(
     for provider in providers:
         key = provider.lower()
         if key == "draftkings":
-            provider_rows, _raw = fetch_draftkings_rows(sports, use_saved_payloads=False)
+            provider_rows, _raw = fetch_draftkings_rows(
+                sports,
+                use_saved_payloads=False,
+                save_payloads=False,
+            )
         elif key == "fanduel":
-            provider_rows, _raw = fetch_fanduel_rows(sports, use_saved_payloads=False)
-        elif key == "betmgm":
-            provider_rows, _raw = fetch_betmgm_rows(sports, use_saved_payloads=False)
+            provider_rows, _raw = fetch_fanduel_rows(
+                sports,
+                use_saved_payloads=False,
+                save_payloads=False,
+            )
         else:
             raise RuntimeError(f"Unsupported live-market provider: {provider}")
         provider_counts[key] = len(provider_rows)
@@ -211,59 +207,8 @@ def _refresh_markets_csv(
     return written, provider_counts
 
 
-def _ordered_unique_sports(rows: list[dict[str, Any]], *, fallback: list[str]) -> list[str]:
-    fallback_set = {str(sport or "").strip().lower() for sport in fallback if str(sport or "").strip()}
-    seen: set[str] = set()
-    ordered: list[str] = []
-    for row in rows:
-        sport = str(row.get("sport") or "").strip().lower()
-        if not sport or sport in seen:
-            continue
-        if fallback_set and sport not in fallback_set:
-            continue
-        seen.add(sport)
-        ordered.append(sport)
-    return ordered or list(fallback)
-
-
-def _load_markets(
-    path: str | Path,
-    *,
-    soccer_path: str | Path = "",
-) -> list[MarketRow]:
-    markets = [build_market_row(row) for row in load_csv_rows(path)]
-
-    soccer_csv = Path(str(soccer_path or "")).expanduser() if soccer_path else None
-    if soccer_csv and soccer_csv.exists():
-        soccer_rows = [
-            build_market_row(row)
-            for row in load_csv_rows(soccer_csv)
-            if str(row.get("sport") or "").strip().lower() == "soccer"
-        ]
-        markets.extend(soccer_rows)
-
-    deduped: list[MarketRow] = []
-    seen: set[tuple[Any, ...]] = set()
-    for market in markets:
-        key = (
-            market.book,
-            market.sport,
-            market.market_family,
-            market.stat_key,
-            market.player_name,
-            market.line,
-            market.home_team,
-            market.away_team,
-            market.over_odds,
-            market.under_odds,
-            market.period,
-            market.updated_at.isoformat() if market.updated_at else "",
-        )
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(market)
-    return deduped
+def _load_markets(path: str | Path) -> list[MarketRow]:
+    return [build_market_row(row) for row in load_csv_rows(path)]
 
 
 def _load_game_feed_payload(
@@ -281,7 +226,11 @@ def _load_game_feed_payload(
     if cache_key in cache:
         return cache[cache_key]
     try:
-        payload = client.get_game_feed(game_key, sport=sport_key)
+        payload = client.get_game_feed(
+            game_key,
+            sport=sport_key,
+            view="all" if sport_key == "nhl" else "recent",
+        )
         cache[cache_key] = payload if isinstance(payload, dict) else {}
     except Exception:
         cache[cache_key] = {}
@@ -320,142 +269,6 @@ def _build_live_entry(
     }
 
 
-def _build_market_indexes(
-    markets: list[MarketRow],
-) -> tuple[
-    dict[str, list[MarketRow]],
-    dict[tuple[str, tuple[str, str]], list[MarketRow]],
-    dict[tuple[str, tuple[str, str], str], list[MarketRow]],
-]:
-    by_sport: dict[str, list[MarketRow]] = {}
-    by_sport_pair: dict[tuple[str, tuple[str, str]], list[MarketRow]] = {}
-    by_sport_pair_family: dict[tuple[str, tuple[str, str], str], list[MarketRow]] = {}
-    for market in markets:
-        sport = str(market.sport or "").strip().lower()
-        if not sport:
-            continue
-        by_sport.setdefault(sport, []).append(market)
-        if market.home_team and market.away_team:
-            pair = team_pair(market.home_team, market.away_team)
-            by_sport_pair.setdefault((sport, pair), []).append(market)
-            by_sport_pair_family.setdefault((sport, pair, str(market.market_family or "")), []).append(market)
-    return by_sport, by_sport_pair, by_sport_pair_family
-
-
-def _entry_team_pair(entry: dict[str, Any], row: dict[str, Any]) -> tuple[str, str] | None:
-    game = entry.get("game") or {}
-    home_team = str(game.get("homeTeamKey") or row.get("home_team") or "").strip()
-    away_team = str(game.get("awayTeamKey") or row.get("away_team") or "").strip()
-    if not home_team or not away_team:
-        return None
-    return team_pair(home_team, away_team)
-
-
-def _scoped_markets_for_live_entry(
-    row: dict[str, Any],
-    entry: dict[str, Any],
-    *,
-    sport: str,
-    by_sport: dict[str, list[MarketRow]],
-    by_sport_pair: dict[tuple[str, tuple[str, str]], list[MarketRow]],
-    by_sport_pair_family: dict[tuple[str, tuple[str, str], str], list[MarketRow]],
-) -> list[MarketRow]:
-    sport_key = str(sport or "").strip().lower()
-    sport_rows = by_sport.get(sport_key, [])
-    if not sport_rows:
-        return []
-
-    raw_poll_kind = str(row.get("poll_kind") or "").strip().lower()
-    poll_kind = LIVE_POLL_KIND_ALIASES.get(raw_poll_kind, raw_poll_kind)
-    families = LIVE_POLL_MARKET_FAMILIES.get(poll_kind) or set()
-    pair = _entry_team_pair(entry, row)
-
-    scoped_rows: list[MarketRow] = []
-    if pair and families:
-        seen_ids: set[int] = set()
-        for family in families:
-            for market in by_sport_pair_family.get((sport_key, pair, family), []):
-                marker = id(market)
-                if marker in seen_ids:
-                    continue
-                seen_ids.add(marker)
-                scoped_rows.append(market)
-        if scoped_rows:
-            stat_key = normalize_stat(str(row.get("stat") or ""))
-            if stat_key and any(family == "player_over_under" for family in families):
-                filtered = [
-                    market
-                    for market in scoped_rows
-                    if market.market_family != "player_over_under" or market.stat_key == stat_key
-                ]
-                if filtered:
-                    scoped_rows = filtered
-            return scoped_rows
-
-    if pair:
-        pair_rows = by_sport_pair.get((sport_key, pair), [])
-        if pair_rows:
-            scoped_rows = pair_rows
-
-    if not scoped_rows and families:
-        scoped_rows = [market for market in sport_rows if market.market_family in families]
-
-    return scoped_rows or sport_rows
-
-
-def _live_recommendation_for_kind(
-    *,
-    poll_kind: str,
-    row: dict[str, Any],
-    entry: dict[str, Any],
-    sport: str,
-    markets: list[MarketRow],
-    observed_at: str,
-    feed: str,
-) -> tuple[dict[str, Any], bool]:
-    if poll_kind == "player_over_under":
-        return _recommend_player_over_under(entry, markets, sport), True
-    if poll_kind == "game_total":
-        return _recommend_game_total(entry, markets, sport), True
-    if poll_kind == "game_winner":
-        return _recommend_game_winner(entry, markets, sport), True
-    if poll_kind == "teamnextpoints":
-        return _recommend_team_next_points(entry, markets, sport), True
-    if poll_kind in {"period_winner", "teamtowinperiod"}:
-        return _recommend_period_winner(entry, markets, sport), True
-    if poll_kind == "period_total_yes_no":
-        return _recommend_period_total_yes_no(entry, markets, sport), True
-    if poll_kind == "game_spread":
-        return _recommend_game_spread(entry, markets, sport), True
-    if poll_kind == "both_teams_score":
-        return _recommend_both_teams_score(entry, markets, sport), True
-    if poll_kind == "double_chance":
-        return _recommend_double_chance(entry, markets, sport), True
-    if poll_kind == "halftime_result":
-        return _recommend_halftime_result(entry, markets, sport), True
-    if poll_kind in {"anytime_play", "pick_a_player"}:
-        return _recommend_special_or_unpriced(entry, sport, markets=markets), True
-    if poll_kind == "player_head_to_head":
-        return (
-            _unsupported_recommendation(
-                row,
-                observed_at=observed_at,
-                feed=feed,
-                note="Live player head-to-head consensus is not wired yet.",
-            ),
-            False,
-        )
-    return (
-        _unsupported_recommendation(
-            row,
-            observed_at=observed_at,
-            feed=feed,
-            note=f"Unsupported live poll kind '{poll_kind or 'unknown'}'.",
-        ),
-        False,
-    )
-
-
 def _unsupported_recommendation(
     row: dict[str, Any],
     *,
@@ -469,6 +282,7 @@ def _unsupported_recommendation(
         "observed_at": observed_at,
         "feed": feed,
         "source": "livefeed",
+        "feed_order": row.get("feed_order") or "",
         "day": row.get("day") or "",
         "sport": row.get("sport") or "",
         "game_id": row.get("game_id") or "",
@@ -520,13 +334,12 @@ def _decorate_recommendation(
     *,
     observed_at: str,
     feed: str,
-    source_order: int,
 ) -> dict[str, Any]:
     decorated = dict(recommendation)
     decorated["observed_at"] = observed_at
     decorated["feed"] = feed
     decorated["source"] = "livefeed"
-    decorated["source_order"] = int(source_order)
+    decorated["feed_order"] = row.get("feed_order") or ""
     decorated["day"] = row.get("day") or decorated.get("day") or ""
     decorated["poll_kind"] = row.get("poll_kind") or decorated.get("poll_kind") or ""
     decorated["option_a_count"] = row.get("option_1_count") or ""
@@ -543,22 +356,18 @@ def recommend_live_rows(
     markets: list[MarketRow],
     include_locked: bool = True,
     limit: int = 0,
-    live_rows: list[dict[str, Any]] | None = None,
-    raw_entries: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
-    if live_rows is None or raw_entries is None:
-        rows, raw_entries = fetch_live_polls(feed=feed, include_locked=include_locked, limit=limit)
-    else:
-        rows = live_rows
     client = build_realsports_client()
     game_feed_cache: dict[tuple[str, str], dict[str, Any]] = {}
     observed_at = _iso_now()
+    observed_at_dt = _parse_utc_datetime(observed_at) or datetime.now(timezone.utc)
+    rows, raw_entries = fetch_live_polls(feed=feed, include_locked=include_locked, limit=limit)
     recommendations: list[dict[str, Any]] = []
-    by_sport, by_sport_pair, by_sport_pair_family = _build_market_indexes(markets)
 
-    for source_order, (row, raw_entry) in enumerate(zip(rows, raw_entries)):
-        raw_poll_kind = str(row.get("poll_kind") or "").strip().lower()
-        poll_kind = LIVE_POLL_KIND_ALIASES.get(raw_poll_kind, raw_poll_kind)
+    for row, raw_entry in zip(rows, raw_entries):
+        if not _is_open_live_poll(row, observed_at_dt):
+            continue
+        poll_kind = str(row.get("poll_kind") or "").strip()
         sport = str(row.get("sport") or "").strip().lower()
         game_feed_payload = _load_game_feed_payload(
             game_feed_cache,
@@ -568,44 +377,43 @@ def recommend_live_rows(
         )
         entry = _build_live_entry(row, raw_entry, game_feed_payload)
 
-        sport_rows = by_sport.get(sport, [])
-        scoped_markets = _scoped_markets_for_live_entry(
-            row,
-            entry,
-            sport=sport,
-            by_sport=by_sport,
-            by_sport_pair=by_sport_pair,
-            by_sport_pair_family=by_sport_pair_family,
-        )
-        recommendation, decorate = _live_recommendation_for_kind(
-            poll_kind=poll_kind,
-            row=row,
-            entry=entry,
-            sport=sport,
-            markets=scoped_markets,
-            observed_at=observed_at,
-            feed=feed,
-        )
-        if (
-            decorate
-            and str(recommendation.get("status") or "") == "no_market"
-            and sport_rows
-            and scoped_markets is not sport_rows
-        ):
-            fallback_recommendation, fallback_decorate = _live_recommendation_for_kind(
-                poll_kind=poll_kind,
-                row=row,
-                entry=entry,
-                sport=sport,
-                markets=sport_rows,
+        if poll_kind == "player_over_under":
+            recommendation = _recommend_player_over_under(entry, markets, sport)
+        elif poll_kind == "game_total":
+            recommendation = _recommend_game_total(entry, markets, sport)
+        elif poll_kind == "game_winner":
+            recommendation = _recommend_game_winner(entry, markets, sport)
+        elif poll_kind in {"period_winner", "teamtowinperiod"}:
+            recommendation = _recommend_period_winner(entry, markets, sport)
+        elif poll_kind == "game_spread":
+            recommendation = _recommend_game_spread(entry, markets, sport)
+        elif poll_kind in {"anytime_play", "pick_a_player"}:
+            recommendation = _recommend_special_or_unpriced(entry, sport, markets=markets)
+        elif poll_kind == "player_head_to_head":
+            recommendation = _unsupported_recommendation(
+                row,
                 observed_at=observed_at,
                 feed=feed,
+                note="Live player head-to-head consensus is not wired yet.",
             )
-            if fallback_decorate and str(fallback_recommendation.get("status") or "") != "no_market":
-                recommendation = fallback_recommendation
-
-        if not decorate:
-            recommendation["source_order"] = int(source_order)
+            recommendations.append(recommendation)
+            continue
+        elif poll_kind == "game_spread":
+            recommendation = _unsupported_recommendation(
+                row,
+                observed_at=observed_at,
+                feed=feed,
+                note="Live spread consensus is not wired yet.",
+            )
+            recommendations.append(recommendation)
+            continue
+        else:
+            recommendation = _unsupported_recommendation(
+                row,
+                observed_at=observed_at,
+                feed=feed,
+                note=f"Unsupported live poll kind '{poll_kind or 'unknown'}'.",
+            )
             recommendations.append(recommendation)
             continue
 
@@ -615,9 +423,18 @@ def recommend_live_rows(
                 row,
                 observed_at=observed_at,
                 feed=feed,
-                source_order=source_order,
             )
         )
+
+    recommendations.sort(
+        key=lambda item: (
+            str(item.get("locks_at") or item.get("game_time") or ""),
+            _sort_int(item.get("feed_order")),
+            str(item.get("sport") or ""),
+            str(item.get("poll_created_at") or item.get("created_at") or ""),
+            str(item.get("poll_id") or ""),
+        )
+    )
     return recommendations
 
 
@@ -628,6 +445,7 @@ def write_snapshot_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
         "observed_at",
         "feed",
         "source",
+        "feed_order",
         "day",
         "sport",
         "game_id",
@@ -637,7 +455,6 @@ def write_snapshot_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
         "away_team",
         "post_id",
         "poll_id",
-        "source_order",
         "created_at",
         "poll_created_at",
         "header",
@@ -672,6 +489,8 @@ def write_snapshot_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
         "consensus_fair_line",
         "matched_books",
         "books",
+        "source_lines",
+        "player_choices_json",
         "notes",
     ]
     with output_path.open("w", newline="", encoding="utf8") as handle:
@@ -716,16 +535,11 @@ def main() -> None:
 
     while True:
         iteration += 1
-        live_rows, raw_entries = fetch_live_polls(
-            feed=args.feed,
-            include_locked=include_locked,
-            limit=args.limit,
-        )
         if args.refresh_markets:
             try:
                 written, provider_counts = _refresh_markets_csv(
                     providers=providers,
-                    sports=_ordered_unique_sports(live_rows, fallback=sports),
+                    sports=sports,
                     output_path=args.markets_csv,
                 )
                 counts_text = ", ".join(f"{provider}={count}" for provider, count in sorted(provider_counts.items()))
@@ -735,17 +549,12 @@ def main() -> None:
                     raise
                 print(f"[iteration {iteration}] market refresh failed, using existing CSV: {exc}")
 
-        markets = _load_markets(
-            args.markets_csv,
-            soccer_path=args.soccer_markets_csv,
-        )
+        markets = _load_markets(args.markets_csv)
         recommendations = recommend_live_rows(
             feed=args.feed,
             markets=markets,
             include_locked=include_locked,
             limit=args.limit,
-            live_rows=live_rows,
-            raw_entries=raw_entries,
         )
         write_snapshot_csv(args.output, recommendations)
         if args.history_jsonl:
