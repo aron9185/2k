@@ -268,7 +268,11 @@ def estimate_fair_line(
             if len(unique_exact_books) > 1
             else "single-book exact line"
         )
-        fair_line, fitted_scale = fit if fit else (target_line, None)
+        # For exact-line consensus, anchor fair_line to the evaluated target.
+        # This avoids surfacing outlier-fitted fair lines from unrelated ladder
+        # quotes in UI fields that display consensus_fair_line.
+        fair_line = target_line
+        fitted_scale = fit[1] if fit else None
     else:
         if fit:
             fair_line, fitted_scale = fit

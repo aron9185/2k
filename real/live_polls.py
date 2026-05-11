@@ -371,7 +371,7 @@ def fetch_live_polls(
 
         poll_payload = client.get_poll(poll_id)
         poll = poll_payload.get("poll") or {}
-        if not include_locked and not poll.get("canWager", False):
+        if wagerable_only and not poll.get("canWager", False):
             continue
 
         row = _normalize_poll_row(post, poll_payload)

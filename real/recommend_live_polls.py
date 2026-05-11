@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -10,7 +11,15 @@ from typing import Any
 
 from live_polls import fetch_live_polls
 from market_csv import dedupe_market_rows, write_market_rows
-from poll_market_matcher import MarketRow, build_market_row, load_csv_rows
+from poll_market_matcher import (
+    MarketRow,
+    build_market_row,
+    load_csv_rows,
+    normalize_player_name,
+    normalize_stat,
+    normalize_team,
+    team_pair,
+)
 from provider_draftkings import fetch_rows as fetch_draftkings_rows
 from provider_fanduel import fetch_rows as fetch_fanduel_rows
 from realsports_api import build_realsports_client
@@ -79,6 +88,15 @@ def parse_args() -> argparse.Namespace:
         "--refresh-markets",
         action="store_true",
         help="Refresh the live sportsbook market CSV before scoring polls.",
+    )
+    parser.add_argument(
+        "--min-market-refresh-interval-seconds",
+        type=int,
+        default=900,
+        help=(
+            "Skip sportsbook recrawl when --refresh-markets is set but the markets CSV "
+            "was updated within this many seconds."
+        ),
     )
     parser.add_argument(
         "--poll-seconds",
@@ -162,9 +180,6 @@ def _parse_utc_datetime(value: Any) -> datetime | None:
 
 
 def _is_open_live_poll(row: dict[str, Any], observed_at: datetime) -> bool:
-    can_wager = row.get("can_wager")
-    if can_wager not in (None, "") and not _to_bool(can_wager):
-        return False
     if _to_bool(row.get("is_locked")):
         return False
     locks_at = _parse_utc_datetime(row.get("locks_at"))
@@ -173,14 +188,196 @@ def _is_open_live_poll(row: dict[str, Any], observed_at: datetime) -> bool:
     return True
 
 
+def _market_csv_is_fresh(path: str | Path, min_refresh_interval_seconds: int) -> bool:
+    if min_refresh_interval_seconds <= 0:
+        return False
+    csv_path = Path(path)
+    if not csv_path.exists():
+        return False
+    try:
+        age_seconds = max(0.0, time.time() - os.path.getmtime(csv_path))
+    except Exception:
+        return False
+    return age_seconds < float(min_refresh_interval_seconds)
+
+
+def _requirement_needs_market(requirement: dict[str, Any]) -> bool:
+    poll_kind = str(requirement.get("poll_kind") or "").strip().lower()
+    return poll_kind in SUPPORTED_POLL_KINDS
+
+
+def _market_matches_requirement_or_fallback(market: MarketRow, requirement: dict[str, Any]) -> bool:
+    if _market_matches_live_poll_requirement(market, requirement):
+        return True
+
+    poll_kind = str(requirement.get("poll_kind") or "").strip().lower()
+    sport = str(requirement.get("sport") or "").strip().lower()
+    stat = str(requirement.get("stat") or "").strip().lower()
+    if not (
+        sport == "soccer"
+        and stat == "shots"
+        and poll_kind in {"anytime_play", "pick_a_player", "player_over_under"}
+    ):
+        return False
+    fallback_requirement = dict(requirement)
+    fallback_requirement["stat"] = "goals"
+    return _market_matches_live_poll_requirement(market, fallback_requirement)
+
+
+def _markets_cover_requirements(markets: list[MarketRow], requirements: list[dict[str, Any]]) -> bool:
+    required = [req for req in requirements if _requirement_needs_market(req)]
+    if not required:
+        return True
+    for requirement in required:
+        if not any(_market_matches_requirement_or_fallback(market, requirement) for market in markets):
+            return False
+    return True
+
+
+def _market_csv_covers_requirements(path: str | Path, requirements: list[dict[str, Any]]) -> bool:
+    csv_path = Path(path)
+    if not csv_path.exists():
+        return False
+    try:
+        markets = _load_markets(csv_path)
+    except Exception:
+        return False
+    return _markets_cover_requirements(markets, requirements)
+
+
+def _fetch_open_live_poll_entries(
+    *,
+    feed: str,
+    include_locked: bool,
+    limit: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
+    observed_at = _iso_now()
+    observed_at_dt = _parse_utc_datetime(observed_at) or datetime.now(timezone.utc)
+    rows, raw_entries = fetch_live_polls(feed=feed, include_locked=include_locked, limit=limit)
+    open_rows: list[dict[str, Any]] = []
+    open_raw_entries: list[dict[str, Any]] = []
+    for row, raw_entry in zip(rows, raw_entries):
+        if not _is_open_live_poll(row, observed_at_dt):
+            continue
+        open_rows.append(row)
+        open_raw_entries.append(raw_entry)
+    return open_rows, open_raw_entries, observed_at
+
+
+def _build_live_poll_market_requirements(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    requirements: list[dict[str, Any]] = []
+    for row in rows:
+        sport = str(row.get("sport") or "").strip().lower()
+        if not sport:
+            continue
+        requirements.append(
+            {
+                "sport": sport,
+                "poll_kind": str(row.get("poll_kind") or "").strip().lower(),
+                "home_team": normalize_team(str(row.get("home_team") or "")),
+                "away_team": normalize_team(str(row.get("away_team") or "")),
+                "player_name": normalize_player_name(str(row.get("player_name") or "")),
+                "stat": normalize_stat(str(row.get("stat") or "")),
+                "line": _to_float(row.get("line")),
+                "period": str(row.get("period") or "").strip(),
+            }
+        )
+    return requirements
+
+
+def _target_team_pairs_by_sport(
+    requirements: list[dict[str, Any]],
+) -> dict[str, set[tuple[str, str]]]:
+    targets: dict[str, set[tuple[str, str]]] = {}
+    for requirement in requirements:
+        sport = str(requirement.get("sport") or "").strip().lower()
+        home_team = normalize_team(str(requirement.get("home_team") or ""))
+        away_team = normalize_team(str(requirement.get("away_team") or ""))
+        if not sport or not home_team or not away_team:
+            continue
+        pair = tuple(sorted((home_team, away_team)))
+        targets.setdefault(sport, set()).add(pair)
+    return targets
+
+
+def _market_matches_live_poll_requirement(market: MarketRow, requirement: dict[str, Any]) -> bool:
+    if market.sport != requirement.get("sport"):
+        return False
+
+    req_home = str(requirement.get("home_team") or "").strip()
+    req_away = str(requirement.get("away_team") or "").strip()
+    if req_home and req_away:
+        if team_pair(req_home, req_away) != team_pair(market.home_team, market.away_team):
+            return False
+
+    req_period = str(requirement.get("period") or "").strip()
+    market_period = str(market.period or "").strip()
+    if req_period and market_period and req_period != market_period:
+        return False
+
+    poll_kind = str(requirement.get("poll_kind") or "").strip().lower()
+    market_family = str(market.market_family or "").strip().lower()
+
+    if poll_kind == "game_total":
+        return market_family == "game_total"
+    if poll_kind == "game_spread":
+        return market_family == "game_spread"
+    if poll_kind == "game_winner":
+        return market_family == "game_winner"
+    if poll_kind in {"period_winner", "teamtowinperiod"}:
+        return market_family in {"game_spread", "game_winner"}
+    if poll_kind == "player_over_under":
+        if market_family != "player_over_under":
+            return False
+        req_stat = str(requirement.get("stat") or "").strip()
+        if req_stat and market.stat_key and market.stat_key != req_stat:
+            return False
+        req_player = str(requirement.get("player_name") or "").strip()
+        if req_player and market.player_name and market.player_name != req_player:
+            return False
+        return True
+    if poll_kind in {"anytime_play", "pick_a_player"}:
+        if market_family not in {"player_over_under", "first_basket"}:
+            return False
+        req_stat = str(requirement.get("stat") or "").strip()
+        if req_stat and market.stat_key and market.stat_key != req_stat:
+            return False
+        return True
+
+    return True
+
+
+def _filter_market_rows_for_live_polls(
+    rows: list[dict[str, Any]],
+    requirements: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    if not requirements:
+        return rows
+    filtered: list[dict[str, Any]] = []
+    for row in rows:
+        market = build_market_row(row)
+        if any(_market_matches_live_poll_requirement(market, req) for req in requirements):
+            filtered.append(row)
+    return filtered
+
+
 def _refresh_markets_csv(
     *,
     providers: list[str],
     sports: list[str],
     output_path: str | Path,
+    requirements: list[dict[str, Any]] | None = None,
 ) -> tuple[int, dict[str, int]]:
     rows: list[dict[str, Any]] = []
     provider_counts: dict[str, int] = {}
+    requirements = requirements or []
+    target_pairs_by_sport = _target_team_pairs_by_sport(requirements)
+    requires_player_props = any(
+        str(req.get("poll_kind") or "").strip().lower()
+        in {"player_over_under", "anytime_play", "pick_a_player", "player_head_to_head"}
+        for req in requirements
+    )
+    market_scope = "all" if requires_player_props else "game-lines"
     for provider in providers:
         key = provider.lower()
         if key == "draftkings":
@@ -188,22 +385,36 @@ def _refresh_markets_csv(
                 sports,
                 use_saved_payloads=False,
                 save_payloads=False,
+                market_scope=market_scope,
+                target_team_pairs_by_sport=target_pairs_by_sport,
             )
         elif key == "fanduel":
             provider_rows, _raw = fetch_fanduel_rows(
                 sports,
                 use_saved_payloads=False,
                 save_payloads=False,
+                market_scope=market_scope,
+                target_team_pairs_by_sport=target_pairs_by_sport,
             )
         else:
             raise RuntimeError(f"Unsupported live-market provider: {provider}")
-        provider_counts[key] = len(provider_rows)
-        rows.extend(provider_rows)
+        if requirements:
+            filtered_rows = _filter_market_rows_for_live_polls(provider_rows, requirements)
+            if filtered_rows:
+                filtered_markets = [build_market_row(row) for row in filtered_rows]
+                kept_rows = filtered_rows if _markets_cover_requirements(filtered_markets, requirements) else provider_rows
+            else:
+                kept_rows = provider_rows
+        else:
+            kept_rows = provider_rows
+        provider_counts[key] = len(kept_rows)
+        rows.extend(kept_rows)
 
     deduped_rows = dedupe_market_rows(rows)
     if not deduped_rows:
         raise RuntimeError("No normalized live sportsbook rows were fetched.")
     written = write_market_rows(output_path, deduped_rows, append=False)
+    provider_counts["_market_scope"] = market_scope
     return written, provider_counts
 
 
@@ -356,12 +567,19 @@ def recommend_live_rows(
     markets: list[MarketRow],
     include_locked: bool = True,
     limit: int = 0,
+    prefetched_rows: list[dict[str, Any]] | None = None,
+    prefetched_raw_entries: list[dict[str, Any]] | None = None,
+    observed_at: str = "",
 ) -> list[dict[str, Any]]:
     client = build_realsports_client()
     game_feed_cache: dict[tuple[str, str], dict[str, Any]] = {}
-    observed_at = _iso_now()
+    observed_at = observed_at or _iso_now()
     observed_at_dt = _parse_utc_datetime(observed_at) or datetime.now(timezone.utc)
-    rows, raw_entries = fetch_live_polls(feed=feed, include_locked=include_locked, limit=limit)
+    if prefetched_rows is not None and prefetched_raw_entries is not None:
+        rows = list(prefetched_rows)
+        raw_entries = list(prefetched_raw_entries)
+    else:
+        rows, raw_entries = fetch_live_polls(feed=feed, include_locked=include_locked, limit=limit)
     recommendations: list[dict[str, Any]] = []
 
     for row, raw_entry in zip(rows, raw_entries):
@@ -395,15 +613,6 @@ def recommend_live_rows(
                 observed_at=observed_at,
                 feed=feed,
                 note="Live player head-to-head consensus is not wired yet.",
-            )
-            recommendations.append(recommendation)
-            continue
-        elif poll_kind == "game_spread":
-            recommendation = _unsupported_recommendation(
-                row,
-                observed_at=observed_at,
-                feed=feed,
-                note="Live spread consensus is not wired yet.",
             )
             recommendations.append(recommendation)
             continue
@@ -535,19 +744,57 @@ def main() -> None:
 
     while True:
         iteration += 1
+        open_rows, open_raw_entries, observed_at = _fetch_open_live_poll_entries(
+            feed=args.feed,
+            include_locked=include_locked,
+            limit=args.limit,
+        )
+        requirements = _build_live_poll_market_requirements(open_rows)
         if args.refresh_markets:
-            try:
-                written, provider_counts = _refresh_markets_csv(
-                    providers=providers,
-                    sports=sports,
-                    output_path=args.markets_csv,
+            refresh_sports = sorted(
+                {
+                    str(req.get("sport") or "").strip().lower()
+                    for req in requirements
+                    if str(req.get("sport") or "").strip()
+                }
+            )
+            if refresh_sports:
+                should_refresh = True
+                if _market_csv_is_fresh(args.markets_csv, int(args.min_market_refresh_interval_seconds)):
+                    if _market_csv_covers_requirements(args.markets_csv, requirements):
+                        print(
+                            f"[iteration {iteration}] markets CSV is fresh and covers open polls; skipped sportsbook recrawl.",
+                        )
+                        should_refresh = False
+                    else:
+                        print(
+                            f"[iteration {iteration}] markets CSV is fresh but missing some open-poll market coverage; "
+                            "running a targeted sportsbook recrawl now.",
+                        )
+                if should_refresh:
+                    try:
+                        written, provider_counts = _refresh_markets_csv(
+                            providers=providers,
+                            sports=refresh_sports,
+                            output_path=args.markets_csv,
+                            requirements=requirements,
+                        )
+                        market_scope = str(provider_counts.pop("_market_scope", "all"))
+                        counts_text = ", ".join(
+                            f"{provider}={count}" for provider, count in sorted(provider_counts.items())
+                        )
+                        print(
+                            f"[iteration {iteration}] refreshed {written} targeted live market rows "
+                            f"for sports={','.join(refresh_sports)} scope={market_scope} ({counts_text})"
+                        )
+                    except Exception as exc:
+                        if not Path(args.markets_csv).exists():
+                            raise
+                        print(f"[iteration {iteration}] targeted market refresh failed, using existing CSV: {exc}")
+            else:
+                print(
+                    f"[iteration {iteration}] no open live polls found; skipped sportsbook market crawl.",
                 )
-                counts_text = ", ".join(f"{provider}={count}" for provider, count in sorted(provider_counts.items()))
-                print(f"[iteration {iteration}] refreshed {written} live market rows ({counts_text})")
-            except Exception as exc:
-                if not Path(args.markets_csv).exists():
-                    raise
-                print(f"[iteration {iteration}] market refresh failed, using existing CSV: {exc}")
 
         markets = _load_markets(args.markets_csv)
         recommendations = recommend_live_rows(
@@ -555,6 +802,9 @@ def main() -> None:
             markets=markets,
             include_locked=include_locked,
             limit=args.limit,
+            prefetched_rows=open_rows,
+            prefetched_raw_entries=open_raw_entries,
+            observed_at=observed_at,
         )
         write_snapshot_csv(args.output, recommendations)
         if args.history_jsonl:

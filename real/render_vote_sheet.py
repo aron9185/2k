@@ -136,6 +136,8 @@ def _parse_game_time(value: str) -> datetime | None:
 
 
 def _load_rows(path: str | Path) -> list[dict[str, str]]:
+    if csv.field_size_limit() < 10_000_000:
+        csv.field_size_limit(10_000_000)
     csv_path = Path(path)
     with csv_path.open("r", encoding="utf8", newline="") as handle:
         return list(csv.DictReader(handle))
@@ -1279,6 +1281,8 @@ def _refresh_prediction_recommendations(
 def _load_lineup_csv_rows(path: Path) -> list[dict[str, str]]:
     if not path.exists():
         return []
+    if csv.field_size_limit() < 10_000_000:
+        csv.field_size_limit(10_000_000)
     with path.open("r", encoding="utf8", newline="") as handle:
         return list(csv.DictReader(handle))
 

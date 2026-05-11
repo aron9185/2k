@@ -117,6 +117,8 @@ def _try_run_step(command: list[str]) -> bool:
 def _load_csv_rows(path: Path) -> list[dict[str, str]]:
     if not path.exists():
         return []
+    if csv.field_size_limit() < 10_000_000:
+        csv.field_size_limit(10_000_000)
     with path.open("r", encoding="utf8", newline="") as handle:
         return list(csv.DictReader(handle))
 
@@ -124,6 +126,8 @@ def _load_csv_rows(path: Path) -> list[dict[str, str]]:
 def _first_csv_row(path: Path) -> dict[str, str] | None:
     if not path.exists():
         return None
+    if csv.field_size_limit() < 10_000_000:
+        csv.field_size_limit(10_000_000)
     with path.open("r", encoding="utf8", newline="") as handle:
         reader = csv.DictReader(handle)
         return next(reader, None)
@@ -155,9 +159,6 @@ def _csv_bool(value: object) -> bool:
 
 
 def _is_open_live_poll_row(row: dict[str, str], now: datetime) -> bool:
-    can_wager = str(row.get("can_wager") or "").strip()
-    if can_wager and not _csv_bool(can_wager):
-        return False
     if _csv_bool(row.get("is_locked")):
         return False
     locks_at = _parse_utc_datetime(row.get("locks_at"))
@@ -392,7 +393,7 @@ def _refresh_sport(
     day_value = str((first_row or {}).get("day") or "").strip()
     if day_value:
         print(f"Refreshing {sport.upper()} lineup context for {day_value}.", flush=True)
-        _run_step(
+        lineup_ok = _try_run_step(
             [
                 sys.executable,
                 "-B",
@@ -405,6 +406,12 @@ def _refresh_sport(
                 str(season),
             ]
         )
+        if not lineup_ok:
+            print(
+                f"Warning: lineup context refresh failed for {sport.upper()} {day_value}; "
+                "continuing with vote sheet render.",
+                flush=True,
+            )
 
     render_command = [
         sys.executable,
@@ -546,8 +553,8 @@ def _refresh_live_poll_dashboard(
     *,
     soccer_markets_csv: Path | None = None,
 ) -> None:
-    live_markets_csv = LIVE_POLL_MARKETS_CSV
-    print("Refreshing live poll recommendations.", flush=True)
+    live_markets_csv = _combined_live_markets_csv(markets_csv, soccer_markets_csv)
+    print("Refreshing live poll recommendations (targeted sportsbook refresh).", flush=True)
     refreshed = _try_run_step(
         [
             sys.executable,
@@ -560,6 +567,8 @@ def _refresh_live_poll_dashboard(
             "draftkings,fanduel",
             "--sports",
             "mlb,nba,nhl,wnba,soccer",
+            "--min-market-refresh-interval-seconds",
+            "900",
             "--output",
             str(LIVE_POLL_RECOMMENDATIONS_CSV),
             "--history-jsonl",

@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 from typing import Any, Sequence
 
 from fair_odds import american_to_implied_prob, probability_to_american
+from poll_market_matcher import normalize_team
 from sportsbook_http import (
     get_browser_like_json,
     load_request_config,
@@ -70,11 +71,14 @@ FANDUEL_EVENT_TAB_KEYWORDS_BY_SPORT = {
         "quick bets",
         "live",
         "player props",
+        "batter props",
+        "pitcher props",
         "live player props",
         "live batter props",
         "live pitcher props",
     ),
     "nba": (
+        "sgp",
         "quick bets",
         "live",
         "1st quarter",
@@ -87,7 +91,23 @@ FANDUEL_EVENT_TAB_KEYWORDS_BY_SPORT = {
         "player defense",
         "player props",
     ),
-    "wnba": ("quick bets", "live", "player props"),
+    "wnba": (
+        "sgp",
+        "popular",
+        "quick bets",
+        "live",
+        "player props",
+        "player points",
+        "player threes",
+        "player rebounds",
+        "player assists",
+        "player combos",
+        "player defense",
+        "points",
+        "threes",
+        "rebounds",
+        "assists",
+    ),
     "nhl": (
         "quick bets",
         "live",
@@ -101,7 +121,7 @@ FANDUEL_EVENT_TAB_KEYWORDS_BY_SPORT = {
 FANDUEL_GAME_LINE_EVENT_TAB_KEYWORDS_BY_SPORT = {
     "mlb": ("innings", "quick bets", "live"),
     "nba": ("quick bets", "live", "1st quarter", "quarter"),
-    "wnba": ("quick bets", "live"),
+    "wnba": ("quick bets", "live", "1st quarter", "quarter"),
     "nhl": ("quick bets", "live", "period", "3rd period"),
     "nfl": ("quick bets", "live"),
 }
@@ -333,6 +353,56 @@ def _event_teams(event: dict[str, Any]) -> tuple[str, str]:
     return "", ""
 
 
+def _normalized_team_pair(home_team: str, away_team: str) -> tuple[str, str]:
+    normalized_home = normalize_team(home_team)
+    normalized_away = normalize_team(away_team)
+    if not normalized_home or not normalized_away:
+        return "", ""
+    teams = sorted((normalized_home, normalized_away))
+    return teams[0], teams[1]
+
+
+def _event_team_pair(event: dict[str, Any]) -> tuple[str, str]:
+    home_team, away_team = _event_teams(event)
+    return _normalized_team_pair(home_team, away_team)
+
+
+def _normalized_target_team_pairs_by_sport(
+    target_team_pairs_by_sport: dict[str, set[tuple[str, str]] | list[tuple[str, str]]] | None,
+) -> dict[str, set[tuple[str, str]]]:
+    normalized: dict[str, set[tuple[str, str]]] = {}
+    if not isinstance(target_team_pairs_by_sport, dict):
+        return normalized
+    for sport_key, pairs in target_team_pairs_by_sport.items():
+        sport = str(sport_key or "").strip().lower()
+        if not sport or not isinstance(pairs, (set, list, tuple)):
+            continue
+        normalized_pairs: set[tuple[str, str]] = set()
+        for pair in pairs:
+            if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+                continue
+            normalized_pair = _normalized_team_pair(str(pair[0] or ""), str(pair[1] or ""))
+            if normalized_pair != ("", ""):
+                normalized_pairs.add(normalized_pair)
+        if normalized_pairs:
+            normalized[sport] = normalized_pairs
+    return normalized
+
+
+def _match_events_for_target_games(
+    events: list[dict[str, Any]],
+    target_team_pairs: set[tuple[str, str]] | None,
+    *,
+    fallback_to_all: bool = True,
+) -> list[dict[str, Any]]:
+    if not target_team_pairs:
+        return events
+    matched_events = [event for event in events if _event_team_pair(event) in target_team_pairs]
+    if matched_events:
+        return matched_events
+    return events if fallback_to_all else []
+
+
 def _runner_team_name(runner: dict[str, Any]) -> str:
     return _clean_team_name(str(runner.get("nameAbbr") or runner.get("runnerName") or ""))
 
@@ -536,6 +606,8 @@ def _single_side_player_market(market_name: str, market_type_name: str) -> tuple
         (r"PLAYER_TO_RECORD_([0-9]+)\+_POINTS", "points"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_ASSISTS", "assists"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_REBOUNDS", "rebounds"),
+        (r"PLAYER_TO_RECORD_([0-9]+)\+_HITS\+RUNS\+RBIS", "hitsrunsrbis"),
+        (r"PLAYER_TO_RECORD_([0-9]+)\+_HITS_RUNS_RBIS", "hitsrunsrbis"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_SHOTS_ON_GOAL", "shots"),
         (r"TO_SCORE_([0-9]+)\+_POINTS", "points"),
         (r"TO_RECORD_([0-9]+)\+_ASSISTS", "assists"),
@@ -559,10 +631,19 @@ def _single_side_player_market(market_name: str, market_type_name: str) -> tuple
         (r"(?:^|\b)(?:60\s*min\s+)?player\s+to\s+record\s+([0-9]+)\+\s+assists?\b", "assists"),
         (r"(?:^|\b)(?:60\s*min\s+)?to\s+record\s+([0-9]+)\+\s+rebounds?\b", "rebounds"),
         (r"(?:^|\b)(?:60\s*min\s+)?player\s+to\s+record\s+([0-9]+)\+\s+rebounds?\b", "rebounds"),
+        (
+            r"(?:^|\b)(?:60\s*min\s+)?player\s+to\s+record\s+([0-9]+)\+\s+hits\s*\+\s*runs\s*\+\s*rbis?\b",
+            "hitsrunsrbis",
+        ),
+        (
+            r"(?:^|\b)(?:60\s*min\s+)?to\s+record\s+([0-9]+)\+\s+hits\s*\+\s*runs\s*\+\s*rbis?\b",
+            "hitsrunsrbis",
+        ),
         (r"(?:^|\b)(?:60\s*min\s+)?player\s+to\s+record\s+([0-9]+)\+\s+shots?\s+on\s+goal\b", "shots"),
         (r"(?:^|\b)player\s+([0-9]+)\+\s+points?\b", "points"),
         (r"(?:^|\b)player\s+([0-9]+)\+\s+assists?\b", "assists"),
         (r"(?:^|\b)player\s+([0-9]+)\+\s+rebounds?\b", "rebounds"),
+        (r"(?:^|\b)player\s+([0-9]+)\+\s+hits\s*\+\s*runs\s*\+\s*rbis?\b", "hitsrunsrbis"),
         (r"(?:^|\b)player\s+([0-9]+)\+\s+goals?\b", "goals"),
         (r"(?:^|\b)player\s+([0-9]+)\+\s+shots?\s+on\s+goal\b", "shots"),
         (r"(?:^|\b)([0-9]+)\+\s+made\s+threes?\b", "madethrees"),
@@ -597,12 +678,17 @@ def _is_moneyline_market(market_name: str, market_type_name: str) -> bool:
             "2nd quarter moneyline",
             "3rd quarter moneyline",
             "4th quarter moneyline",
+            "1st quarter winner",
+            "2nd quarter winner",
+            "3rd quarter winner",
+            "4th quarter winner",
             "half time result",
             "half-time result",
             "halftime result",
         }
         or re.search(r"\b[123](?:st|nd|rd)\s+period\s+money\s+line\b", market_key) is not None
         or re.search(r"\b[1234](?:st|nd|rd|th)\s+quarter\s+money\s*line\b", market_key) is not None
+        or re.search(r"\b[1234](?:st|nd|rd|th)\s+quarter\s+winner\b", market_key) is not None
         or type_key
         in {
             "MONEY_LINE",
@@ -614,11 +700,17 @@ def _is_moneyline_market(market_name: str, market_type_name: str) -> bool:
             "2ND_QUARTER_MONEY_LINE",
             "3RD_QUARTER_MONEY_LINE",
             "4TH_QUARTER_MONEY_LINE",
+            "1ST_QUARTER_WINNER",
+            "2ND_QUARTER_WINNER",
+            "3RD_QUARTER_WINNER",
+            "4TH_QUARTER_WINNER",
             "HALF_TIME_RESULT",
             "HALF-TIME_RESULT",
             "HALFTIME_RESULT",
         }
         or re.fullmatch(r"[1234](?:ST|ND|RD|TH)_QUARTER_MONEY_LINE", type_key) is not None
+        or re.fullmatch(r"[1234](?:ST|ND|RD|TH)_QUARTER_WINNER", type_key) is not None
+        or re.fullmatch(r"[1234](?:ST|ND|RD|TH)_QUARTER_MATCH_BETTING(?:_.*)?", type_key) is not None
         or re.fullmatch(r"[123](?:ST|ND|RD)_PERIOD_MONEY_LINE", type_key) is not None
     )
 
@@ -800,7 +892,7 @@ def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
                 )
             continue
 
-        if market_name.lower() in {"first basket", "next basket"} and " @ " in str(event.get("name") or ""):
+        if _is_first_basket_market(market) and " @ " in str(event.get("name") or ""):
             for runner in runner_rows:
                 over_odds = _runner_odds(runner)
                 player_name = str(runner.get("runnerName") or "").strip()
@@ -1349,7 +1441,12 @@ def _merge_market_prices(markets: dict[str, dict[str, Any]], price_rows: list[di
 def _is_first_basket_market(market: dict[str, Any]) -> bool:
     market_name = str(market.get("marketName") or market.get("name") or "").strip().lower()
     market_type = str(market.get("marketType") or market.get("marketTypeName") or "").strip().upper()
-    return market_name in {"first basket", "next basket"} or market_type.startswith("FIRST_BASKET")
+    if "FIRST_TEAM_BASKET" in market_type or "first team basket" in market_name:
+        return False
+    return (
+        market_name in {"first basket", "next basket", "first field goal", "player to score first field goal"}
+        or market_type.startswith("FIRST_BASKET")
+    )
 
 
 def _inline_runner_rows(market: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1457,6 +1554,26 @@ def _saved_payload_missing_nba_quarter_game_lines(payload: Any, sport: str) -> b
             or _is_spread_market(market_name, market_type)
             or _is_game_total_market(market_name, market_type, sport)
         ):
+            return False
+    return True
+
+
+def _saved_payload_missing_wnba_first_basket(payload: Any, sport: str) -> bool:
+    if sport != "wnba" or not isinstance(payload, dict):
+        return False
+    attachments = _payload_attachments(payload)
+    events = attachments.get("events") or {}
+    markets = attachments.get("markets") or attachments.get("sportsBookMarkets") or {}
+    if not isinstance(events, dict) or not any(
+        isinstance(event, dict) and _is_match_event(event) for event in events.values()
+    ):
+        return False
+    if not isinstance(markets, dict):
+        return True
+    for market in markets.values():
+        if not isinstance(market, dict):
+            continue
+        if _is_first_basket_market(market):
             return False
     return True
 
@@ -1645,6 +1762,7 @@ def _enrich_payload_with_event_tabs(
     proxy_url: str | None,
     impersonate: str,
     market_scope: str = "all",
+    target_team_pairs: set[tuple[str, str]] | None = None,
 ) -> None:
     market_scope = _normalize_market_scope(market_scope)
     tab_keywords = (
@@ -1660,9 +1778,16 @@ def _enrich_payload_with_event_tabs(
         return
     markets = _ensure_canonical_market_bucket(payload)
     existing_market_ids = set(markets.keys())
-    for event in events.values():
-        if not isinstance(event, dict) or not _is_match_event(event):
-            continue
+    match_events = [
+        event
+        for event in events.values()
+        if isinstance(event, dict) and _is_match_event(event)
+    ]
+    for event in _match_events_for_target_games(
+        match_events,
+        target_team_pairs,
+        fallback_to_all=not bool(target_team_pairs),
+    ):
         competition_id = event.get("competitionId")
         event_type_id = event.get("eventTypeId")
         event_id = event.get("eventId")
@@ -1714,6 +1839,7 @@ def _fetch_live_soccer_payload(
     proxy_url: str | None,
     impersonate: str,
     market_scope: str = "all",
+    target_team_pairs: set[tuple[str, str]] | None = None,
 ) -> dict[str, Any]:
     market_scope = _normalize_market_scope(market_scope)
     competition_ids = _configured_ints(
@@ -1754,7 +1880,12 @@ def _fetch_live_soccer_payload(
         raw["competition_pages"][str(competition_id)] = competition_payload
         _merge_payload_attachments(attachments, competition_payload)
 
-        for event in _competition_match_events(attachments, competition_id)[:event_limit]:
+        competition_events = _competition_match_events(attachments, competition_id)
+        for event in _match_events_for_target_games(
+            competition_events,
+            target_team_pairs,
+            fallback_to_all=not bool(target_team_pairs),
+        )[:event_limit]:
             event_id = str(event.get("eventId") or "")
             if not event_id:
                 continue
@@ -1856,13 +1987,16 @@ def fetch_rows(
     save_payloads: bool = True,
     use_saved_payloads: bool = True,
     market_scope: str = "all",
+    target_team_pairs_by_sport: dict[str, set[tuple[str, str]] | list[tuple[str, str]]] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     market_scope = _normalize_market_scope(market_scope)
+    normalized_target_pairs = _normalized_target_team_pairs_by_sport(target_team_pairs_by_sport)
     request_config = load_request_config("fanduel")
     all_rows: list[dict[str, Any]] = []
     raw_payloads: dict[str, Any] = {}
 
     for sport in _normalize_sports(sports):
+        sport_target_pairs = normalized_target_pairs.get(sport)
         sport_config = (request_config.get("sports") or {}).get(sport) or {}
         payload = load_saved_payload("fanduel", sport) if use_saved_payloads else None
         if market_scope == "all" and _saved_payload_needs_price_refresh(payload, sport):
@@ -1870,6 +2004,8 @@ def fetch_rows(
         if market_scope == "all" and _saved_payload_missing_core_nba_player_props(payload, sport):
             payload = None
         if _saved_payload_missing_nba_quarter_game_lines(payload, sport):
+            payload = None
+        if market_scope == "all" and _saved_payload_missing_wnba_first_basket(payload, sport):
             payload = None
         if sport == "soccer" and _missing_live_soccer_competitions(payload, sport_config):
             payload = None
@@ -1896,6 +2032,7 @@ def fetch_rows(
                             proxy_url=proxy_url,
                             impersonate=impersonate,
                             market_scope=market_scope,
+                            target_team_pairs=sport_target_pairs,
                         )
                         if save_payloads and market_scope == "all":
                             save_payload("fanduel", sport, payload)
@@ -1932,6 +2069,7 @@ def fetch_rows(
                             proxy_url=proxy_url,
                             impersonate=impersonate,
                             market_scope=market_scope,
+                            target_team_pairs=sport_target_pairs,
                         )
                     if save_payloads and market_scope == "all":
                         save_payload("fanduel", sport, payload)

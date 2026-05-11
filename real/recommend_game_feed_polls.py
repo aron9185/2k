@@ -198,6 +198,18 @@ def _infer_player_name_from_text(content_text: str) -> str:
     marker = " to "
     if marker in text:
         return text.split(marker, 1)[0].strip()
+    if " · " in text:
+        return text.split(" · ", 1)[0].strip()
+    if " - " in text:
+        left = text.split(" - ", 1)[0].strip()
+        if left:
+            return left
+    line_match = re.search(r"\b\d+(?:\.\d+)?\b", text)
+    if line_match:
+        prefix = text[: line_match.start()].strip()
+        prefix = re.sub(r"[?·•|:;/\\\-]+\s*$", "", prefix).strip()
+        if prefix:
+            return prefix
     return ""
 
 
@@ -282,8 +294,25 @@ def _player_lookup(players: list[dict[str, Any]]) -> dict[str, str]:
     return lookup
 
 
-def _poll_kind(additional: dict[str, Any]) -> str:
+def _poll_kind(
+    additional: dict[str, Any],
+    *,
+    poll: dict[str, Any] | None = None,
+    post: dict[str, Any] | None = None,
+) -> str:
+    poll = poll or {}
+    post = post or {}
     poll_type = str(additional.get("type") or "").strip().lower()
+    play_types = additional.get("playTypes") or []
+    text_bits = [
+        str(additional.get("playType") or "").strip().lower(),
+        " ".join(str(item).strip().lower() for item in play_types if str(item).strip()),
+        normalize_text(str(post.get("header") or "")),
+        normalize_text(_first_text(((post.get("content") or {}).get("nodes")) or [])),
+    ]
+    combined_text = " ".join(part for part in text_bits if part)
+    if "first field goal" in combined_text or "first basket" in combined_text:
+        return "first_basket"
     if poll_type == "daily" and additional.get("isMostStat"):
         return "player_most_stat"
     if poll_type == "player" and additional.get("isOverUnder"):
@@ -299,6 +328,18 @@ def _poll_kind(additional: dict[str, Any]) -> str:
     if poll_type == "totaloverunder":
         return "game_total"
     if poll_type == "gamewinner":
+        spread_bits = [
+            additional.get("pointSpread"),
+            additional.get("spreadTeamId"),
+            poll.get("pointSpread"),
+            poll.get("spreadTeamId"),
+        ]
+        if any(value not in (None, "", "None") for value in spread_bits):
+            return "game_spread"
+        if "cover the spread" in combined_text or " point spread" in combined_text:
+            return "game_spread"
+        if combined_text.startswith("spread ") or " spread" in combined_text:
+            return "game_spread"
         return "game_winner"
     if poll_type == "teamnextpoints":
         return "teamnextpoints"
@@ -808,15 +849,28 @@ def _is_full_game_total_market(market: MarketRow) -> bool:
         return False
     if str(market.sport or "").strip().lower() == "nhl":
         return bool(compact_names & {"total", "totalgoals"})
+    for name in compact_names:
+        if (
+            "overunder" in name
+            and (name.endswith("goals") or name.endswith("runs") or name.endswith("points"))
+            and "half" not in name
+            and "quarter" not in name
+            and "period" not in name
+            and "team" not in name
+        ):
+            return True
     allowed_names = {
         "total",
+        "totalpoints",
         "totalruns",
         "totalgoals",
         "totalalternate",
         "alternatetotal",
+        "alternatetotalpoints",
         "alternatetotalruns",
         "alternatetotalgoals",
         "asiantotal",
+        "asiantotalpoints",
         "asiantotalgoals",
         "asianhandicaptotal",
     }
@@ -1143,7 +1197,11 @@ def _fetch_active_day_game_entries(
             if poll_id:
                 poll_payload = client.get_poll(poll_id)
                 poll = poll_payload.get("poll") or {}
-                poll_kind = _poll_kind(poll.get("additionalInfo") or {})
+                poll_kind = _poll_kind(
+                    poll.get("additionalInfo") or {},
+                    poll=poll,
+                    post=post,
+                )
                 allow_unpriced_poll = poll_kind in ZERO_COST_PLAYER_POLL_KINDS or poll_kind == "team_stat"
                 if not include_nonwagerable and not poll.get("canWager", False) and not allow_unpriced_poll:
                     continue
@@ -1480,7 +1538,73 @@ def _option_label_team(value: str) -> str:
     if not text:
         return ""
     trimmed = re.sub(r"\s*[+-]\d{2,5}\s*$", "", text).strip()
+    # Daily dog labels can include spread suffixes (for example "SEA +5.5").
+    trimmed = re.sub(r"\s+[+-]?\d+(?:\.\d+)?\s*$", "", trimmed).strip()
     return trimmed or text
+
+
+def _row_option_labels(row: dict[str, Any]) -> list[str]:
+    labels: list[str] = []
+    for key in ("option_a_label", "option_b_label", "option_c_label"):
+        label = str(row.get(key) or "").strip()
+        if label:
+            labels.append(label)
+    return labels
+
+
+def _fair_prob_for_option_label(row: dict[str, Any], target_label: str) -> float | None:
+    target = str(target_label or "").strip()
+    if not target:
+        return None
+
+    poll_kind = str(row.get("poll_kind") or "").strip().lower()
+    if poll_kind == "game_winner":
+        winner_prob = _fair_prob_for_game_winner_label(row, target)
+        if winner_prob is not None:
+            return winner_prob
+
+    fair = _to_float_or_none(row.get("fair_prob"))
+    recommended = str(row.get("recommended_option") or "").strip()
+    if fair is None or not recommended:
+        return None
+    fair = max(0.0, min(1.0, fair))
+    if _is_label_match(target, recommended):
+        return fair
+
+    labels = _row_option_labels(row)
+    if len(labels) == 2 and any(_is_label_match(target, label) for label in labels):
+        return max(0.0, min(1.0, 1.0 - fair))
+    return None
+
+
+def _sportsbook_odds_for_option_label(row: dict[str, Any], target_label: str) -> int | str:
+    target = str(target_label or "").strip()
+    if not target:
+        return ""
+    for label_key, odds_key in (
+        ("sportsbook_a_label", "sportsbook_a_odds"),
+        ("sportsbook_b_label", "sportsbook_b_odds"),
+        ("sportsbook_c_label", "sportsbook_c_odds"),
+    ):
+        label = str(row.get(label_key) or "").strip()
+        if label and _is_label_match(target, label):
+            return row.get(odds_key) or ""
+    for slot in ("a", "b", "c"):
+        option_label = str(row.get(f"option_{slot}_label") or "").strip()
+        if option_label and _is_label_match(target, option_label):
+            return row.get(f"sportsbook_{slot}_odds") or ""
+    return ""
+
+
+def _real_odds_for_option_label(row: dict[str, Any], target_label: str) -> int | str:
+    target = str(target_label or "").strip()
+    if not target:
+        return ""
+    for slot in ("a", "b", "c"):
+        option_label = str(row.get(f"option_{slot}_label") or "").strip()
+        if option_label and _is_label_match(target, option_label):
+            return row.get(f"option_{slot}_odds") or ""
+    return ""
 
 
 def _fair_prob_for_game_winner_label(row: dict[str, Any], target_label: str) -> float | None:
@@ -1670,21 +1794,18 @@ def _build_daily_pool_slate_rows(
         missing_poll_ids: list[str] = []
         for poll_id in poll_ids:
             row = by_poll_id.get(poll_id)
-            if not row or str(row.get("poll_kind") or "").strip().lower() != "game_winner":
+            if not row:
                 missing_poll_ids.append(poll_id)
                 continue
-            option_labels = [
-                str(row.get("option_a_label") or "").strip(),
-                str(row.get("option_b_label") or "").strip(),
-            ]
+            option_labels = _row_option_labels(row)
             candidate_labels = [label for label in option_labels if label]
             candidates: list[dict[str, Any]] = []
             for label in candidate_labels:
-                fair_prob = _fair_prob_for_game_winner_label(row, label)
+                fair_prob = _fair_prob_for_option_label(row, label)
                 if fair_prob is None:
                     continue
-                real_odds = _real_odds_for_game_winner_label(row, label)
-                sportsbook_odds = _sportsbook_odds_for_game_winner_label(row, label)
+                real_odds = _real_odds_for_option_label(row, label)
+                sportsbook_odds = _sportsbook_odds_for_option_label(row, label)
                 candidates.append(
                     {
                         "label": label,
@@ -1695,6 +1816,24 @@ def _build_daily_pool_slate_rows(
                         "row": row,
                     }
                 )
+            if not candidates:
+                option_pairs = _option_odds_pairs(row)
+                if len(option_pairs) >= 2:
+                    implied_total = sum(american_to_implied_prob(int(odds)) for _label, odds in option_pairs)
+                    if implied_total <= 0:
+                        implied_total = 1.0
+                    for label, odds in option_pairs:
+                        fair_prob = american_to_implied_prob(int(odds)) / implied_total
+                        candidates.append(
+                            {
+                                "label": label,
+                                "fair_prob": max(0.0, min(1.0, float(fair_prob))),
+                                "fair_odds": probability_to_american(max(0.0, min(1.0, float(fair_prob)))),
+                                "real_odds": int(odds),
+                                "sportsbook_odds": _sportsbook_odds_for_option_label(row, label),
+                                "row": row,
+                            }
+                        )
             if not candidates:
                 missing_poll_ids.append(poll_id)
                 continue
@@ -1730,7 +1869,7 @@ def _build_daily_pool_slate_rows(
                 }
             )
 
-        if missing_poll_ids or len(legs) != len(poll_ids):
+        if not legs:
             synthetic_rows.append(
                 {
                     **base_row,
@@ -1749,14 +1888,15 @@ def _build_daily_pool_slate_rows(
                     "books": "",
                     "source_lines": "",
                     "notes": (
-                        "Pool of the day detected, but not every child game-winner poll "
-                        f"had sportsbook consensus. Missing poll ids: {', '.join(missing_poll_ids)}."
+                        "Pool of the day detected, but none of the child polls "
+                        "had sportsbook consensus rows yet."
                     ),
                 }
             )
             continue
 
-        probabilities = [float(leg["fair_prob"]) for leg in legs]
+        missing_count = max(0, len(poll_ids) - len(legs))
+        probabilities = [float(leg["fair_prob"]) for leg in legs] + ([0.5] * missing_count)
         miss_distribution = _pool_miss_distribution(probabilities)
         tier_probabilities = [
             miss_distribution[index] if index < len(miss_distribution) else 0.0
@@ -1772,6 +1912,8 @@ def _build_daily_pool_slate_rows(
         recommended_amount = max_wager if expected_ev_percent > 0 and max_wager > 0 else 0
         status = "bet" if recommended_amount > 0 else "no_edge"
         selection_text = " / ".join(str(leg["label"]) for leg in legs)
+        if missing_count > 0:
+            selection_text = f"{selection_text} (+{missing_count} pending leg{'s' if missing_count != 1 else ''})"
         payout_text = " / ".join(
             f"{_ordinal_label(index + 1)} {_format_payout_multiple(payout)}"
             for index, payout in enumerate(payouts)
@@ -1802,6 +1944,11 @@ def _build_daily_pool_slate_rows(
                     f"({_format_american(leg.get('fair_odds'))}); "
                     f"Real {real_odds or 'n/a'}; book {sportsbook_odds or 'n/a'}"
                 )
+            )
+        if missing_poll_ids:
+            leg_source_lines.append(
+                "Pending child poll ids (neutral 50.0% placeholder): "
+                + ", ".join(missing_poll_ids)
             )
         books = " | ".join(
             sorted(
@@ -1844,6 +1991,11 @@ def _build_daily_pool_slate_rows(
                     f"cash {_format_probability_note(cash_probability)}; "
                     f"lose {_format_probability_note(lose_probability)}; "
                     f"expected return {expected_return_multiple:.2f}x; {chance_note}"
+                    + (
+                        f"; missing child polls assumed at 50/50 ({', '.join(missing_poll_ids)})"
+                        if missing_poll_ids
+                        else ""
+                    )
                 ),
             }
         )
@@ -1856,6 +2008,7 @@ def _build_daily_pool_underdog_rows(
     sport: str,
     day: str,
     pool_posts: list[dict[str, Any]],
+    markets: list[MarketRow],
 ) -> list[dict[str, Any]]:
     if not pool_posts:
         return []
@@ -1866,16 +2019,43 @@ def _build_daily_pool_underdog_rows(
 
     by_poll_id: dict[str, dict[str, Any]] = {}
     by_game_id: dict[str, list[dict[str, Any]]] = {}
+    game_context_by_id: dict[str, dict[str, str]] = {}
     for row in recommendations:
         poll_id = str(row.get("poll_id") or "").strip()
         if poll_id and poll_id not in by_poll_id:
             by_poll_id[poll_id] = row
-        if str(row.get("poll_kind") or "").strip().lower() != "game_winner":
-            continue
         game_id = str(row.get("game_id") or "").strip()
         if not game_id or game_id.startswith("daily:") or game_id.startswith("daily-pool:"):
             continue
         by_game_id.setdefault(game_id, []).append(row)
+        context = game_context_by_id.setdefault(
+            game_id,
+            {
+                "home_team": "",
+                "away_team": "",
+                "game_label": "",
+                "game_time": "",
+            },
+        )
+        if not context["home_team"]:
+            context["home_team"] = str(row.get("home_team") or "").strip()
+        if not context["away_team"]:
+            context["away_team"] = str(row.get("away_team") or "").strip()
+        if not context["game_label"]:
+            context["game_label"] = str(row.get("game_label") or "").strip()
+        if not context["game_time"]:
+            context["game_time"] = str(row.get("game_time") or "").strip()
+
+    winner_markets_by_pair: dict[tuple[str, str], list[MarketRow]] = {}
+    for market in markets:
+        if market.sport != sport or market.market_family != "game_winner":
+            continue
+        if str(market.period or "").strip():
+            continue
+        if market.over_odds is None or market.under_odds is None:
+            continue
+        pair = team_pair(market.home_team, market.away_team)
+        winner_markets_by_pair.setdefault(pair, []).append(market)
 
     synthetic_rows: list[dict[str, Any]] = []
     for pool_index, pool in enumerate(processed_posts):
@@ -1929,43 +2109,71 @@ def _build_daily_pool_underdog_rows(
                     offered_odds = int(float(offered_odds_value))
                 except Exception:
                     continue
-                game_rows = by_game_id.get(str(option.get("game_id") or "").strip()) or []
-                if not game_rows:
+                option_game_id = str(option.get("game_id") or "").strip()
+                game_context = game_context_by_id.get(option_game_id) or {}
+                home_team = str(game_context.get("home_team") or "").strip()
+                away_team = str(game_context.get("away_team") or "").strip()
+                if not home_team or not away_team:
                     continue
-                scored_rows: list[tuple[dict[str, Any], float]] = []
-                for game_row in game_rows:
-                    target_prob = _fair_prob_for_game_winner_label(game_row, target_label)
-                    if target_prob is None:
+                target_norm = normalize_team(target_label)
+                home_norm = normalize_team(home_team)
+                away_norm = normalize_team(away_team)
+                if target_norm == home_norm:
+                    target_side = "home"
+                elif target_norm == away_norm:
+                    target_side = "away"
+                else:
+                    continue
+                game_pair = team_pair(home_team, away_team)
+                game_winner_markets = winner_markets_by_pair.get(game_pair) or []
+                if not game_winner_markets:
+                    continue
+
+                target_probabilities: list[float] = []
+                target_sportsbook_odds: list[int] = []
+                underdog_books = 0
+                for market in game_winner_markets:
+                    home_odds = market.over_odds
+                    away_odds = market.under_odds
+                    if home_odds is None or away_odds is None:
                         continue
-                    scored_rows.append((game_row, target_prob))
-                if not scored_rows:
+                    implied_home = american_to_implied_prob(home_odds)
+                    implied_away = american_to_implied_prob(away_odds)
+                    implied_total = implied_home + implied_away
+                    if implied_total <= 0:
+                        continue
+                    fair_home = implied_home / implied_total
+                    fair_away = implied_away / implied_total
+                    if target_side == "home":
+                        target_prob = fair_home
+                        target_odds = int(home_odds)
+                        opponent_prob = fair_away
+                    else:
+                        target_prob = fair_away
+                        target_odds = int(away_odds)
+                        opponent_prob = fair_home
+                    target_probabilities.append(target_prob)
+                    target_sportsbook_odds.append(target_odds)
+                    if target_prob < opponent_prob and target_odds > 0:
+                        underdog_books += 1
+                if not target_probabilities or underdog_books <= 0:
                     continue
-                selected_row, fair_prob = max(
-                    scored_rows,
-                    key=lambda item: (
-                        float(_to_float_or_none(item[0].get("matched_books")) or 0.0),
-                        item[1],
-                        str(item[0].get("poll_id") or ""),
-                    ),
-                )
-                sportsbook_odds_raw = _sportsbook_odds_for_game_winner_label(
-                    selected_row,
-                    target_label,
-                )
-                sportsbook_odds_value = _to_float_or_none(sportsbook_odds_raw)
-                if sportsbook_odds_value is None:
-                    continue
-                sportsbook_odds = int(sportsbook_odds_value)
-                if sportsbook_odds <= 0:
-                    continue
+                fair_prob = sum(target_probabilities) / len(target_probabilities)
+                sportsbook_odds = int(round(sum(target_sportsbook_odds) / len(target_sportsbook_odds)))
                 evaluation = _evaluate_binary_offer(fair_prob, offered_odds)
+                game_label = str(game_context.get("game_label") or "").strip()
+                game_time = str(game_context.get("game_time") or "").strip()
+                books = " | ".join(sorted({market.book for market in game_winner_markets if str(market.book or "").strip()}))
                 option_candidates.append(
                     {
-                        "option_label": str(option.get("label") or target_label).strip(),
+                        "option_label": target_label,
                         "target_label": target_label,
                         "offered_odds": offered_odds,
                         "sportsbook_odds": sportsbook_odds,
-                        "row": selected_row,
+                        "matched_books": len(target_probabilities),
+                        "books": books,
+                        "game_label": game_label,
+                        "game_time": game_time,
                         "evaluation": evaluation,
                     }
                 )
@@ -1986,7 +2194,10 @@ def _build_daily_pool_underdog_rows(
                         "consensus_fair_line": "",
                         "matched_books": 0,
                         "books": "",
-                        "notes": "Daily dog poll detected, but no option could be matched to same-game winner consensus rows.",
+                        "notes": (
+                            "Daily dog poll detected, but no option could be matched to "
+                            "same-game moneyline underdog consensus rows."
+                        ),
                     }
                 )
                 continue
@@ -1999,21 +2210,9 @@ def _build_daily_pool_underdog_rows(
                 ),
             )
             selected_eval = selected_option.get("evaluation") or {}
-            selected_row = selected_option.get("row") or {}
             selected_label = str(selected_option.get("option_label") or "").strip()
             selected_team_label = str(selected_option.get("target_label") or selected_label).strip()
-            selected_game_label = str(
-                selected_row.get("game_label")
-                or _entry_game_label(
-                    {
-                        "game": {
-                            "awayTeamKey": selected_row.get("away_team"),
-                            "homeTeamKey": selected_row.get("home_team"),
-                        }
-                    }
-                )
-                or ""
-            ).strip()
+            selected_game_label = str(selected_option.get("game_label") or "").strip()
             summary_text = (
                 f"{pool_text}. Best underdog EV -> {selected_label} in {selected_game_label}."
                 if selected_game_label
@@ -2033,10 +2232,12 @@ def _build_daily_pool_underdog_rows(
                     "fair_prob": round(float(_evaluation_value(selected_eval, "fair_prob") or 0.0), 6),
                     "fair_odds": int(_evaluation_value(selected_eval, "fair_odds") or probability_to_american(0.5)),
                     "consensus_fair_line": "",
-                    "matched_books": selected_row.get("matched_books") or "",
-                    "books": selected_row.get("books") or "",
+                    "game_time": str(selected_option.get("game_time") or "").strip(),
+                    "matched_books": selected_option.get("matched_books") or "",
+                    "books": selected_option.get("books") or "",
                     "notes": (
-                        f"Daily dog option selected from {len(option_candidates)} voteable underdog choice(s); "
+                        f"Daily dog moneyline option selected from {len(option_candidates)} "
+                        "voteable underdog choice(s); "
                         f"selected {selected_label} in {selected_game_label}."
                     ),
                 }
@@ -2050,13 +2251,29 @@ def _build_daily_pool_underdog_rows(
             if str(row.get("poll_kind") or "").strip().lower() != "game_winner":
                 continue
             underdog = _underdog_label(row)
-            recommended = str(row.get("recommended_option") or "").strip()
-            if not underdog or not recommended or not _is_label_match(underdog, recommended):
+            if not underdog:
                 continue
-            ev_percent = _to_float_or_none(row.get("recommended_ev_percent"))
-            if ev_percent is None:
+            fair_prob = _fair_prob_for_game_winner_label(row, underdog)
+            if fair_prob is None:
                 continue
-            candidates.append(row)
+            offered_odds_raw = _real_odds_for_game_winner_label(row, underdog)
+            offered_odds_value = _to_float_or_none(offered_odds_raw)
+            if offered_odds_value is None:
+                continue
+            offered_odds = int(offered_odds_value)
+            sportsbook_odds_raw = _sportsbook_odds_for_game_winner_label(row, underdog)
+            sportsbook_odds_value = _to_float_or_none(sportsbook_odds_raw)
+            sportsbook_odds = int(sportsbook_odds_value) if sportsbook_odds_value is not None else ""
+            evaluation = _evaluate_binary_offer(fair_prob, offered_odds)
+            candidates.append(
+                {
+                    "row": row,
+                    "label": underdog,
+                    "offered_odds": offered_odds,
+                    "sportsbook_odds": sportsbook_odds,
+                    "evaluation": evaluation,
+                }
+            )
 
         if not candidates:
             synthetic_rows.append(
@@ -2075,22 +2292,34 @@ def _build_daily_pool_underdog_rows(
                     "consensus_fair_line": "",
                     "matched_books": 0,
                     "books": "",
-                    "notes": "Daily pool detected, but no underdog option had a computed EV recommendation yet.",
+                    "notes": "Daily dog detected, but no moneyline underdog option had a computed EV recommendation yet.",
                 }
             )
             continue
 
         selected = max(
             candidates,
-            key=lambda row: (
-                float(_to_float_or_none(row.get("recommended_ev_percent")) or -9999.0),
-                float(_to_float_or_none(row.get("fair_prob")) or 0.0),
-                str(row.get("recommended_option") or ""),
+            key=lambda candidate: (
+                float(_evaluation_value(candidate.get("evaluation") or {}, "ev_percent") or -9999.0),
+                float(_evaluation_value(candidate.get("evaluation") or {}, "fair_prob") or 0.0),
+                str(candidate.get("label") or ""),
             ),
         )
-        selected_label = str(selected.get("recommended_option") or "").strip()
-        selected_ev = _to_float_or_none(selected.get("recommended_ev_percent"))
-        selected_game_label = str(selected.get("game_label") or _entry_game_label({"game": {"awayTeamKey": selected.get("away_team"), "homeTeamKey": selected.get("home_team")}}) or "").strip()
+        selected_row = selected.get("row") or {}
+        selected_eval = selected.get("evaluation") or {}
+        selected_label = str(selected.get("label") or "").strip()
+        selected_game_label = str(
+            selected_row.get("game_label")
+            or _entry_game_label(
+                {
+                    "game": {
+                        "awayTeamKey": selected_row.get("away_team"),
+                        "homeTeamKey": selected_row.get("home_team"),
+                    }
+                }
+            )
+            or ""
+        ).strip()
         summary_text = (
             f"{pool_text}. Best underdog EV -> {selected_label} in {selected_game_label}."
             if selected_game_label
@@ -2101,19 +2330,19 @@ def _build_daily_pool_underdog_rows(
                 **base_row,
                 "content_text": summary_text,
                 "option_a_label": selected_label,
-                "option_a_odds": selected.get("option_a_odds") if _is_label_match(selected_label, selected.get("option_a_label") or "") else selected.get("option_b_odds", ""),
+                "option_a_odds": selected.get("offered_odds") or "",
                 "sportsbook_a_label": selected_label,
-                "sportsbook_a_odds": selected.get("sportsbook_a_odds") if _is_label_match(selected_label, selected.get("sportsbook_a_label") or "") else selected.get("sportsbook_b_odds", ""),
+                "sportsbook_a_odds": selected.get("sportsbook_odds") or "",
                 "status": "pick",
                 "recommended_option": selected_label,
-                "recommended_ev_percent": selected_ev if selected_ev is not None else "",
-                "fair_prob": selected.get("fair_prob") or "",
-                "fair_odds": selected.get("fair_odds") or "",
-                "consensus_fair_line": selected.get("consensus_fair_line") or "",
-                "matched_books": selected.get("matched_books") or "",
-                "books": selected.get("books") or "",
+                "recommended_ev_percent": round(float(_evaluation_value(selected_eval, "ev_percent") or 0.0), 4),
+                "fair_prob": round(float(_evaluation_value(selected_eval, "fair_prob") or 0.0), 6),
+                "fair_odds": int(_evaluation_value(selected_eval, "fair_odds") or probability_to_american(0.5)),
+                "consensus_fair_line": "",
+                "matched_books": selected_row.get("matched_books") or "",
+                "books": selected_row.get("books") or "",
                 "notes": (
-                    f"Daily pool underdog pick from {len(candidates)} EV-qualified underdog option(s); "
+                    f"Daily dog moneyline pick from {len(candidates)} EV-qualified underdog option(s); "
                     f"selected {selected_label} in {selected_game_label}."
                 ),
             }
@@ -2448,7 +2677,7 @@ def _recommend_game_total(
         target_line=consensus_target_line,
         over_odds=over_odds,
         under_odds=under_odds,
-        prefer_fitted_ladder=True,
+        prefer_fitted_ladder=False,
     )
     representative = _representative_market_quote(quotes, consensus_target_line)
     source_lines = _book_line_summary(
@@ -2913,7 +3142,7 @@ def _period_market_code(sport: str, period_value: str) -> str:
         return period_key
     if sport == "mlb" and normalized_period.isdigit():
         return f"{normalized_period}I"
-    if sport == "nba" and normalized_period in {"1", "2", "3", "4"}:
+    if sport in {"nba", "wnba"} and normalized_period in {"1", "2", "3", "4"}:
         return f"{normalized_period}Q"
     if sport == "nhl" and normalized_period in {"1", "2", "3"}:
         return f"{normalized_period}P"
@@ -3105,13 +3334,16 @@ def _recommend_game_spread(
     away_option = option_map.get("away") or {}
     home_odds = home_option.get("odds")
     away_odds = away_option.get("odds")
+    point_spread_value = additional.get("pointSpread")
+    if point_spread_value in (None, "", "None"):
+        point_spread_value = poll.get("pointSpread")
     try:
-        point_spread = abs(float(additional.get("pointSpread")))
+        point_spread = abs(float(point_spread_value))
     except Exception:
         point_spread = None
-    spread_team_id = str(additional.get("spreadTeamId") or "").strip()
-    home_team_id = str(poll.get("homeTeamId") or "").strip()
-    away_team_id = str(poll.get("awayTeamId") or "").strip()
+    spread_team_id = str(additional.get("spreadTeamId") or poll.get("spreadTeamId") or "").strip()
+    home_team_id = str(poll.get("homeTeamId") or additional.get("homeTeamId") or "").strip()
+    away_team_id = str(poll.get("awayTeamId") or additional.get("awayTeamId") or "").strip()
 
     base = {
         "poll_id": poll.get("id"),
@@ -3138,12 +3370,7 @@ def _recommend_game_spread(
         "sportsbook_b_label": str(away_option.get("label") or ""),
         "sportsbook_b_odds": "",
     }
-    if (
-        home_odds is None
-        or away_odds is None
-        or point_spread is None
-        or spread_team_id not in {home_team_id, away_team_id}
-    ):
+    if home_odds is None or away_odds is None or point_spread is None:
         return {
             **base,
             "status": "missing_poll_data",
@@ -3155,10 +3382,13 @@ def _recommend_game_spread(
             "fair_odds": "",
             "matched_books": 0,
             "books": "",
-            "notes": "Missing live spread line, spread team, or option odds.",
+            "notes": "Missing live spread line or option odds.",
         }
 
-    target_home_line = point_spread if spread_team_id == home_team_id else -point_spread
+    target_home_line: float | None = None
+    spread_team_missing = spread_team_id not in {home_team_id, away_team_id}
+    if not spread_team_missing:
+        target_home_line = point_spread if spread_team_id == home_team_id else -point_spread
     spread_rows = _matching_game_quotes(
         markets,
         sport=sport,
@@ -3196,6 +3426,15 @@ def _recommend_game_spread(
             "books": "",
             "notes": "No matching sportsbook live spread quotes found.",
         }
+    if target_home_line is None:
+        inferred_home_line_candidates = [point_spread, -point_spread]
+
+        def _candidate_key(candidate: float) -> tuple[float, int]:
+            nearest = min(abs(quote.line - candidate) for quote in quotes)
+            exact_matches = sum(1 for quote in quotes if abs(quote.line - candidate) <= 1e-9)
+            return nearest, -exact_matches
+
+        target_home_line = min(inferred_home_line_candidates, key=_candidate_key)
 
     representative = _representative_market_quote(quotes, target_home_line)
     snapshot = consensus_snapshot(
@@ -3249,7 +3488,10 @@ def _recommend_game_spread(
         "consensus_fair_line": round(snapshot["estimate"].fair_line, 4),
         "matched_books": len(quotes),
         "books": " | ".join(sorted({quote.book for quote in quotes})),
-        "notes": f"{snapshot['estimate'].source}; live spread consensus",
+        "notes": (
+            f"{snapshot['estimate'].source}; live spread consensus"
+            + ("; inferred spread side from sportsbook lines" if spread_team_missing else "")
+        ),
         "sportsbook_a_odds": representative.over_odds if representative else "",
         "sportsbook_b_odds": representative.under_odds if representative else "",
     }
@@ -3539,6 +3781,8 @@ def _resolve_zero_cost_stat_key(entry: dict[str, Any], poll_kind: str) -> str:
     game = entry.get("game") or {}
     post = entry.get("post") or {}
     additional = poll.get("additionalInfo") or {}
+    if poll_kind == "first_basket":
+        return "firstbasket"
     sport = str(additional.get("sport") or game.get("sport") or "").strip().lower()
     stat_key = _normalize_pick_stat(additional.get("stat") or "")
     if stat_key:
@@ -3585,8 +3829,6 @@ def _resolve_zero_cost_stat_key(entry: dict[str, Any], poll_kind: str) -> str:
         return "steals"
     if "3-point" in combined_text or "3pt" in combined_text or "three" in combined_text:
         return "madethrees"
-    if poll_kind == "first_basket":
-        return "firstbasket"
     return ""
 
 
@@ -4567,6 +4809,12 @@ def _recommend_zero_cost_player_poll(
                     candidates.append(candidate)
 
     if not candidates:
+        if poll_kind == "first_basket":
+            return {
+                **base,
+                "status": "no_market",
+                "notes": "No same-game sportsbook first-basket props were available for this matchup.",
+            }
         same_game_stat_rows = [
             market
             for market in markets
@@ -4829,8 +5077,14 @@ def _recommend_special_or_unpriced(
     *,
     markets: list[MarketRow] | None = None,
 ) -> dict[str, Any]:
+    post = entry.get("post") or {}
+    poll = entry.get("poll") or {}
     additional = (entry.get("poll") or {}).get("additionalInfo") or {}
-    poll_kind = _poll_kind(additional)
+    poll_kind = _poll_kind(
+        additional,
+        poll=poll,
+        post=post,
+    )
     if poll_kind in ZERO_COST_PLAYER_POLL_KINDS:
         return _recommend_zero_cost_player_poll(
             entry,
@@ -4840,8 +5094,6 @@ def _recommend_special_or_unpriced(
         )
 
     game = entry["game"]
-    post = entry["post"]
-    poll = entry["poll"]
     content_text = _first_text(((post.get("content") or {}).get("nodes")) or [])
     note = "Unsupported game-feed card type."
     if poll_kind == "anytime_play":
@@ -5045,7 +5297,12 @@ def build_recommendations(
     contest_entries = [
         entry
         for entry in entries
-        if _poll_kind((entry.get("poll") or {}).get("additionalInfo") or {}) == "contest"
+        if _poll_kind(
+            (entry.get("poll") or {}).get("additionalInfo") or {},
+            poll=entry.get("poll") or {},
+            post=entry.get("post") or {},
+        )
+        == "contest"
     ]
     if contest_entries:
         try:
@@ -5060,11 +5317,17 @@ def build_recommendations(
     for entry in entries:
         poll = entry["poll"]
         additional = poll.get("additionalInfo") or {}
-        poll_kind = _poll_kind(additional)
+        poll_kind = _poll_kind(
+            additional,
+            poll=poll,
+            post=entry.get("post") or {},
+        )
         if poll_kind == "player_over_under":
             recommendation = _recommend_player_over_under(entry, markets, sport)
         elif poll_kind == "game_total":
             recommendation = _recommend_game_total(entry, markets, sport)
+        elif poll_kind == "game_spread":
+            recommendation = _recommend_game_spread(entry, markets, sport)
         elif poll_kind == "game_winner":
             recommendation = _recommend_game_winner(entry, markets, sport)
         elif poll_kind == "teamnextpoints":
@@ -5119,6 +5382,7 @@ def build_recommendations(
             sport=sport,
             day=resolved_day,
             pool_posts=daily_pool_posts,
+            markets=markets,
         )
     )
     recommendations.sort(
