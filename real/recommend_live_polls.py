@@ -49,6 +49,7 @@ SUPPORTED_POLL_KINDS = {
     "period_winner",
     "teamtowinperiod",
 }
+MLB_HRR_COMPONENT_STATS = {"hits", "runs", "rbis"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -213,6 +214,13 @@ def _market_matches_requirement_or_fallback(market: MarketRow, requirement: dict
     poll_kind = str(requirement.get("poll_kind") or "").strip().lower()
     sport = str(requirement.get("sport") or "").strip().lower()
     stat = str(requirement.get("stat") or "").strip().lower()
+    if sport == "mlb" and stat == "hitsrunsrbis" and poll_kind == "player_over_under":
+        if market.stat_key not in MLB_HRR_COMPONENT_STATS:
+            return False
+        fallback_requirement = dict(requirement)
+        fallback_requirement["stat"] = market.stat_key
+        return _market_matches_live_poll_requirement(market, fallback_requirement)
+
     if not (
         sport == "soccer"
         and stat == "shots"
@@ -224,12 +232,40 @@ def _market_matches_requirement_or_fallback(market: MarketRow, requirement: dict
     return _market_matches_live_poll_requirement(market, fallback_requirement)
 
 
+def _mlb_hrr_component_stats_for_requirement(
+    markets: list[MarketRow],
+    requirement: dict[str, Any],
+) -> set[str]:
+    stats: set[str] = set()
+    for market in markets:
+        if market.stat_key not in MLB_HRR_COMPONENT_STATS:
+            continue
+        fallback_requirement = dict(requirement)
+        fallback_requirement["stat"] = market.stat_key
+        if _market_matches_live_poll_requirement(market, fallback_requirement):
+            stats.add(market.stat_key)
+    return stats
+
+
+def _market_list_covers_requirement(markets: list[MarketRow], requirement: dict[str, Any]) -> bool:
+    if any(_market_matches_live_poll_requirement(market, requirement) for market in markets):
+        return True
+
+    poll_kind = str(requirement.get("poll_kind") or "").strip().lower()
+    sport = str(requirement.get("sport") or "").strip().lower()
+    stat = str(requirement.get("stat") or "").strip().lower()
+    if sport == "mlb" and stat == "hitsrunsrbis" and poll_kind == "player_over_under":
+        return len(_mlb_hrr_component_stats_for_requirement(markets, requirement)) >= 2
+
+    return any(_market_matches_requirement_or_fallback(market, requirement) for market in markets)
+
+
 def _markets_cover_requirements(markets: list[MarketRow], requirements: list[dict[str, Any]]) -> bool:
     required = [req for req in requirements if _requirement_needs_market(req)]
     if not required:
         return True
     for requirement in required:
-        if not any(_market_matches_requirement_or_fallback(market, requirement) for market in markets):
+        if not _market_list_covers_requirement(markets, requirement):
             return False
     return True
 
@@ -356,7 +392,7 @@ def _filter_market_rows_for_live_polls(
     filtered: list[dict[str, Any]] = []
     for row in rows:
         market = build_market_row(row)
-        if any(_market_matches_live_poll_requirement(market, req) for req in requirements):
+        if any(_market_matches_requirement_or_fallback(market, req) for req in requirements):
             filtered.append(row)
     return filtered
 

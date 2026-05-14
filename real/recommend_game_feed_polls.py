@@ -62,8 +62,10 @@ NHL_SPLIT_STAT_TYPES = {
     "shots": 11,
     "hits": 60,
 }
+MLB_HRR_COMPONENT_STATS = ("hits", "runs", "rbis")
 ZERO_PUT_WIN_WAGER = 10.0
 ZERO_COST_PLAYER_POLL_KINDS = {"anytime_play", "player_most_stat", "first_basket"}
+UNPRICED_POLL_KINDS = ZERO_COST_PLAYER_POLL_KINDS | {"team_stat", "golf_leaderboard"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -323,6 +325,10 @@ def _poll_kind(
         return "anytime_play"
     if poll_type == "player" and additional.get("isMostStat"):
         return "player_most_stat"
+    if poll_type == "player" and additional.get("isLeaderboardPoll"):
+        sport_key = str(additional.get("sport") or poll.get("sport") or "").strip().lower()
+        if sport_key == "golf":
+            return "golf_leaderboard"
     if poll_type == "teamstat":
         return "team_stat"
     if poll_type == "totaloverunder":
@@ -1121,6 +1127,125 @@ def _quote_books_text(quotes: list[MarketQuote]) -> str:
     )
 
 
+def _mlb_hrr_component_model(
+    markets: list[MarketRow],
+    *,
+    game: dict[str, Any],
+    player_name: str,
+    target_line: float,
+    period: str = "",
+) -> dict[str, Any] | None:
+    if abs(float(target_line) - 0.5) > 1e-9:
+        return None
+
+    normalized_player = normalize_player_name(player_name)
+    requested_period = str(period or "").strip()
+    component_rows: dict[str, list[tuple[MarketRow, float, float]]] = {
+        stat: [] for stat in MLB_HRR_COMPONENT_STATS
+    }
+    for market in markets:
+        if market.sport != "mlb" or market.market_family != "player_over_under":
+            continue
+        if market.stat_key not in component_rows:
+            continue
+        market_period = str(market.period or "").strip()
+        if requested_period:
+            if market_period != requested_period:
+                continue
+        elif market_period:
+            continue
+        if not _same_game(game, market):
+            continue
+        if market.player_name != normalized_player:
+            continue
+        if market.line is None or abs(float(market.line) - 0.5) > 1e-9:
+            continue
+        if market.over_odds is None or market.under_odds is None:
+            continue
+        try:
+            devigged = devig_quote(
+                MarketQuote(
+                    book=market.book,
+                    line=float(market.line),
+                    over_odds=market.over_odds,
+                    under_odds=market.under_odds,
+                    updated_at=market.updated_at,
+                )
+            )
+        except Exception:
+            continue
+        component_rows[market.stat_key].append((market, devigged.over_prob, devigged.weight))
+
+    available_stats = [stat for stat in MLB_HRR_COMPONENT_STATS if component_rows[stat]]
+    if not available_stats:
+        return None
+
+    component_probs: dict[str, float] = {}
+    selected_rows: dict[str, list[MarketRow]] = {}
+    for stat in available_stats:
+        rows = component_rows[stat]
+        total_weight = sum(max(0.0, float(weight)) for _row, _prob, weight in rows)
+        if total_weight <= 0:
+            component_prob = sum(float(prob) for _row, prob, _weight in rows) / len(rows)
+        else:
+            component_prob = sum(float(prob) * max(0.0, float(weight)) for _row, prob, weight in rows) / total_weight
+        component_probs[stat] = max(0.0, min(1.0, component_prob))
+        selected_rows[stat] = [row for row, _prob, _weight in rows]
+
+    lower_bound_only = len(available_stats) == 1
+    if lower_bound_only and max(component_probs.values()) <= 0.5:
+        return None
+
+    miss_prob = 1.0
+    for probability in component_probs.values():
+        miss_prob *= 1.0 - probability
+    over_fair_prob = max(component_probs.values())
+    over_fair_prob = max(over_fair_prob, min(0.999999, 1.0 - miss_prob))
+    over_fair_prob = max(0.000001, min(0.999999, over_fair_prob))
+
+    books = sorted(
+        {
+            str(row.book or "").strip()
+            for rows in selected_rows.values()
+            for row in rows
+            if str(row.book or "").strip()
+        }
+    )
+    books_by_name: dict[str, list[str]] = {}
+    for stat in MLB_HRR_COMPONENT_STATS:
+        for row in selected_rows.get(stat, []):
+            over_text = _format_american(row.over_odds)
+            under_text = _format_american(row.under_odds)
+            if not over_text or not under_text:
+                continue
+            book = _book_abbreviation(row.book)
+            books_by_name.setdefault(book, []).append(f"{stat} {over_text} / {under_text}")
+
+    source_lines = "\n".join(
+        f"{book}: {'; '.join(parts)}" for book, parts in sorted(books_by_name.items())
+    )
+    stat_text = ", ".join(available_stats)
+    if lower_bound_only:
+        source_note = (
+            "MLB HRR lower-bound from same-game "
+            f"{stat_text} prop; no exact hits+runs+RBIs market was available."
+        )
+    else:
+        source_note = (
+            "MLB HRR component model from same-game "
+            f"{stat_text} props; no exact hits+runs+RBIs market was available."
+        )
+    return {
+        "fair_prob": over_fair_prob,
+        "fair_odds": probability_to_american(over_fair_prob),
+        "matched_books": len(books),
+        "books": " | ".join(books),
+        "source_lines": source_lines,
+        "source_note": source_note,
+        "lower_bound_only": lower_bound_only,
+    }
+
+
 def _book_moneyline_summary(markets: list[MarketRow], home_label: str, away_label: str) -> str:
     if not markets:
         return ""
@@ -1202,7 +1327,7 @@ def _fetch_active_day_game_entries(
                     poll=poll,
                     post=post,
                 )
-                allow_unpriced_poll = poll_kind in ZERO_COST_PLAYER_POLL_KINDS or poll_kind == "team_stat"
+                allow_unpriced_poll = poll_kind in UNPRICED_POLL_KINDS
                 if not include_nonwagerable and not poll.get("canWager", False) and not allow_unpriced_poll:
                     continue
             elif is_lineup_contest_post(post):
@@ -1236,6 +1361,112 @@ def _fetch_active_day_game_entries(
             if gid in game_rank:
                 entry["game_order"] = game_rank[gid]
     return resolved_day, entries
+
+
+def _fetch_requested_day_game_entries(
+    client: Any,
+    sport: str,
+    *,
+    day: str,
+    include_nonwagerable: bool = False,
+) -> list[dict[str, Any]]:
+    if not day:
+        return []
+
+    posts_by_id: dict[str, dict[str, Any]] = {}
+    games_by_id: dict[str, dict[str, Any]] = {}
+    before: str | None = None
+    for _ in range(8):
+        try:
+            payload = client.get_polls_for_sport_day(sport, day=day, before=before)
+        except Exception:
+            break
+        for game in payload.get("games") or []:
+            game_id = str(game.get("id") or "").strip()
+            if game_id:
+                games_by_id[game_id] = game
+        posts = [
+            post
+            for post in (payload.get("posts") or [])
+            if isinstance(post, dict) and str(post.get("id") or "").strip()
+        ]
+        if not posts:
+            break
+        for post in posts:
+            posts_by_id[str(post.get("id"))] = post
+        oldest_created_at = str(posts[-1].get("createdAt") or "").strip()
+        if not oldest_created_at or oldest_created_at == before:
+            break
+        before = oldest_created_at
+
+    if not posts_by_id:
+        return []
+
+    game_payloads: dict[str, dict[str, Any]] = {}
+    player_lookups: dict[str, dict[str, dict[str, Any]]] = {}
+    for game_id in games_by_id:
+        try:
+            game_payload = client.get_game_feed(game_id, sport=sport)
+        except Exception:
+            game_payload = {"game": games_by_id[game_id], "players": [], "posts": []}
+        game_payloads[game_id] = game_payload
+        player_lookups[game_id] = _player_lookup(game_payload.get("players") or [])
+
+    ordered_games = sorted(
+        games_by_id,
+        key=lambda gid: (
+            str(games_by_id[gid].get("dateTime") or "9999-99-99T99:99:99.999Z"),
+            gid,
+        ),
+    )
+    game_rank = {gid: index for index, gid in enumerate(ordered_games)}
+    ordered_posts = sorted(
+        posts_by_id.values(),
+        key=lambda post: (
+            str((games_by_id.get(str(post.get("gameId") or "").strip()) or {}).get("dateTime") or "9999-99-99T99:99:99.999Z"),
+            str(post.get("createdAt") or ""),
+            int(post.get("id") or 0),
+        ),
+    )
+
+    entries: list[dict[str, Any]] = []
+    for post_order, post in enumerate(ordered_posts):
+        game_id = str(post.get("gameId") or "").strip()
+        game = games_by_id.get(game_id) or {}
+        if not game:
+            continue
+        poll_id = _extract_poll_id(post)
+        if poll_id:
+            try:
+                poll_payload = client.get_poll(poll_id)
+            except Exception:
+                continue
+            poll = poll_payload.get("poll") or {}
+            poll_kind = _poll_kind(
+                poll.get("additionalInfo") or {},
+                poll=poll,
+                post=post,
+            )
+            allow_unpriced_poll = poll_kind in UNPRICED_POLL_KINDS
+            if not include_nonwagerable and not poll.get("canWager", False) and not allow_unpriced_poll:
+                continue
+        elif is_lineup_contest_post(post):
+            poll = _contest_payload_from_post(post)
+        else:
+            continue
+        game_payload = game_payloads.get(game_id) or {"game": game, "players": [], "posts": []}
+        entries.append(
+            {
+                "game": game_payload.get("game") or game,
+                "game_payload": game_payload,
+                "post": post,
+                "poll": poll,
+                "player_lookup": player_lookups.get(game_id, {}),
+                "game_order": game_rank.get(game_id, 999999),
+                "post_order": post_order,
+            }
+        )
+    return entries
 
 
 def _fetch_daily_poll_entries(
@@ -2438,6 +2669,50 @@ def _recommend_player_over_under(
             converted_saves_note = str(converted_saves.get("note") or "")
 
     if not quotes:
+        component_fallback = None
+        if sport == "mlb" and stat_key == "hitsrunsrbis":
+            component_fallback = _mlb_hrr_component_model(
+                markets,
+                game=game,
+                player_name=player_name,
+                target_line=float(line_value),
+                period=period,
+            )
+        if component_fallback is not None:
+            over_fair_prob = float(component_fallback.get("fair_prob") or 0.0)
+            over_fair_prob = max(0.0, min(1.0, over_fair_prob))
+            under_fair_prob = max(0.0, min(1.0, 1.0 - over_fair_prob))
+            over_eval = _evaluate_binary_offer(over_fair_prob, over_odds)
+            under_eval = _evaluate_binary_offer(
+                0.0 if component_fallback.get("lower_bound_only") else under_fair_prob,
+                under_odds,
+            )
+            selected_action = _choose_zero_or_max_action(
+                poll.get("maxWager"),
+                [
+                    {"label": str(over_option.get("label") or ""), "evaluation": over_eval},
+                    {"label": str(under_option.get("label") or ""), "evaluation": under_eval},
+                ],
+            )
+            if selected_action is not None:
+                selected_eval = selected_action["evaluation"]
+                return {
+                    **base,
+                    "status": str(selected_action.get("status") or "pick"),
+                    "recommended_option": str(selected_action.get("label") or ""),
+                    "recommended_amount": int(selected_action.get("amount") or 0),
+                    "stake_fraction_of_max": round(float(selected_action.get("stake_fraction") or 0.0), 6),
+                    "recommended_ev_percent": round(float(_evaluation_value(selected_eval, "ev_percent") or 0.0), 4),
+                    "fair_prob": round(float(_evaluation_value(selected_eval, "fair_prob") or 0.0), 6),
+                    "fair_odds": int(_evaluation_value(selected_eval, "fair_odds") or probability_to_american(0.5)),
+                    "consensus_fair_line": line_value,
+                    "matched_books": int(component_fallback.get("matched_books") or 0),
+                    "books": str(component_fallback.get("books") or ""),
+                    "notes": str(component_fallback.get("source_note") or "MLB HRR component model"),
+                    "sportsbook_a_odds": "",
+                    "sportsbook_b_odds": "",
+                    "source_lines": str(component_fallback.get("source_lines") or ""),
+                }
         split_fallback = None
         split_fallback_attempted = False
         if sport == "wnba":
@@ -2524,7 +2799,6 @@ def _recommend_player_over_under(
         ],
     )
     if selected_action is None:
-        book_names = sorted({market.book for market in game_quotes})
         return {
             **base,
             "status": "missing_poll_data",
@@ -3850,9 +4124,22 @@ def _allowed_game_players(game_payload: dict[str, Any]) -> set[str]:
     for player in game_payload.get("players") or []:
         if not isinstance(player, dict):
             continue
-        player_name = _player_name_from_payload(player)
-        if player_name:
-            players.add(normalize_player_name(player_name))
+        names = [
+            _player_name_from_payload(player),
+            player.get("displayName"),
+            player.get("fullName"),
+            " ".join(
+                part
+                for part in (
+                    str(player.get("firstName") or "").strip(),
+                    str(player.get("lastName") or "").strip(),
+                )
+                if part
+            ),
+        ]
+        for player_name in names:
+            if player_name:
+                players.add(normalize_player_name(str(player_name)))
     return players
 
 
@@ -4922,6 +5209,206 @@ def _recommend_zero_cost_player_poll(
     }
 
 
+def _golf_leaderboard_context(entry: dict[str, Any]) -> tuple[str, float, str, str] | None:
+    poll = entry.get("poll") or {}
+    post = entry.get("post") or {}
+    additional = poll.get("additionalInfo") or {}
+    content_text = _first_text(((post.get("content") or {}).get("nodes")) or [])
+    text = f"{content_text} {additional.get('karmaDisplay') or ''}".lower()
+    round_value = str(additional.get("round") or "").strip()
+    period = f"R{round_value}" if round_value.isdigit() else ""
+
+    min_rank: int | None = None
+    try:
+        min_rank = int(float(additional.get("minRank")))
+    except Exception:
+        min_rank = None
+    top_match = re.search(r"\btop\s+([0-9]+)\b", text)
+    if top_match:
+        min_rank = int(top_match.group(1))
+
+    if period == "R1" and ("leader" in text or min_rank == 1):
+        return "leader", 1.0, period, "round 1 leader"
+    if min_rank is not None and min_rank > 1:
+        label = f"round {round_value} top {min_rank}" if period else f"top {min_rank}"
+        return "topfinish", float(min_rank), period, label
+    if min_rank == 1 or "win the tournament" in text or "tournament winner" in text:
+        return "winner", 1.0, "", "tournament winner"
+    return None
+
+
+def _golf_leaderboard_candidates(
+    markets: list[MarketRow],
+    *,
+    stat_key: str,
+    line_value: float,
+    period: str,
+    allowed_players: set[str],
+) -> list[dict[str, Any]]:
+    market_groups: dict[tuple[str, str], list[MarketRow]] = {}
+    for market in markets:
+        if market.sport != "golf" or market.market_family != "player_finish":
+            continue
+        if market.stat_key != stat_key:
+            continue
+        if market.line is None or abs(float(market.line) - float(line_value)) > 1e-9:
+            continue
+        if period and str(market.period or "").strip().upper() != period:
+            continue
+        if not period and str(market.period or "").strip():
+            continue
+        if not market.player_name or market.over_odds is None:
+            continue
+        if allowed_players and market.player_name not in allowed_players:
+            continue
+        market_id = str(market.raw.get("provider_market_id") or market.raw.get("provider_market_name") or "").split(":", 1)[0]
+        market_groups.setdefault((market.book, market_id), []).append(market)
+
+    probability_map: dict[str, list[float]] = {}
+    price_map: dict[str, list[int]] = {}
+    books_map: dict[str, set[str]] = {}
+    display_names: dict[str, str] = {}
+    source_map: dict[str, list[str]] = {}
+    for (book, _market_id), rows in market_groups.items():
+        total_implied = sum(
+            american_to_implied_prob(row.over_odds)
+            for row in rows
+            if row.over_odds is not None
+        )
+        if total_implied <= 0:
+            continue
+        market_name = str((rows[0].raw if rows else {}).get("provider_market_name") or "").strip()
+        for row in rows:
+            if row.over_odds is None:
+                continue
+            fair_prob = american_to_implied_prob(row.over_odds) / total_implied
+            probability_map.setdefault(row.player_name, []).append(fair_prob)
+            price_map.setdefault(row.player_name, []).append(row.over_odds)
+            books_map.setdefault(row.player_name, set()).add(book)
+            display_names.setdefault(
+                row.player_name,
+                clean_player_name(str(row.raw.get("player_name") or "").strip()) or row.player_name,
+            )
+            source_map.setdefault(row.player_name, []).append(
+                f"{_book_abbreviation(book)} {market_name} {_format_american(row.over_odds)} ({fair_prob * 100.0:.1f}% no-vig)"
+            )
+
+    candidates: list[dict[str, Any]] = []
+    for player_key, probabilities in probability_map.items():
+        if not probabilities:
+            continue
+        fair_prob = sum(probabilities) / len(probabilities)
+        price_candidates = price_map.get(player_key) or []
+        sportsbook_odds: int | str = ""
+        if price_candidates:
+            sportsbook_odds = min(
+                price_candidates,
+                key=lambda price: abs(american_to_implied_prob(price) - fair_prob),
+            )
+        candidates.append(
+            {
+                "player_key": player_key,
+                "selection": display_names.get(player_key, player_key),
+                "fair_prob": fair_prob,
+                "fair_odds": int(probability_to_american(fair_prob)),
+                "consensus_fair_line": "",
+                "matched_books": len(books_map.get(player_key) or []),
+                "books": " | ".join(sorted(books_map.get(player_key) or [])),
+                "sportsbook_odds": sportsbook_odds,
+                "source_lines": "\n".join(source_map.get(player_key, [])[:6]),
+                "source_note": "normalized golf leaderboard implied probabilities",
+            }
+        )
+    return candidates
+
+
+def _recommend_golf_leaderboard_poll(
+    entry: dict[str, Any],
+    markets: list[MarketRow],
+    sport: str,
+) -> dict[str, Any]:
+    context = _golf_leaderboard_context(entry)
+    stat_key = context[0] if context else ""
+    line_value = context[1] if context else None
+    base = _zero_cost_pick_base(
+        entry,
+        sport,
+        poll_kind="golf_leaderboard",
+        stat_key=stat_key,
+        line_value=line_value,
+    )
+    if context is None:
+        return {
+            **base,
+            "status": "missing_poll_data",
+            "notes": "Could not determine the golf leaderboard market from the Real payload.",
+        }
+
+    stat_key, line_value, period, market_label = context
+    candidates = _golf_leaderboard_candidates(
+        markets,
+        stat_key=stat_key,
+        line_value=line_value,
+        period=period,
+        allowed_players=_allowed_game_players(entry.get("game_payload") or {}),
+    )
+    if not candidates:
+        return {
+            **base,
+            "status": "no_market",
+            "notes": f"No DraftKings golf {market_label} odds matched this leaderboard poll.",
+        }
+
+    additional = (entry.get("poll") or {}).get("additionalInfo") or {}
+    try:
+        payout_base = max(1, int(float(additional.get("karmaIncrement") or 10)))
+    except Exception:
+        payout_base = 10
+    ranked_candidates = _rank_zero_cost_candidates(candidates, payout_base)
+    selected = max(
+        ranked_candidates,
+        key=lambda candidate: (
+            float(candidate.get("expected_value") or 0.0),
+            float(candidate.get("fair_prob") or 0.0),
+            -int(candidate.get("probability_rank") or 9999),
+            str(candidate.get("selection") or ""),
+        ),
+    )
+    note_parts = [
+        f"weighted golf leaderboard payout ladder from karmaIncrement={payout_base}",
+        f"{market_label} market",
+        f"rank {int(selected['probability_rank'])} payout {int(selected['ranked_payout'])}",
+        f"fair win {float(selected['fair_prob']) * 100.0:.1f}%",
+        f"EV {float(selected['expected_value']):.2f}",
+        str(selected.get("source_note") or "").strip(),
+    ]
+    return {
+        **base,
+        **_ranked_sportsbook_fields(
+            sorted(
+                ranked_candidates,
+                key=lambda candidate: (
+                    -float(candidate.get("expected_value") or 0.0),
+                    -float(candidate.get("fair_prob") or 0.0),
+                    str(candidate.get("selection") or ""),
+                ),
+            ),
+            str(selected.get("selection") or ""),
+        ),
+        "status": "pick",
+        "player_name": str(selected.get("selection") or ""),
+        "recommended_option": str(selected.get("selection") or ""),
+        "recommended_amount": 0,
+        "fair_prob": round(float(selected.get("fair_prob") or 0.0), 6),
+        "fair_odds": int(selected.get("fair_odds") or probability_to_american(0.5)),
+        "matched_books": int(selected.get("matched_books") or 0),
+        "books": str(selected.get("books") or ""),
+        "player_choices_json": _zero_cost_player_choices_json(ranked_candidates),
+        "source_lines": str(selected.get("source_lines") or ""),
+        "notes": "; ".join(part for part in note_parts if part),
+    }
+
+
 def _recommend_team_stat_poll(
     entry: dict[str, Any],
     sport: str,
@@ -5001,6 +5488,10 @@ def _recommend_team_stat_poll(
                 away_team=str(game.get("awayTeamKey") or ""),
                 content_text=base["content_text"],
                 stat_ids=additional.get("stats"),
+                home_team_id=game.get("homeTeamId") or poll.get("homeTeamId") or "",
+                away_team_id=game.get("awayTeamId") or poll.get("awayTeamId") or "",
+                season=game.get("season") or "",
+                season_type=str(game.get("seasonType") or "").strip(),
             )
         else:
             recommendation = None
@@ -5277,6 +5768,13 @@ def build_recommendations(
         include_nonwagerable=include_nonwagerable,
         client=client,
     )
+    if requested_day and not entries:
+        entries = _fetch_requested_day_game_entries(
+            client,
+            sport,
+            day=resolved_day,
+            include_nonwagerable=include_nonwagerable,
+        )
     active_games = [entry.get("game") or {} for entry in entries]
     entries.extend(
         _fetch_daily_poll_entries(
@@ -5342,6 +5840,8 @@ def build_recommendations(
             recommendation = _recommend_double_chance(entry, markets, sport)
         elif poll_kind == "halftime_result":
             recommendation = _recommend_halftime_result(entry, markets, sport)
+        elif poll_kind == "golf_leaderboard":
+            recommendation = _recommend_golf_leaderboard_poll(entry, markets, sport)
         elif poll_kind == "team_stat":
             recommendation = _recommend_team_stat_poll(
                 entry,

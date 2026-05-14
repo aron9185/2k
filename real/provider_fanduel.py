@@ -151,6 +151,8 @@ STAT_ALIASES = {
     "made 3 point field goals": "madethrees",
     "total bases": "totalbases",
     "hits": "hits",
+    "run": "runs",
+    "runs": "runs",
     "hits + runs + rbis": "hitsrunsrbis",
     "hits+runs+rbis": "hitsrunsrbis",
     "strikeouts": "strikeouts",
@@ -175,6 +177,8 @@ LADDER_MARKET_MAP = (
     (re.compile(r"^to record a hit$", re.IGNORECASE), "hits", 0.5),
     (re.compile(r"^to record ([0-9]+)\+ hits$", re.IGNORECASE), "hits", -0.5),
     (re.compile(r"^to record ([0-9]+)\+ total bases$", re.IGNORECASE), "totalbases", -0.5),
+    (re.compile(r"^to record a run$", re.IGNORECASE), "runs", 0.5),
+    (re.compile(r"^to record ([0-9]+)\+ runs$", re.IGNORECASE), "runs", -0.5),
     (re.compile(r"^to record an rbi$", re.IGNORECASE), "rbis", 0.5),
     (re.compile(r"^to record ([0-9]+)\+ rbis$", re.IGNORECASE), "rbis", -0.5),
     (re.compile(r"^to record a stolen base$", re.IGNORECASE), "stolenbases", 0.5),
@@ -599,6 +603,8 @@ def _single_side_player_market(market_name: str, market_type_name: str) -> tuple
         or "to record an assist" in market_text
     ):
         return "assists", 0.5
+    if market_type_key in {"TO_RECORD_A_RUN", "PLAYER_TO_RECORD_A_RUN"} or "to record a run" in market_text:
+        return "runs", 0.5
 
     type_patterns = (
         (r"PLAYER_TO_SCORE_([0-9]+)\+_GOALS", "goals"),
@@ -606,6 +612,8 @@ def _single_side_player_market(market_name: str, market_type_name: str) -> tuple
         (r"PLAYER_TO_RECORD_([0-9]+)\+_POINTS", "points"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_ASSISTS", "assists"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_REBOUNDS", "rebounds"),
+        (r"PLAYER_TO_RECORD_([0-9]+)\+_RUNS", "runs"),
+        (r"TO_RECORD_([0-9]+)\+_RUNS", "runs"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_HITS\+RUNS\+RBIS", "hitsrunsrbis"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_HITS_RUNS_RBIS", "hitsrunsrbis"),
         (r"PLAYER_TO_RECORD_([0-9]+)\+_SHOTS_ON_GOAL", "shots"),
@@ -2078,6 +2086,9 @@ def fetch_rows(
                     last_error = exc
             if payload is None and last_error is not None:
                 raw_payloads[sport] = {"error": str(last_error)}
+                continue
+            if payload is None:
+                raw_payloads[sport] = {"error": f"unsupported live FanDuel sport: {sport}"}
                 continue
         raw_payloads[sport] = payload
         all_rows.extend(_filter_rows_by_market_scope(parse_payload(payload, sport), market_scope))

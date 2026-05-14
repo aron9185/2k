@@ -29,7 +29,12 @@ function Test-DashboardResponding {
 
 function Get-ListeningPids {
     param([int]$Port)
-    $lines = netstat -ano | Select-String ":$Port\s+.*LISTENING"
+    $netstat = "netstat"
+    $systemNetstat = Join-Path $env:WINDIR "System32\netstat.exe"
+    if (Test-Path $systemNetstat) {
+        $netstat = $systemNetstat
+    }
+    $lines = & $netstat -ano | Select-String ":$Port\s+.*LISTENING"
     $pids = @()
     foreach ($line in $lines) {
         $parts = ($line.Line.Trim() -split "\s+")

@@ -24,6 +24,7 @@ ROOT_DIR = BASE_DIR.parent
 OUTPUT_DIR = BASE_DIR / "output" / "dashboard"
 DEFAULT_MARKETS_CSV = BASE_DIR / "sportsbook_markets_consensus_live.csv"
 DEFAULT_SOCCER_MARKETS_CSV = BASE_DIR / "sportsbook_markets_soccer_live.csv"
+DEFAULT_GOLF_MARKETS_CSV = BASE_DIR / "sportsbook_markets_golf_live.csv"
 LIVE_POLL_MARKETS_CSV = BASE_DIR / "sportsbook_markets_live_polls.csv"
 LIVE_POLL_RECOMMENDATIONS_CSV = BASE_DIR / "live_poll_vote_recommendations.csv"
 PREDICTION_SPORTS = {"mlb", "nba", "nhl", "soccer"}
@@ -39,8 +40,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sports",
-        default="mlb,nba,nhl,wnba",
-        help="Comma-separated sports to refresh, for example mlb,nba,nhl,wnba.",
+        default="mlb,nba,nhl,wnba,golf",
+        help="Comma-separated sports to refresh, for example mlb,nba,nhl,wnba,golf.",
     )
     parser.add_argument(
         "--refresh-soccer",
@@ -56,6 +57,11 @@ def parse_args() -> argparse.Namespace:
         "--soccer-markets-csv",
         default=str(DEFAULT_SOCCER_MARKETS_CSV),
         help="Soccer sportsbook CSV path when soccer is refreshed.",
+    )
+    parser.add_argument(
+        "--golf-markets-csv",
+        default=str(DEFAULT_GOLF_MARKETS_CSV),
+        help="Golf sportsbook CSV path when golf is refreshed.",
     )
     parser.add_argument(
         "--season",
@@ -366,6 +372,34 @@ def _refresh_soccer_markets(
     raise RuntimeError("Soccer market refresh failed and no existing soccer market CSV is available.")
 
 
+def _refresh_golf_markets(golf_markets_csv: Path) -> None:
+    print("Refreshing golf sportsbook markets.", flush=True)
+    command = [
+        sys.executable,
+        "-B",
+        str(BASE_DIR / "ingest_public_markets.py"),
+        "--providers",
+        "draftkings,fanduel",
+        "--sports",
+        "golf",
+        "--force-live",
+        "--output",
+        str(golf_markets_csv),
+        "--dump-json-dir",
+        str(BASE_DIR / "tmp" / "dashboard_golf_live_check"),
+    ]
+    if _try_run_step(command):
+        return
+    if golf_markets_csv.exists():
+        print(
+            "Warning: golf market refresh failed; continuing with existing "
+            f"{golf_markets_csv}.",
+            flush=True,
+        )
+        return
+    raise RuntimeError("Golf market refresh failed and no existing golf market CSV is available.")
+
+
 def _refresh_sport(
     sport: str,
     *,
@@ -641,11 +675,13 @@ def main() -> int:
     dashboard_dir.mkdir(parents=True, exist_ok=True)
 
     requested_sports = _normalize_sports_arg(args.sports)
-    core_sports = [sport for sport in requested_sports if sport != "soccer"]
+    core_sports = [sport for sport in requested_sports if sport not in {"soccer", "golf"}]
     refresh_soccer = args.refresh_soccer or ("soccer" in requested_sports)
+    refresh_golf = "golf" in requested_sports
 
     markets_csv = Path(args.markets_csv)
     soccer_markets_csv = Path(args.soccer_markets_csv)
+    golf_markets_csv = Path(args.golf_markets_csv)
 
     if args.only_live_polls:
         _refresh_live_poll_dashboard(
@@ -695,6 +731,8 @@ def main() -> int:
     _refresh_core_markets(core_sports, markets_csv)
     if refresh_soccer:
         _refresh_soccer_markets(soccer_markets_csv)
+    if refresh_golf:
+        _refresh_golf_markets(golf_markets_csv)
 
     for sport in core_sports:
         _refresh_sport(
@@ -710,6 +748,14 @@ def main() -> int:
             season=str(args.season),
             dashboard_dir=dashboard_dir,
             markets_csv=soccer_markets_csv,
+        )
+
+    if refresh_golf:
+        _refresh_sport(
+            "golf",
+            season=str(args.season),
+            dashboard_dir=dashboard_dir,
+            markets_csv=golf_markets_csv,
         )
 
     if not args.skip_live_polls:

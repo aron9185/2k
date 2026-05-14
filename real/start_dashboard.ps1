@@ -1,7 +1,7 @@
 param(
     [string]$HostAddress = "127.0.0.1",
     [int]$Port = 8765,
-    [string]$Sports = "mlb,nba,nhl,wnba",
+    [string]$Sports = "mlb,nba,nhl,wnba,golf",
     [switch]$NoSoccer,
     [int]$RefreshSeconds = 0,
     [switch]$RefreshOnStart
@@ -51,8 +51,10 @@ if ($RefreshOnStart) {
     $arguments += "--refresh-on-start"
 }
 
+$pythonCommand = (Get-Command python3 -ErrorAction Stop).Source
+
 $process = Start-Process `
-    -FilePath "python" `
+    -FilePath $pythonCommand `
     -ArgumentList $arguments `
     -WorkingDirectory $repoRoot `
     -WindowStyle Hidden `

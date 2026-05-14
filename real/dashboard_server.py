@@ -23,6 +23,7 @@ ROOT_DIR = BASE_DIR.parent
 DASHBOARD_DIR = BASE_DIR / "output" / "dashboard"
 CORE_MARKETS_CSV = BASE_DIR / "sportsbook_markets_consensus_live.csv"
 SOCCER_MARKETS_CSV = BASE_DIR / "sportsbook_markets_soccer_live.csv"
+GOLF_MARKETS_CSV = BASE_DIR / "sportsbook_markets_golf_live.csv"
 LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 ACTION_TOKEN_RE = re.compile(r"\s*<!--REAL_ACTIONS:([A-Za-z0-9_\-=]+)-->\s*$")
 SOURCE_LINES_TOKEN_RE = re.compile(r"\s*<!--REAL_SOURCE_LINES:([A-Za-z0-9_\-=]+)-->\s*$")
@@ -66,6 +67,14 @@ DOC_SPECS = [
         "sport": "soccer",
         "stable_path": DASHBOARD_DIR / "soccer.md",
         "fallback_glob": "soccer_v*.md",
+    },
+    {
+        "id": "golf-vote",
+        "category": "Vote Sheets",
+        "label": "Golf Vote Sheet",
+        "sport": "golf",
+        "stable_path": DASHBOARD_DIR / "golf.md",
+        "fallback_glob": "golf_v*.md",
     },
     {
         "id": "live-polls",
@@ -122,7 +131,7 @@ CATEGORY_ORDER = {
     "Live": 1,
     "Predictions": 2,
 }
-REFRESHABLE_VOTE_SPORTS = {"mlb", "nba", "nhl", "wnba", "soccer"}
+REFRESHABLE_VOTE_SPORTS = {"mlb", "nba", "nhl", "wnba", "soccer", "golf"}
 REFRESHABLE_PREDICTION_SPORTS = {"mlb", "nba", "nhl", "soccer"}
 REFRESHABLE_TARGETS = {"live-polls"}
 REFRESH_TARGET_ALIASES = {
@@ -138,6 +147,7 @@ SPORT_LABELS = {
     "nhl": "NHL",
     "wnba": "WNBA",
     "soccer": "Soccer",
+    "golf": "Golf",
 }
 
 
@@ -163,7 +173,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sports",
-        default="mlb,nba,nhl,wnba",
+        default="mlb,nba,nhl,wnba,golf",
         help="Comma-separated sports passed through to refresh_dashboard_data.py.",
     )
     parser.add_argument(
@@ -205,7 +215,12 @@ def _path_updated_at(path: Path | None) -> str:
 
 
 def _odds_source_path_for_sport(sport: str) -> Path:
-    return SOCCER_MARKETS_CSV if str(sport or "").strip().lower() == "soccer" else CORE_MARKETS_CSV
+    sport_key = str(sport or "").strip().lower()
+    if sport_key == "soccer":
+        return SOCCER_MARKETS_CSV
+    if sport_key == "golf":
+        return GOLF_MARKETS_CSV
+    return CORE_MARKETS_CSV
 
 
 def _odds_updated_at_for_sport(sport: str) -> str:
@@ -759,6 +774,7 @@ class DashboardContext:
                 "refresh_soccer": self.refresh_soccer,
                 "core_odds_updated_at": _path_updated_at(CORE_MARKETS_CSV),
                 "soccer_odds_updated_at": _path_updated_at(SOCCER_MARKETS_CSV),
+                "golf_odds_updated_at": _path_updated_at(GOLF_MARKETS_CSV),
             }
 
 
@@ -983,6 +999,35 @@ def _html_shell() -> str:
     .doc-html h1 { font-size: 2rem; margin-top: 0; }
     .doc-html h2 { font-size: 1.55rem; }
     .doc-html h3 { font-size: 1.15rem; letter-spacing: 0.02em; }
+    .game-copy-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin: 1.2rem 0 0.55rem;
+      flex-wrap: wrap;
+    }
+    .game-copy-row h2 {
+      margin: 0;
+    }
+    .copy-game-picks {
+      padding: 0.48rem 0.78rem;
+      background: rgba(15, 92, 77, 0.09);
+      color: var(--accent);
+      font-size: 0.82rem;
+      box-shadow: inset 0 0 0 1px rgba(15, 92, 77, 0.16);
+    }
+    .copy-game-picks:hover {
+      background: rgba(15, 92, 77, 0.14);
+    }
+    .copy-game-picks.copied {
+      background: var(--accent);
+      color: white;
+      box-shadow: none;
+    }
+    .daily-lineup-copy-row {
+      margin-top: 0;
+    }
     .doc-html p, .doc-html li, .doc-html td, .doc-html th {
       line-height: 1.48;
       font-size: 0.95rem;
@@ -1042,6 +1087,52 @@ def _html_shell() -> str:
       cursor: help;
       text-decoration: underline dotted rgba(15, 92, 77, 0.45);
       text-underline-offset: 0.18rem;
+    }
+    .odds-stack {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+    .odds-book {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.65rem;
+      padding: 0 0.45rem;
+      border-radius: 0.35rem;
+      background: rgba(29, 36, 51, 0.08);
+      color: #4a5668;
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .odds-pill {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.35rem;
+      min-height: 1.65rem;
+      padding: 0.16rem 0.5rem;
+      border-radius: 0.35rem;
+      background: rgba(15, 92, 77, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(15, 92, 77, 0.12);
+      white-space: nowrap;
+    }
+    .odds-label {
+      color: #355148;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .odds-price {
+      color: #11251f;
+      font-size: 0.88rem;
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+    }
+    .odds-price.positive {
+      color: #0d684f;
+    }
+    .odds-price.negative {
+      color: #8a3e1f;
     }
     .selection-put-select {
       width: 100%;
@@ -1197,6 +1288,14 @@ def _html_shell() -> str:
               cell.removeAttribute("title");
             }
           }
+          if (field === "sportsbook") {
+            if (value) {
+              cell.dataset.oddsText = value;
+            } else {
+              delete cell.dataset.oddsText;
+            }
+            renderOddsCell(cell);
+          }
         }
       }
     }
@@ -1204,6 +1303,289 @@ def _html_shell() -> str:
     function hydrateSelectionPutControls() {
       for (const select of document.querySelectorAll(".selection-put-select")) {
         updateSelectionPut(select);
+      }
+    }
+
+    function splitBookPrefix(text) {
+      const match = String(text || "").trim().match(/^([A-Z][A-Z+ ]{1,12}):\\s+(.+)$/);
+      if (!match) return { book: "", body: String(text || "").trim() };
+      return { book: match[1].trim(), body: match[2].trim() };
+    }
+
+    function parseOddsPart(part) {
+      const text = String(part || "").replace(/\\s+/g, " ").trim();
+      if (!text) return null;
+      const oddsMatch = text.match(/^(.*?)([+-]\\d+)$/);
+      if (oddsMatch) {
+        return {
+          label: oddsMatch[1].trim(),
+          price: oddsMatch[2],
+          className: oddsMatch[2].startsWith("+") ? "positive" : "negative",
+        };
+      }
+      const percentMatch = text.match(/^(.*?)(\\d+(?:\\.\\d+)?%)$/);
+      if (percentMatch) {
+        return { label: percentMatch[1].trim(), price: percentMatch[2], className: "" };
+      }
+      return { label: text, price: "", className: "" };
+    }
+
+    function renderOddsCell(cell) {
+      const rawText = String(cell.dataset.oddsText || cell.textContent || "").replace(/\\s+/g, " ").trim();
+      if (rawText) {
+        cell.dataset.oddsText = rawText;
+      } else {
+        delete cell.dataset.oddsText;
+      }
+      cell.classList.remove("odds-cell");
+      if (!rawText || rawText.length > 140 || /^(?:no sportsbook match|proxy unavailable)$/i.test(rawText)) {
+        cell.textContent = rawText;
+        return;
+      }
+      const { book, body } = splitBookPrefix(rawText);
+      const parts = body.split(" / ").map(parseOddsPart).filter(Boolean);
+      if (!parts.length || (parts.length === 1 && !parts[0].price && !book)) {
+        cell.textContent = rawText;
+        return;
+      }
+      cell.textContent = "";
+      cell.classList.add("odds-cell");
+      const stack = document.createElement("span");
+      stack.className = "odds-stack";
+      if (book) {
+        const bookNode = document.createElement("span");
+        bookNode.className = "odds-book";
+        bookNode.textContent = book;
+        stack.appendChild(bookNode);
+      }
+      for (const part of parts) {
+        const pill = document.createElement("span");
+        pill.className = "odds-pill";
+        const label = document.createElement("span");
+        label.className = "odds-label";
+        label.textContent = part.label;
+        pill.appendChild(label);
+        if (part.price) {
+          const price = document.createElement("span");
+          price.className = `odds-price ${part.className}`.trim();
+          price.textContent = part.price;
+          pill.appendChild(price);
+        }
+        stack.appendChild(pill);
+      }
+      cell.appendChild(stack);
+    }
+
+    function hydrateOddsCells() {
+      for (const cell of document.querySelectorAll('td[data-action-field="sportsbook"]')) {
+        renderOddsCell(cell);
+      }
+    }
+
+    function isGamePollHeading(heading) {
+      const text = (heading.textContent || "").trim();
+      return /^(?:[A-Z]+\s*[-:]\s*)?[A-Z0-9 .'-]+\s+@\s+[A-Z0-9 .'-]+$/.test(text);
+    }
+
+    function getTableColumnIndex(table, label) {
+      const wanted = label.toLowerCase();
+      const headers = Array.from(table.querySelectorAll("thead th"));
+      return headers.findIndex((header) => (header.textContent || "").trim().toLowerCase() === wanted);
+    }
+
+    function findSectionTable(heading, predicate) {
+      let node = heading.nextElementSibling;
+      while (node && node.tagName !== "H2") {
+        const table = node.matches(".table-wrap")
+          ? node.querySelector("table")
+          : node.querySelector && node.querySelector(".table-wrap table");
+        if (table && predicate(table)) {
+          return table;
+        }
+        node = node.nextElementSibling;
+      }
+      return null;
+    }
+
+    function findPollPickTable(heading) {
+      return findSectionTable(
+        heading,
+        (table) => getTableColumnIndex(table, "Poll") >= 0 && getTableColumnIndex(table, "Selection+Put") >= 0
+      );
+    }
+
+    function findDailyLineupTable(heading) {
+      return findSectionTable(heading, (table) => getTableColumnIndex(table, "Player") >= 0);
+    }
+
+    function findLineupContestTable(heading) {
+      return findSectionTable(
+        heading,
+        (table) => getTableColumnIndex(table, "Action") >= 0 && getTableColumnIndex(table, "Top 5") >= 0
+      );
+    }
+
+    function cleanSelectionPutValue(value) {
+      let text = String(value || "").replace(/\\s+/g, " ").trim();
+      const dividerIndex = text.indexOf("|");
+      if (dividerIndex >= 0) {
+        text = text.slice(0, dividerIndex).trim();
+      }
+      if (!text || text.toLowerCase() === "nomarket") return "";
+      const overUnderMatch = text.match(/^(Over|Under)([0-9]+)$/i);
+      if (overUnderMatch) {
+        const side = overUnderMatch[1].charAt(0).toUpperCase() + overUnderMatch[1].slice(1).toLowerCase();
+        return `${side} ${overUnderMatch[2]}`;
+      }
+      return text;
+    }
+
+    function collectGamePickText(table) {
+      const selectionIndex = getTableColumnIndex(table, "Selection+Put");
+      if (selectionIndex < 0) return "";
+      const picks = [];
+      for (const row of table.querySelectorAll("tbody tr")) {
+        const cell = row.cells[selectionIndex];
+        if (!cell) continue;
+        const select = cell.querySelector(".selection-put-select");
+        const value = cleanSelectionPutValue(select ? select.value : cell.textContent);
+        if (value) picks.push(value);
+      }
+      return picks.join("\\n");
+    }
+
+    function collectDailyLineupNames(table) {
+      const playerIndex = getTableColumnIndex(table, "Player");
+      if (playerIndex < 0) return "";
+      const names = [];
+      for (const row of table.querySelectorAll("tbody tr")) {
+        const cell = row.cells[playerIndex];
+        const name = String(cell ? cell.textContent : "").replace(/\\s+/g, " ").trim();
+        if (name) names.push(name);
+      }
+      return names.join("\\n");
+    }
+
+    function parseLineupContestNames(value) {
+      return String(value || "")
+        .split(">")
+        .map((part) => part.replace(/^\\s*\\d+\\.\\s*/, "").replace(/\\s+/g, " ").trim())
+        .filter(Boolean);
+    }
+
+    function collectLineupContestText(table) {
+      const actionIndex = getTableColumnIndex(table, "Action");
+      const topFiveIndex = getTableColumnIndex(table, "Top 5");
+      if (topFiveIndex < 0) return "";
+      const lineups = [];
+      for (const row of table.querySelectorAll("tbody tr")) {
+        const actionCell = actionIndex >= 0 ? row.cells[actionIndex] : null;
+        const topFiveCell = row.cells[topFiveIndex];
+        const action = String(actionCell ? actionCell.textContent : "").replace(/\\s+/g, " ").trim();
+        const names = parseLineupContestNames(topFiveCell ? topFiveCell.textContent : "");
+        if (!names.length) continue;
+        lineups.push((action ? [action, ...names] : names).join("\\n"));
+      }
+      return lineups.join("\\n\\n");
+    }
+
+    async function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+
+    function setCopyButtonState(button, label, copied) {
+      window.clearTimeout(button.copyResetTimer);
+      button.textContent = label;
+      button.classList.toggle("copied", !!copied);
+      button.copyResetTimer = window.setTimeout(() => {
+        button.textContent = button.dataset.defaultLabel || "Copy Picks";
+        button.classList.remove("copied");
+      }, copied ? 1500 : 1800);
+    }
+
+    function attachHeadingCopyButton(heading, rowClassName, label, title, collectText) {
+      const row = document.createElement("div");
+      row.className = rowClassName;
+      heading.parentNode.insertBefore(row, heading);
+      row.appendChild(heading);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "copy-game-picks";
+      button.textContent = label;
+      button.dataset.defaultLabel = label;
+      button.title = title;
+      button.addEventListener("click", async () => {
+        const text = collectText();
+        if (!text) {
+          setCopyButtonState(button, "Nothing to copy", false);
+          return;
+        }
+        try {
+          await copyText(text);
+          setCopyButtonState(button, "Copied", true);
+        } catch (error) {
+          setCopyButtonState(button, "Copy failed", false);
+        }
+      });
+      row.appendChild(button);
+    }
+
+    function hydratePollCopyButtons() {
+      const container = document.getElementById("doc-html");
+      for (const heading of Array.from(container.querySelectorAll("h2"))) {
+        if (heading.closest(".game-copy-row")) continue;
+        const table = findPollPickTable(heading);
+        if (!table) continue;
+        const scope = isGamePollHeading(heading) ? "game" : "section";
+        attachHeadingCopyButton(
+          heading,
+          "game-copy-row",
+          "Copy Picks",
+          `Copy current Selection+Put values for this ${scope}`,
+          () => collectGamePickText(table)
+        );
+      }
+    }
+
+    function hydrateLineupCopyButtons() {
+      const container = document.getElementById("doc-html");
+      for (const heading of Array.from(container.querySelectorAll("h2"))) {
+        const headingText = (heading.textContent || "").trim().toLowerCase();
+        if (heading.closest(".game-copy-row")) continue;
+        if (headingText === "daily lineup") {
+          const table = findDailyLineupTable(heading);
+          if (!table) continue;
+          attachHeadingCopyButton(
+            heading,
+            "game-copy-row daily-lineup-copy-row",
+            "Copy Names",
+            "Copy all Daily Lineup player names",
+            () => collectDailyLineupNames(table)
+          );
+        } else if (headingText === "lineup contest picks") {
+          const table = findLineupContestTable(heading);
+          if (!table) continue;
+          attachHeadingCopyButton(
+            heading,
+            "game-copy-row daily-lineup-copy-row",
+            "Copy Lineups",
+            "Copy lineup contest player names",
+            () => collectLineupContestText(table)
+          );
+        }
       }
     }
 
@@ -1238,6 +1620,9 @@ def _html_shell() -> str:
       document.getElementById("doc-updated").textContent = updatedBits.join(" • ");
       document.getElementById("doc-html").innerHTML = doc.html || '<div class="empty">No content found.</div>';
       hydrateSelectionPutControls();
+      hydrateOddsCells();
+      hydrateLineupCopyButtons();
+      hydratePollCopyButtons();
       updateDocumentRefreshButton(doc);
       renderDocGroups();
     }
@@ -1261,7 +1646,6 @@ def _html_shell() -> str:
       const pill = document.getElementById("refresh-pill");
       const button = document.getElementById("refresh-now");
       state.refreshRunning = running;
-      line.textContent = running ? "Refreshing sportsbook and Real data…" : "Dashboard ready";
       const parts = [];
       line.textContent = running
         ? `Refreshing ${payload.active_refresh || "sportsbook and Real data"}...`
@@ -1275,6 +1659,9 @@ def _html_shell() -> str:
       if (payload.refresh_soccer && payload.soccer_odds_updated_at) {
         parts.push(`Soccer odds: ${formatTimestamp(payload.soccer_odds_updated_at)}`);
       }
+      if (payload.golf_odds_updated_at) {
+        parts.push(`Golf odds: ${formatTimestamp(payload.golf_odds_updated_at)}`);
+      }
       parts.push(`Auto odds refresh: ${payload.refresh_seconds > 0 ? `${payload.refresh_seconds}s` : "off"}`);
       parts.push(`Sports: ${payload.sports}${payload.refresh_soccer ? ", soccer" : ""}`);
       if (payload.last_succeeded_at) {
@@ -1283,8 +1670,7 @@ def _html_shell() -> str:
       if (payload.last_error) {
         parts.push(`Last error: ${payload.last_error}`);
       }
-      detail.textContent = parts.join(" • ");
-      detail.textContent = parts.join(" • ");
+      detail.textContent = parts.join(" | ");
       pill.textContent = running ? "Refreshing" : "Idle";
       button.disabled = running;
       updateDocumentRefreshButton(state.activeDoc);

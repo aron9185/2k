@@ -57,8 +57,19 @@ MLB_POLL_KIND_ORDER = {
     "period_total_yes_no": 3,
 }
 ZERO_PUT_WIN_WAGER = 10.0
-ZERO_COST_ACTION_POLL_KINDS = {"anytime_play", "player_most_stat", "first_basket"}
-ZERO_COST_PICK_DISPLAY_KINDS = {"anytime_play", "player_most_stat", "first_basket", "team_stat"}
+ZERO_COST_ACTION_POLL_KINDS = {
+    "anytime_play",
+    "player_most_stat",
+    "first_basket",
+    "golf_leaderboard",
+}
+ZERO_COST_PICK_DISPLAY_KINDS = {
+    "anytime_play",
+    "player_most_stat",
+    "first_basket",
+    "golf_leaderboard",
+    "team_stat",
+}
 
 STATUS_ORDER = {
     "bet": 0,
@@ -825,6 +836,18 @@ def _sportsbook_pair(row: dict[str, str]) -> str:
 def _compact_sportsbook_pair(row: dict[str, str]) -> str:
     if str(row.get("poll_kind") or "").strip().lower() == "daily_pool":
         return str(row.get("sportsbook_a_label") or "").strip()
+    if (
+        str(row.get("poll_kind") or "").strip().lower() == "team_stat"
+        and str(row.get("books") or "").strip().lower() == "realapp"
+    ):
+        parts = []
+        for option in _option_slots(row, prefix="sportsbook"):
+            label = _compact_label(option["label"])
+            value = str(option["odds"] or "").strip()
+            if label and value:
+                parts.append(f"{label} {value}")
+        if parts:
+            return " / ".join(parts)
     parts = []
     for option in _option_slots(row, prefix="sportsbook"):
         odds = _format_american(option["odds"])
