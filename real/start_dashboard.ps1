@@ -1,7 +1,7 @@
 param(
     [string]$HostAddress = "127.0.0.1",
     [int]$Port = 8765,
-    [string]$Sports = "mlb,nba,nhl,wnba,golf",
+    [string]$Sports = "mlb,nba,nhl,wnba,golf,ufc",
     [switch]$NoSoccer,
     [int]$RefreshSeconds = 0,
     [switch]$RefreshOnStart

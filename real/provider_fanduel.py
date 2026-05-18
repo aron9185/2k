@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 from typing import Any, Sequence
 
 from fair_odds import american_to_implied_prob, probability_to_american
-from poll_market_matcher import normalize_team
+from poll_market_matcher import normalize_team, normalize_text
 from sportsbook_http import (
     get_browser_like_json,
     load_request_config,
@@ -23,6 +23,7 @@ SPORT_TO_PAGE = {
     "nhl": "ICE_HOCKEY",
     "nfl": "AMERICAN_FOOTBALL",
     "soccer": "FOOTBALL",
+    "ufc": "MMA",
 }
 
 SPORT_TO_HOST = {
@@ -32,6 +33,7 @@ SPORT_TO_HOST = {
     "nhl": "https://sbapi.nj.sportsbook.fanduel.com",
     "nfl": "https://sbapi.nj.sportsbook.fanduel.com",
     "soccer": "https://sbapi.nj.sportsbook.fanduel.com",
+    "ufc": "https://sbapi.nj.sportsbook.fanduel.com",
 }
 
 DEFAULT_QUERY_PARAMS = {
@@ -52,6 +54,8 @@ FANDUEL_MGA_HOST = "https://scan.nj.sportsbook.fanduel.com"
 FANDUEL_SBAPI_HOST = "https://api.sportsbook.fanduel.com/sbapi"
 FANDUEL_SMP_HOST = "https://smp.nj.sportsbook.fanduel.com"
 FANDUEL_SOCCER_EVENT_TYPE_ID = 1
+FANDUEL_UFC_EVENT_TYPE_ID = 26420387
+FANDUEL_UFC_COMPETITION_IDS = [10581356]
 FANDUEL_SOCCER_COMPETITION_IDS = [
     10932509,  # English Premier League
     228,  # UEFA Champions League
@@ -117,6 +121,14 @@ FANDUEL_EVENT_TAB_KEYWORDS_BY_SPORT = {
         "3rd period",
     ),
     "nfl": ("quick bets", "live", "player props"),
+    "ufc": (
+        "popular",
+        "same game",
+        "strikes",
+        "method",
+        "round",
+        "time",
+    ),
 }
 FANDUEL_GAME_LINE_EVENT_TAB_KEYWORDS_BY_SPORT = {
     "mlb": ("innings", "quick bets", "live"),
@@ -124,6 +136,7 @@ FANDUEL_GAME_LINE_EVENT_TAB_KEYWORDS_BY_SPORT = {
     "wnba": ("quick bets", "live", "1st quarter", "quarter"),
     "nhl": ("quick bets", "live", "period", "3rd period"),
     "nfl": ("quick bets", "live"),
+    "ufc": ("popular",),
 }
 
 GAME_LINE_MARKET_TYPES = {
@@ -133,6 +146,8 @@ GAME_LINE_MARKET_TYPES = {
     "game_total",
     "game_winner",
     "halftime_result",
+    "teamnextpoints",
+    "team_period_total",
 }
 
 STAT_ALIASES = {
@@ -170,6 +185,13 @@ STAT_ALIASES = {
     "stolen base": "stolenbases",
     "stolen bases": "stolenbases",
     "both teams to score": "bothteamsscore",
+    "significant strikes": "significantstrikes",
+    "sig. strikes": "significantstrikes",
+    "sig strikes": "significantstrikes",
+    "total significant strikes": "significantstrikes",
+    "takedowns": "takedowns",
+    "total takedowns": "takedowns",
+    "knockdowns": "knockdowns",
 }
 
 LADDER_MARKET_MAP = (
@@ -445,6 +467,26 @@ def _find_yes_no_runners(runners: list[dict[str, Any]]) -> tuple[dict[str, Any] 
         elif key == "no":
             no_runner = runner
     return yes_runner, no_runner
+
+
+def _team_name_in_market_name(
+    market_name: str,
+    *,
+    home_team: str,
+    away_team: str,
+) -> str:
+    market_key = normalize_text(market_name)
+    for team_name in (home_team, away_team):
+        team_text = str(team_name or "").strip()
+        if not team_text:
+            continue
+        team_key = normalize_text(team_text)
+        if team_key and team_key in market_key:
+            return team_text
+        abbreviation = normalize_team(team_text)
+        if abbreviation and re.search(rf"\b{re.escape(abbreviation)}\b", market_name, flags=re.IGNORECASE):
+            return team_text
+    return ""
 
 
 def _is_over_label(value: str) -> bool:
@@ -746,6 +788,23 @@ def _infer_period_code(market_name: str, market_type_name: str) -> str:
         return "F5"
     if "first 7" in text or "1st 7" in text:
         return "F7"
+    inning_match = re.search(r"\b([1-9][0-9]*)(?:st|nd|rd|th)?\s+inning\b", text)
+    if inning_match:
+        return f"{int(inning_match.group(1))}I"
+    inning_words = {
+        "first": 1,
+        "second": 2,
+        "third": 3,
+        "fourth": 4,
+        "fifth": 5,
+        "sixth": 6,
+        "seventh": 7,
+        "eighth": 8,
+        "ninth": 9,
+    }
+    for word, number in inning_words.items():
+        if f"{word} inning" in text:
+            return f"{number}I"
     if "1st inning" in text or "first inning" in text:
         return "1I"
     if "2nd inning" in text or "second inning" in text:
@@ -791,6 +850,17 @@ def _is_yes_no_first_inning_runs_market(market_name: str, market_type_name: str)
 def _is_double_chance_market(market_name: str, market_type_name: str) -> bool:
     text = f"{market_name} {market_type_name}".lower()
     return "double chance" in text
+
+
+def _is_next_score_market(market_name: str, market_type_name: str) -> bool:
+    text = f"{market_name} {market_type_name}".lower()
+    return (
+        "next run" in text
+        or "next score" in text
+        or "next team to score" in text
+        or "team to score next" in text
+        or "next goal" in text
+    )
 
 
 def _is_game_total_market(market_name: str, market_type_name: str, sport: str) -> bool:
@@ -839,6 +909,104 @@ def _payload_attachments(payload: dict[str, Any]) -> dict[str, Any]:
     return attachments
 
 
+def _ufc_method_key(value: str) -> str:
+    key = normalize_text(value).replace(" ", "")
+    if "ko" in key or "tko" in key or "dq" in key:
+        return "ko"
+    if "sub" in key:
+        return "sub"
+    if "decision" in key or "points" in key:
+        return "decision"
+    return ""
+
+
+def _ufc_round_key(value: str) -> str:
+    text = normalize_text(value)
+    key = text.replace(" ", "")
+    round_match = re.search(r"\bround\s*([1-5])\b", text)
+    if round_match:
+        number = int(round_match.group(1))
+        suffix = "st" if number == 1 else "nd" if number == 2 else "rd" if number == 3 else "th"
+        return f"{number}{suffix}"
+    if key in {"1st", "first"}:
+        return "1st"
+    if key in {"2nd", "second"}:
+        return "2nd"
+    if key in {"3rd", "third"}:
+        return "3rd"
+    if key in {"4th", "fourth"}:
+        return "4th"
+    if key in {"5th", "fifth"}:
+        return "5th"
+    if "decision" in key or "points" in key:
+        return "decision"
+    return ""
+
+
+def _ufc_round_label(key: str) -> str:
+    return {
+        "1st": "1st",
+        "2nd": "2nd",
+        "3rd": "3rd",
+        "4th": "4th",
+        "5th": "5th",
+        "decision": "Decision",
+    }.get(key, key)
+
+
+def _ufc_stat_key(value: str) -> str:
+    text = normalize_text(value)
+    compact = text.replace(" ", "")
+    if "leg" in text and "strike" in text:
+        return "significantlegstrikes"
+    if "significantstrike" in compact or "sigstrike" in compact:
+        return "significantstrikes"
+    if "takedown" in text:
+        return "takedowns"
+    if "knockdown" in text:
+        return "knockdowns"
+    if "strike" in text:
+        return "strikes"
+    return ""
+
+
+def _ufc_runner_side(runner: dict[str, Any], *, home_team: str, away_team: str) -> str:
+    label = _runner_label(runner)
+    label_key = normalize_text(label).replace(" ", "")
+    if label_key in {"tie", "draw"}:
+        return "draw"
+    home_key = normalize_text(home_team).replace(" ", "")
+    away_key = normalize_text(away_team).replace(" ", "")
+    if home_key and (label_key == home_key or home_key in label_key):
+        return "home"
+    if away_key and (label_key == away_key or away_key in label_key):
+        return "away"
+    return ""
+
+
+def _ufc_extra_outcomes_json(outcomes: list[dict[str, Any]]) -> str:
+    cleaned = [outcome for outcome in outcomes if outcome.get("key") and outcome.get("odds") is not None]
+    return json.dumps(cleaned, separators=(",", ":"), ensure_ascii=True) if cleaned else ""
+
+
+def _ufc_aggregate_method_outcomes(runner_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[str, list[int]] = {}
+    for runner in runner_rows:
+        odds = _runner_odds(runner)
+        method_key = _ufc_method_key(_runner_label(runner))
+        if odds is None or not method_key:
+            continue
+        grouped.setdefault(method_key, []).append(odds)
+    outcomes: list[dict[str, Any]] = []
+    for key, label in (("ko", "KO/TKO"), ("sub", "Submission"), ("decision", "Decision")):
+        odds_values = grouped.get(key) or []
+        if not odds_values:
+            continue
+        probability = min(sum(american_to_implied_prob(odds) for odds in odds_values), 0.999999)
+        outcomes.append({"key": key, "label": label, "odds": probability_to_american(probability)})
+    return outcomes
+
+
 def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
     attachments = _payload_attachments(payload)
     events = attachments.get("events") or {}
@@ -866,6 +1034,147 @@ def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
         home_team, away_team = _event_teams(event)
         updated_at = market.get("lastModified") or event.get("openDate") or market.get("marketTime") or ""
         event_date = event.get("openDate") or market.get("marketTime") or ""
+
+        if sport == "ufc":
+            market_key = normalize_text(f"{market_name} {market_type_name}").replace(" ", "")
+            if market_key in {"howfightwillendhowfightwillend", "howfightwillend"}:
+                outcomes = _ufc_aggregate_method_outcomes(runner_rows)
+                extra_outcomes = _ufc_extra_outcomes_json(outcomes)
+                if extra_outcomes:
+                    rows.append(
+                        {
+                            "provider": "fanduel",
+                            "provider_event_id": event_id,
+                            "provider_market_id": market_id,
+                            "provider_league": sport,
+                            "provider_market_name": market_name,
+                            "book": "fanduel",
+                            "sport": sport,
+                            "market_type": "fight_method",
+                            "stat": "method",
+                            "player_name": "",
+                            "line": "",
+                            "home_team": home_team,
+                            "away_team": away_team,
+                            "over_odds": outcomes[0].get("odds") if outcomes else "",
+                            "under_odds": outcomes[1].get("odds") if len(outcomes) > 1 else "",
+                            "extra_outcomes": extra_outcomes,
+                            "updated_at": updated_at,
+                            "period": "",
+                            "event_date": event_date,
+                            "question": market_name,
+                        }
+                    )
+                    continue
+
+            if market_key in {"methodofvictorymethodofvictory", "methodofvictory"}:
+                outcomes = _ufc_aggregate_method_outcomes(runner_rows)
+                extra_outcomes = _ufc_extra_outcomes_json(outcomes)
+                if extra_outcomes:
+                    rows.append(
+                        {
+                            "provider": "fanduel",
+                            "provider_event_id": event_id,
+                            "provider_market_id": market_id,
+                            "provider_league": sport,
+                            "provider_market_name": market_name,
+                            "book": "fanduel",
+                            "sport": sport,
+                            "market_type": "fight_method",
+                            "stat": "method",
+                            "player_name": "",
+                            "line": "",
+                            "home_team": home_team,
+                            "away_team": away_team,
+                            "over_odds": outcomes[0].get("odds") if outcomes else "",
+                            "under_odds": outcomes[1].get("odds") if len(outcomes) > 1 else "",
+                            "extra_outcomes": extra_outcomes,
+                            "updated_at": updated_at,
+                            "period": "",
+                            "event_date": event_date,
+                            "question": market_name,
+                        }
+                    )
+                    continue
+
+            if market_key in {"whatroundwillfightendwhatroundwillfightend", "whatroundwillfightend"}:
+                outcomes: list[dict[str, Any]] = []
+                for runner in runner_rows:
+                    odds = _runner_odds(runner)
+                    round_key = _ufc_round_key(_runner_label(runner))
+                    if odds is None or not round_key:
+                        continue
+                    outcomes.append(
+                        {
+                            "key": round_key,
+                            "label": _ufc_round_label(round_key),
+                            "odds": odds,
+                        }
+                    )
+                extra_outcomes = _ufc_extra_outcomes_json(outcomes)
+                if extra_outcomes:
+                    rows.append(
+                        {
+                            "provider": "fanduel",
+                            "provider_event_id": event_id,
+                            "provider_market_id": market_id,
+                            "provider_league": sport,
+                            "provider_market_name": market_name,
+                            "book": "fanduel",
+                            "sport": sport,
+                            "market_type": "fight_round",
+                            "stat": "endinground",
+                            "player_name": "",
+                            "line": "",
+                            "home_team": home_team,
+                            "away_team": away_team,
+                            "over_odds": outcomes[0].get("odds") if outcomes else "",
+                            "under_odds": outcomes[1].get("odds") if len(outcomes) > 1 else "",
+                            "extra_outcomes": extra_outcomes,
+                            "updated_at": updated_at,
+                            "period": "",
+                            "event_date": event_date,
+                            "question": market_name,
+                        }
+                    )
+                    continue
+
+            stat_key = _ufc_stat_key(market_name or market_type_name)
+            if stat_key and "most" in normalize_text(f"{market_name} {market_type_name}"):
+                outcomes = []
+                for runner in runner_rows:
+                    odds = _runner_odds(runner)
+                    side = _ufc_runner_side(runner, home_team=home_team, away_team=away_team)
+                    if odds is None or not side:
+                        continue
+                    outcomes.append({"key": side, "label": _runner_label(runner), "odds": odds})
+                extra_outcomes = _ufc_extra_outcomes_json(outcomes)
+                if extra_outcomes:
+                    rows.append(
+                        {
+                            "provider": "fanduel",
+                            "provider_event_id": event_id,
+                            "provider_market_id": market_id,
+                            "provider_league": sport,
+                            "provider_market_name": market_name,
+                            "book": "fanduel",
+                            "sport": sport,
+                            "market_type": "fighter_stat_winner",
+                            "stat": stat_key,
+                            "player_name": "",
+                            "line": "",
+                            "home_team": home_team,
+                            "away_team": away_team,
+                            "over_odds": outcomes[0].get("odds") if outcomes else "",
+                            "under_odds": outcomes[1].get("odds") if len(outcomes) > 1 else "",
+                            "extra_outcomes": extra_outcomes,
+                            "updated_at": updated_at,
+                            "period": "",
+                            "event_date": event_date,
+                            "question": market_name,
+                        }
+                    )
+                    continue
 
         ladder = _ladder_market(market_name)
         if ladder is not None and " @ " in str(event.get("name") or ""):
@@ -1053,6 +1362,11 @@ def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
             no_odds = _runner_odds(no_runner)
             if yes_odds is None or no_odds is None:
                 continue
+            team_name = _team_name_in_market_name(
+                market_name,
+                home_team=home_team,
+                away_team=away_team,
+            )
             rows.append(
                 {
                     "provider": "fanduel",
@@ -1062,14 +1376,50 @@ def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
                     "provider_market_name": market_name,
                     "book": "fanduel",
                     "sport": sport,
-                    "market_type": "game_total",
+                    "market_type": "team_period_total" if team_name else "game_total",
                     "stat": "total",
-                    "player_name": "",
+                    "player_name": team_name,
                     "line": 0.5,
                     "home_team": home_team,
                     "away_team": away_team,
                     "over_odds": yes_odds,
                     "under_odds": no_odds,
+                    "updated_at": updated_at,
+                    "period": _infer_period_code(market_name, market_type_name),
+                    "event_date": event_date,
+                    "question": market_name,
+                }
+            )
+            continue
+
+        if _is_next_score_market(market_name, market_type_name):
+            if not home_team or not away_team:
+                continue
+            priced = [runner for runner in runner_rows if _runner_odds(runner) is not None]
+            if len(priced) < 2:
+                continue
+            rows.append(
+                {
+                    "provider": "fanduel",
+                    "provider_event_id": event_id,
+                    "provider_market_id": market_id,
+                    "provider_league": sport,
+                    "provider_market_name": market_name,
+                    "book": "fanduel",
+                    "sport": sport,
+                    "market_type": "teamnextpoints",
+                    "stat": "nextpoints",
+                    "player_name": "",
+                    "line": "",
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "over_odds": _runner_odds(priced[0]),
+                    "under_odds": _runner_odds(priced[1]),
+                    "extra_outcomes": _runner_outcomes_json(
+                        priced,
+                        home_team=home_team,
+                        away_team=away_team,
+                    ),
                     "updated_at": updated_at,
                     "period": _infer_period_code(market_name, market_type_name),
                     "event_date": event_date,
@@ -1610,6 +1960,30 @@ def _fetch_soccer_competition_page(
     )
 
 
+def _fetch_ufc_competition_page(
+    competition_id: int,
+    *,
+    headers: dict[str, str],
+    proxy_url: str | None,
+    impersonate: str,
+) -> dict[str, Any]:
+    url = _url_with_query(
+        FANDUEL_SBAPI_HOST,
+        "/competition-page",
+        {
+            "competitionId": competition_id,
+            "eventTypeId": FANDUEL_UFC_EVENT_TYPE_ID,
+            "_ak": FANDUEL_API_KEY,
+        },
+    )
+    return get_browser_like_json(
+        url,
+        headers=_fanduel_headers(headers),
+        proxy_url=proxy_url,
+        impersonate=impersonate,
+    )
+
+
 def _fetch_soccer_event_tabs(
     event: dict[str, Any],
     competition_id: int,
@@ -1889,11 +2263,14 @@ def _fetch_live_soccer_payload(
         _merge_payload_attachments(attachments, competition_payload)
 
         competition_events = _competition_match_events(attachments, competition_id)
-        for event in _match_events_for_target_games(
+        target_events = _match_events_for_target_games(
             competition_events,
             target_team_pairs,
             fallback_to_all=not bool(target_team_pairs),
-        )[:event_limit]:
+        )
+        if not target_team_pairs:
+            target_events = target_events[:event_limit]
+        for event in target_events:
             event_id = str(event.get("eventId") or "")
             if not event_id:
                 continue
@@ -1941,6 +2318,111 @@ def _fetch_live_soccer_payload(
     }
 
 
+def _fetch_live_ufc_payload(
+    sport_config: dict[str, Any],
+    *,
+    headers: dict[str, str],
+    proxy_url: str | None,
+    impersonate: str,
+    market_scope: str = "all",
+    target_team_pairs: set[tuple[str, str]] | None = None,
+) -> dict[str, Any]:
+    market_scope = _normalize_market_scope(market_scope)
+    competition_ids = _configured_ints(
+        sport_config.get("competition_ids"),
+        FANDUEL_UFC_COMPETITION_IDS,
+    )
+    tab_keywords = _configured_strings(
+        sport_config.get("tab_title_keywords") or sport_config.get("tab_keywords"),
+        FANDUEL_GAME_LINE_EVENT_TAB_KEYWORDS_BY_SPORT["ufc"]
+        if _is_game_lines_scope(market_scope)
+        else FANDUEL_EVENT_TAB_KEYWORDS_BY_SPORT["ufc"],
+    )
+    try:
+        event_limit = int(sport_config.get("event_limit") or 20)
+    except Exception:
+        event_limit = 20
+
+    attachments: dict[str, dict[str, Any]] = {
+        "eventTypes": {},
+        "competitions": {},
+        "events": {},
+        "markets": {},
+    }
+    raw: dict[str, Any] = {
+        "competition_pages": {},
+        "event_tabs": {},
+        "event_tab_details": {},
+        "prices": [],
+    }
+
+    for competition_id in competition_ids:
+        competition_payload = _fetch_ufc_competition_page(
+            competition_id,
+            headers=headers,
+            proxy_url=proxy_url,
+            impersonate=impersonate,
+        )
+        raw["competition_pages"][str(competition_id)] = competition_payload
+        _merge_payload_attachments(attachments, competition_payload)
+
+        competition_events = _competition_match_events(attachments, competition_id)
+        target_events = _match_events_for_target_games(
+            competition_events,
+            target_team_pairs,
+            fallback_to_all=True,
+        )
+        if not target_team_pairs:
+            target_events = target_events[:event_limit]
+        for event in target_events:
+            event_id = str(event.get("eventId") or "")
+            if not event_id:
+                continue
+            try:
+                tabs_payload = _fetch_event_tabs(
+                    event,
+                    headers=headers,
+                    proxy_url=proxy_url,
+                    impersonate=impersonate,
+                )
+            except Exception:
+                continue
+            raw["event_tabs"][event_id] = tabs_payload
+
+            for tab_id in _extract_tab_ids(tabs_payload, tab_keywords):
+                try:
+                    tab_payload = _fetch_event_tab_details(
+                        event,
+                        tab_id,
+                        headers=headers,
+                        proxy_url=proxy_url,
+                        impersonate=impersonate,
+                    )
+                except Exception:
+                    continue
+                raw["event_tab_details"][f"{event_id}:{tab_id}"] = tab_payload
+                _merge_payload_attachments(attachments, tab_payload)
+
+    market_ids = sorted(attachments.get("markets") or {})
+    if market_ids:
+        price_rows = _fetch_market_prices(
+            market_ids,
+            headers=headers,
+            proxy_url=proxy_url,
+            impersonate=impersonate,
+        )
+        raw["prices"] = price_rows
+        _merge_market_prices(attachments["markets"], price_rows)
+
+    return {
+        "source": "fanduel_live_ufc",
+        "competition_ids": competition_ids,
+        "tab_keywords": list(tab_keywords),
+        "attachments": attachments,
+        "raw": raw,
+    }
+
+
 def _missing_live_soccer_competitions(payload: Any, sport_config: dict[str, Any]) -> bool:
     if not isinstance(payload, dict) or payload.get("source") != "fanduel_live_soccer":
         return False
@@ -1948,6 +2430,19 @@ def _missing_live_soccer_competitions(payload: Any, sport_config: dict[str, Any]
         _configured_ints(
             sport_config.get("competition_ids"),
             FANDUEL_SOCCER_COMPETITION_IDS,
+        )
+    )
+    payload_ids = set(_configured_ints(payload.get("competition_ids"), ()))
+    return bool(expected_ids - payload_ids)
+
+
+def _missing_live_ufc_competitions(payload: Any, sport_config: dict[str, Any]) -> bool:
+    if not isinstance(payload, dict) or payload.get("source") != "fanduel_live_ufc":
+        return False
+    expected_ids = set(
+        _configured_ints(
+            sport_config.get("competition_ids"),
+            FANDUEL_UFC_COMPETITION_IDS,
         )
     )
     payload_ids = set(_configured_ints(payload.get("competition_ids"), ()))
@@ -2017,6 +2512,8 @@ def fetch_rows(
             payload = None
         if sport == "soccer" and _missing_live_soccer_competitions(payload, sport_config):
             payload = None
+        if sport == "ufc" and _missing_live_ufc_competitions(payload, sport_config):
+            payload = None
         if payload is None:
             headers = dict(request_config.get("headers") or {})
             request_specs = _request_specs_from_config(sport_config)
@@ -2035,6 +2532,20 @@ def fetch_rows(
                 if sport == "soccer":
                     try:
                         payload = _fetch_live_soccer_payload(
+                            sport_config,
+                            headers=headers,
+                            proxy_url=proxy_url,
+                            impersonate=impersonate,
+                            market_scope=market_scope,
+                            target_team_pairs=sport_target_pairs,
+                        )
+                        if save_payloads and market_scope == "all":
+                            save_payload("fanduel", sport, payload)
+                    except Exception as exc:
+                        last_error = exc
+                elif sport == "ufc":
+                    try:
+                        payload = _fetch_live_ufc_payload(
                             sport_config,
                             headers=headers,
                             proxy_url=proxy_url,

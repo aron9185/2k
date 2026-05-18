@@ -737,6 +737,82 @@ class RealSportsClient:
     def get_poll(self, poll_id: int | str) -> dict[str, Any]:
         return self.get_json(f"https://web.realapp.com/polls/{poll_id}")
 
+    def get_poll_options(self, poll_id: int | str, *, query: str = "") -> dict[str, Any]:
+        poll_key = str(poll_id or "").strip()
+        if not poll_key:
+            raise RealSportsError("poll_id is required for poll option requests")
+        return self.get_json(
+            f"https://web.realapp.com/polls/{poll_key}/options",
+            params={"query": query},
+        )
+
+    def submit_poll_response(
+        self,
+        poll_id: int | str,
+        *,
+        poll_option_id: int | str,
+        user_pass_ids: list[int | str] | None = None,
+        remove_user_pass_ids: list[int | str] | None = None,
+        user_pass_sport: str | None = None,
+        wager: int | None = None,
+        label: str | None = None,
+        avatar_source: str | None = None,
+        is_clear: bool = False,
+    ) -> dict[str, Any]:
+        poll_key = str(poll_id or "").strip()
+        option_key = str(poll_option_id or "").strip()
+        if not poll_key:
+            raise RealSportsError("poll_id is required to submit a poll response")
+        if not option_key:
+            raise RealSportsError("poll_option_id is required to submit a poll response")
+
+        payload: dict[str, Any] = {
+            "pollOptionId": poll_option_id,
+            "userPassIds": list(user_pass_ids or []),
+            "removeUserPassIds": list(remove_user_pass_ids or []),
+            "isClear": bool(is_clear),
+        }
+        if user_pass_sport:
+            payload["userPassSport"] = user_pass_sport
+        if wager is not None:
+            payload["wager"] = int(wager)
+        if label is not None:
+            payload["label"] = label
+        if avatar_source is not None:
+            payload["avatarSource"] = avatar_source
+
+        return self.request(
+            "PUT",
+            f"https://web.realapp.com/polls/{poll_key}",
+            json=payload,
+        ).json()
+
+    def add_post_comment(
+        self,
+        post_id: int | str,
+        *,
+        text: str,
+        group_id: int | str | None = 777777777,
+        parent_comment_id: int | str | None = None,
+    ) -> dict[str, Any]:
+        post_key = str(post_id or "").strip()
+        comment_text = str(text or "").strip()
+        if not post_key:
+            raise RealSportsError("post_id is required to add a post comment")
+        if not comment_text:
+            raise RealSportsError("text is required to add a post comment")
+        payload: dict[str, Any] = {
+            "groupId": group_id,
+            "text": comment_text,
+        }
+        if parent_comment_id is not None:
+            payload["parentCommentId"] = parent_comment_id
+        return self.request(
+            "POST",
+            f"https://web.realapp.com/comments/posts/{post_key}",
+            json=payload,
+        ).json()
+
 
 def build_realsports_client() -> RealSportsClient:
     return RealSportsClient.from_env()

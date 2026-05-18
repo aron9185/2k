@@ -14,7 +14,7 @@ from typing import Any
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUT = BASE_DIR / "lineup.html"
 DEFAULT_INPUT_DIR = BASE_DIR / "lineups"
-DEFAULT_SPORTS = "mlb,nba,nhl,wnba,fc"
+DEFAULT_SPORTS = "mlb,nba,nhl,wnba,fc,golf"
 DEFAULT_SEASON = "2025"
 
 SPORT_ALIASES = {
@@ -24,6 +24,7 @@ SPORT_ALIASES = {
     "wnba": ("wnba", "WNBA", "wnba"),
     "fc": ("soccer", "FC", "fc"),
     "soccer": ("soccer", "FC", "fc"),
+    "golf": ("golf", "Golf", "golf"),
 }
 
 TABLE_COLUMNS = [
@@ -72,7 +73,7 @@ class SportSheet:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build a single HTML lineup sheet from MLB, NBA, NHL, WNBA, and FC Real Sports lineup CSVs."
+        description="Build a single HTML lineup sheet from MLB, NBA, NHL, WNBA, FC, and golf Real Sports lineup CSVs."
     )
     parser.add_argument(
         "--sports",
@@ -83,7 +84,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--sport-dates",
         default="",
-        help="Optional comma-separated per-sport refresh dates, e.g. mlb=2026-05-01,nba=2026-05-01,nhl=2026-05-02,wnba=2026-05-02,fc=2026-05-02.",
+        help="Optional comma-separated per-sport refresh dates, e.g. mlb=2026-05-01,nba=2026-05-01,nhl=2026-05-02,wnba=2026-05-02,fc=2026-05-02,golf=2026-05-02.",
     )
     parser.add_argument("--season", default=DEFAULT_SEASON, help="Real Sports season key for refresh mode.")
     parser.add_argument("--input-dir", default=str(DEFAULT_INPUT_DIR), help="Directory for sport lineup CSVs.")
@@ -176,6 +177,31 @@ def read_lineup_csv(path: Path) -> list[dict[str, str]]:
     )
 
 
+def lineup_csv_candidates(config: SportConfig, input_dir: Path) -> list[Path]:
+    candidates = [
+        input_dir / f"{config.file_key}.csv",
+        input_dir / f"{config.file_key}_lineup.csv",
+    ]
+    if config.file_key == "fc":
+        candidates.insert(0, input_dir / "soccer.csv")
+    deduped: list[Path] = []
+    seen: set[Path] = set()
+    for path in candidates:
+        if path in seen:
+            continue
+        seen.add(path)
+        deduped.append(path)
+    return deduped
+
+
+def select_lineup_csv_path(config: SportConfig, input_dir: Path) -> Path:
+    candidates = lineup_csv_candidates(config, input_dir)
+    existing = [path for path in candidates if path.exists()]
+    if existing:
+        return max(existing, key=lambda path: path.stat().st_mtime)
+    return input_dir / f"{config.file_key}_lineup.csv"
+
+
 def refresh_lineup(config: SportConfig, csv_path: Path, date: str, season: str, args: argparse.Namespace) -> str:
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     fantasy_path = csv_path.with_name(f"{config.file_key}_fantasy_points.json")
@@ -218,7 +244,7 @@ def load_sheets(
 ) -> list[SportSheet]:
     sheets: list[SportSheet] = []
     for config in configs:
-        csv_path = input_dir / f"{config.file_key}_lineup.csv"
+        csv_path = input_dir / f"{config.file_key}_lineup.csv" if args.refresh else select_lineup_csv_path(config, input_dir)
         error = ""
         if args.refresh:
             refresh_date = sport_dates.get(config.file_key, args.date)
@@ -546,7 +572,7 @@ def render_html(sheets: list[SportSheet], output_path: Path, input_dir: Path, ma
   <header>
     <div class="kicker">Real Sports Lineup Sheet</div>
     <h1>Multi-sport edge board</h1>
-    <p class="lede">Generated {escape(generated_at)} from sport-specific lineup CSVs. Includes MLB, NBA, NHL, WNBA, and FC/soccer when their CSVs are present or refreshed.</p>
+    <p class="lede">Generated {escape(generated_at)} from sport-specific lineup CSVs. Includes MLB, NBA, NHL, WNBA, FC/soccer, and Golf when their CSVs are present or refreshed.</p>
     <nav>{nav}</nav>
   </header>
   <main>
@@ -563,7 +589,8 @@ def render_html(sheets: list[SportSheet], output_path: Path, input_dir: Path, ma
 
 def write_html(path: Path, html_text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(html_text, encoding="utf8")
+    cleaned = "\n".join(line.rstrip() for line in html_text.splitlines()) + "\n"
+    path.write_text(cleaned, encoding="utf8")
 
 
 def main() -> None:

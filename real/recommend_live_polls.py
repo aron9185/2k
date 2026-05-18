@@ -25,12 +25,19 @@ from provider_fanduel import fetch_rows as fetch_fanduel_rows
 from realsports_api import build_realsports_client
 from recommend_game_feed_polls import (
     _player_lookup,
+    _recommend_golf_leaderboard_poll,
     _recommend_game_spread,
     _recommend_game_total,
     _recommend_game_winner,
+    _recommend_fight_method,
+    _recommend_fight_round,
     _recommend_period_winner,
+    _recommend_period_total_yes_no,
     _recommend_player_over_under,
     _recommend_special_or_unpriced,
+    _recommend_ufc_fighter_stat_winner,
+    _recommend_team_next_points,
+    _period_market_code,
 )
 
 
@@ -47,7 +54,14 @@ SUPPORTED_POLL_KINDS = {
     "game_winner",
     "game_spread",
     "period_winner",
+    "period_total_yes_no",
+    "minimumperiodtotalpoints",
     "teamtowinperiod",
+    "teamnextpoints",
+    "golf_leaderboard",
+    "fighter_stat_winner",
+    "fight_method",
+    "fight_round",
 }
 MLB_HRR_COMPONENT_STATS = {"hits", "runs", "rbis"}
 
@@ -59,7 +73,7 @@ def parse_args() -> argparse.Namespace:
             "sportsbook consensus, and write EV-based vote recommendations."
         )
     )
-    parser.add_argument("--feed", default="all", help="Livefeed segment, e.g. all.")
+    parser.add_argument("--feed", default="all", help="Livefeed segment(s), e.g. all or all,golf.")
     parser.add_argument(
         "--markets-csv",
         default=str(DEFAULT_MARKETS_CSV),
@@ -82,7 +96,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sports",
-        default="nba,mlb,nhl,wnba,soccer",
+        default="nba,mlb,nhl,wnba,soccer,golf,ufc",
         help="Comma-separated sports to refresh when --refresh-markets is enabled.",
     )
     parser.add_argument(
@@ -132,6 +146,20 @@ def parse_args() -> argparse.Namespace:
 
 def _parse_csv_arg(value: str) -> list[str]:
     return [part.strip() for part in str(value or "").split(",") if part.strip()]
+
+
+def _expand_livefeed_segments(feed: str) -> list[str]:
+    segments: list[str] = []
+    for segment in _parse_csv_arg(feed) or ["all"]:
+        key = segment.strip().lower()
+        if key and key not in segments:
+            segments.append(key)
+    if "all" in segments and "golf" not in segments:
+        # Real's all livefeed has not reliably carried golf poll posts.
+        segments.append("golf")
+    if "all" in segments and "ufc" not in segments:
+        segments.append("ufc")
+    return segments
 
 
 def _to_bool(value: Any) -> bool:
@@ -289,7 +317,39 @@ def _fetch_open_live_poll_entries(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
     observed_at = _iso_now()
     observed_at_dt = _parse_utc_datetime(observed_at) or datetime.now(timezone.utc)
-    rows, raw_entries = fetch_live_polls(feed=feed, include_locked=include_locked, limit=limit)
+    rows: list[dict[str, Any]] = []
+    raw_entries: list[dict[str, Any]] = []
+    seen_keys: set[tuple[str, str]] = set()
+    fetch_count = 0
+    first_error: Exception | None = None
+    for segment in _expand_livefeed_segments(feed):
+        try:
+            segment_rows, segment_raw_entries = fetch_live_polls(
+                feed=segment,
+                include_locked=include_locked,
+                limit=limit,
+            )
+            fetch_count += 1
+        except Exception as exc:
+            first_error = first_error or exc
+            print(f"Warning: livefeed segment '{segment}' failed: {exc}", flush=True)
+            continue
+        for row, raw_entry in zip(segment_rows, segment_raw_entries):
+            poll_id = str(row.get("poll_id") or "").strip()
+            post_id = str(row.get("post_id") or "").strip()
+            key = ("poll", poll_id) if poll_id else ("post", post_id)
+            if key[1] and key in seen_keys:
+                continue
+            if key[1]:
+                seen_keys.add(key)
+            row_copy = dict(row)
+            row_copy["feed_segment"] = segment
+            row_copy["source_feed_order"] = row.get("feed_order") or ""
+            row_copy["feed_order"] = len(rows)
+            rows.append(row_copy)
+            raw_entries.append(raw_entry)
+    if fetch_count == 0 and first_error is not None:
+        raise first_error
     open_rows: list[dict[str, Any]] = []
     open_raw_entries: list[dict[str, Any]] = []
     for row, raw_entry in zip(rows, raw_entries):
@@ -315,7 +375,10 @@ def _build_live_poll_market_requirements(rows: list[dict[str, Any]]) -> list[dic
                 "player_name": normalize_player_name(str(row.get("player_name") or "")),
                 "stat": normalize_stat(str(row.get("stat") or "")),
                 "line": _to_float(row.get("line")),
-                "period": str(row.get("period") or "").strip(),
+                "period": _period_market_code(
+                    sport,
+                    str(row.get("period") or "").strip(),
+                ),
             }
         )
     return requirements
@@ -362,6 +425,31 @@ def _market_matches_live_poll_requirement(market: MarketRow, requirement: dict[s
         return market_family == "game_winner"
     if poll_kind in {"period_winner", "teamtowinperiod"}:
         return market_family in {"game_spread", "game_winner"}
+    if poll_kind in {"period_total_yes_no", "minimumperiodtotalpoints"}:
+        return market_family in {"game_total", "team_period_total"}
+    if poll_kind == "teamnextpoints":
+        return market_family in {"teamnextpoints", "game_winner"}
+    if poll_kind == "golf_leaderboard":
+        req_stat = str(requirement.get("stat") or "").strip()
+        if req_stat in {"roundscore", "roundmatchup"}:
+            return (
+                (market_family == "player_finish" and market.stat_key == "roundmatchup")
+                or (market_family == "player_over_under" and market.stat_key == "roundscore")
+            )
+        if req_stat:
+            return market_family == "player_finish" and market.stat_key == req_stat
+        return market_family == "player_finish"
+    if poll_kind == "fighter_stat_winner":
+        if market_family != "fighter_stat_winner":
+            return False
+        req_stat = str(requirement.get("stat") or "").strip()
+        if req_stat and market.stat_key and market.stat_key != req_stat:
+            return False
+        return True
+    if poll_kind == "fight_method":
+        return market_family == "fight_method"
+    if poll_kind == "fight_round":
+        return market_family == "fight_round"
     if poll_kind == "player_over_under":
         if market_family != "player_over_under":
             return False
@@ -408,12 +496,22 @@ def _refresh_markets_csv(
     provider_counts: dict[str, int] = {}
     requirements = requirements or []
     target_pairs_by_sport = _target_team_pairs_by_sport(requirements)
-    requires_player_props = any(
+    requires_full_scope = any(
         str(req.get("poll_kind") or "").strip().lower()
-        in {"player_over_under", "anytime_play", "pick_a_player", "player_head_to_head"}
+        in {
+            "player_over_under",
+            "anytime_play",
+            "pick_a_player",
+            "player_head_to_head",
+            "teamnextpoints",
+            "golf_leaderboard",
+            "fighter_stat_winner",
+            "fight_method",
+            "fight_round",
+        }
         for req in requirements
     )
-    market_scope = "all" if requires_player_props else "game-lines"
+    market_scope = "all" if requires_full_scope else "game-lines"
     for provider in providers:
         key = provider.lower()
         if key == "draftkings":
@@ -639,8 +737,20 @@ def recommend_live_rows(
             recommendation = _recommend_game_winner(entry, markets, sport)
         elif poll_kind in {"period_winner", "teamtowinperiod"}:
             recommendation = _recommend_period_winner(entry, markets, sport)
+        elif poll_kind in {"period_total_yes_no", "minimumperiodtotalpoints"}:
+            recommendation = _recommend_period_total_yes_no(entry, markets, sport)
         elif poll_kind == "game_spread":
             recommendation = _recommend_game_spread(entry, markets, sport)
+        elif poll_kind == "teamnextpoints":
+            recommendation = _recommend_team_next_points(entry, markets, sport)
+        elif poll_kind == "golf_leaderboard":
+            recommendation = _recommend_golf_leaderboard_poll(entry, markets, sport)
+        elif poll_kind == "fighter_stat_winner":
+            recommendation = _recommend_ufc_fighter_stat_winner(entry, markets, sport)
+        elif poll_kind == "fight_method":
+            recommendation = _recommend_fight_method(entry, markets, sport)
+        elif poll_kind == "fight_round":
+            recommendation = _recommend_fight_round(entry, markets, sport)
         elif poll_kind in {"anytime_play", "pick_a_player"}:
             recommendation = _recommend_special_or_unpriced(entry, sport, markets=markets)
         elif poll_kind == "player_head_to_head":
@@ -734,8 +844,10 @@ def write_snapshot_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
         "consensus_fair_line",
         "matched_books",
         "books",
+        "odds_updated_at",
         "source_lines",
         "player_choices_json",
+        "option_choices_json",
         "notes",
     ]
     with output_path.open("w", newline="", encoding="utf8") as handle:

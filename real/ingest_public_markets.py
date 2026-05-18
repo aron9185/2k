@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument(
         "--sports",
         default="nba,mlb,nhl,nfl,wnba",
-        help="Comma-separated sports to pull, e.g. nba,mlb,nhl.",
+        help="Comma-separated sports to pull, e.g. nba,mlb,nhl,ufc.",
     )
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
     parser.add_argument("--append", action="store_true")
@@ -79,11 +79,49 @@ def parse_args():
             "prediction refreshes that only need team/game prices."
         ),
     )
+    parser.add_argument(
+        "--target-team-pairs-json",
+        default="",
+        help=(
+            "Optional JSON object mapping sport keys to [[home, away], ...] team pairs. "
+            "Sportsbook providers may use this to fetch event-level markets for only "
+            "the relevant games."
+        ),
+    )
     return parser.parse_args()
 
 
 def _parse_csv_arg(value: str) -> list[str]:
     return [part.strip() for part in str(value or "").split(",") if part.strip()]
+
+
+def _parse_target_team_pairs_json(value: str) -> dict[str, list[tuple[str, str]]]:
+    text = str(value or "").strip()
+    if not text:
+        return {}
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Invalid --target-team-pairs-json: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise SystemExit("--target-team-pairs-json must be a JSON object.")
+
+    parsed: dict[str, list[tuple[str, str]]] = {}
+    for sport_key, pairs in payload.items():
+        sport = str(sport_key or "").strip().lower()
+        if not sport or not isinstance(pairs, list):
+            continue
+        sport_pairs: list[tuple[str, str]] = []
+        for pair in pairs:
+            if not isinstance(pair, (list, tuple)) or len(pair) != 2:
+                continue
+            home = str(pair[0] or "").strip()
+            away = str(pair[1] or "").strip()
+            if home and away and home != away:
+                sport_pairs.append((home, away))
+        if sport_pairs:
+            parsed[sport] = sport_pairs
+    return parsed
 
 
 def _write_json_dump(path: Path, payload: Any) -> None:
@@ -106,6 +144,8 @@ def main():
     providers = _parse_csv_arg(args.providers)
     sports = _parse_csv_arg(args.sports)
     market_scope = str(args.market_scope or "all").strip().lower()
+    target_pairs_by_sport = _parse_target_team_pairs_json(args.target_team_pairs_json)
+    should_save_payloads = market_scope == "all" and not target_pairs_by_sport
 
     provider_rows: list[dict[str, Any]] = []
     raw_payloads: dict[str, Any] = {}
@@ -131,15 +171,17 @@ def main():
             rows, raw = fetch_draftkings_rows(
                 sports,
                 use_saved_payloads=not args.force_live,
-                save_payloads=market_scope == "all",
+                save_payloads=should_save_payloads,
                 market_scope=market_scope,
+                target_team_pairs_by_sport=target_pairs_by_sport,
             )
         elif provider_key == "fanduel":
             rows, raw = fetch_fanduel_rows(
                 sports,
                 use_saved_payloads=not args.force_live,
-                save_payloads=market_scope == "all",
+                save_payloads=should_save_payloads,
                 market_scope=market_scope,
+                target_team_pairs_by_sport=target_pairs_by_sport,
             )
         else:
             raise SystemExit(f"Unsupported provider: {provider}")

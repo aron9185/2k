@@ -185,6 +185,13 @@ def _format_game_time(value: str) -> str:
     return parsed_utc.astimezone(CHINA_TZ).strftime("%Y-%m-%d %H:%M UTC+8")
 
 
+def _format_odds_updated_at(value: str) -> str:
+    parsed_utc = _parse_game_time(value)
+    if parsed_utc is None:
+        return str(value or "").strip()
+    return parsed_utc.astimezone(CHINA_TZ).strftime("%Y-%m-%d %H:%M UTC+8")
+
+
 def _is_future_game_row(row: dict[str, str], *, now_utc: datetime | None = None) -> bool:
     cutoff = now_utc or datetime.now(timezone.utc)
     game_time = _parse_game_time(str(row.get("game_time") or ""))
@@ -367,6 +374,9 @@ def _sportsbook_fair_probabilities(row: dict[str, str], options: list[dict[str, 
 
 
 def _action_fair_probabilities(row: dict[str, str], options: list[dict[str, str]]) -> dict[str, float]:
+    choice_probs = _option_choice_fair_probabilities(row, options)
+    if choice_probs:
+        return choice_probs
     if len(options) == 2:
         fair_probs = _binary_fair_probabilities(row)
         if fair_probs:
@@ -412,8 +422,69 @@ def _source_lines_token(text: str) -> str:
     return f"<!--REAL_SOURCE_LINES:{encoded}-->"
 
 
+def _row_meta_payload(row: dict[str, str]) -> dict[str, str]:
+    payload = {
+        "post_id": str(row.get("post_id") or "").strip(),
+        "poll_id": str(row.get("poll_id") or "").strip(),
+        "sport": str(row.get("sport") or "").strip(),
+        "poll_kind": str(row.get("poll_kind") or "").strip(),
+        "group_id": str(row.get("group_id") or row.get("section_group_id") or "").strip(),
+        "section_group_id": str(row.get("section_group_id") or row.get("group_id") or "").strip(),
+        "header": str(row.get("header") or "").strip(),
+        "content_text": str(row.get("content_text") or "").strip(),
+        "game_label": str(row.get("game_label") or "").strip(),
+        "game_id": str(row.get("game_id") or "").strip(),
+    }
+    return {key: value for key, value in payload.items() if value}
+
+
+def _row_meta_token(row: dict[str, str]) -> str:
+    payload = _row_meta_payload(row)
+    if not payload:
+        return ""
+    encoded = base64.urlsafe_b64encode(
+        json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode("utf8")
+    ).decode("ascii").rstrip("=")
+    return f"<!--REAL_ROW:{encoded}-->"
+
+
 def _source_lines_text(row: dict[str, str]) -> str:
     return str(row.get("source_lines") or "").strip()
+
+
+def _option_choices_from_json(row: dict[str, str]) -> list[dict[str, object]]:
+    raw = str(row.get("option_choices_json") or "").strip()
+    if not raw:
+        return []
+    try:
+        payload = json.loads(raw)
+    except Exception:
+        return []
+    if not isinstance(payload, list):
+        return []
+    return [choice for choice in payload if isinstance(choice, dict)]
+
+
+def _option_choice_fair_probabilities(
+    row: dict[str, str],
+    options: list[dict[str, str]],
+) -> dict[str, float]:
+    choices = _option_choices_from_json(row)
+    if not choices:
+        return {}
+    option_slots = {str(option.get("slot") or "") for option in options}
+    fair_probs: dict[str, float] = {}
+    for choice in choices:
+        fair_prob = _safe_float(str(choice.get("fair_prob") or ""))
+        if fair_prob is None:
+            continue
+        slot = str(choice.get("slot") or "").strip()
+        if slot not in option_slots:
+            slot = _matching_slot(options, str(choice.get("label") or ""))
+        if not slot:
+            continue
+        fair_probs[slot] = max(0.0, min(1.0, fair_prob))
+    return fair_probs
 
 
 def _player_choice_probability(choice: dict[str, object]) -> float | None:
@@ -697,7 +768,9 @@ def _selection_put_text(row: dict[str, str], *, include_action_token: bool = Tru
         return "NoMarket" if status == "no_market" else "Skip"
     if poll_kind == "daily_pool":
         amount = int(action.get("amount") or 0)
-        return f"{label} | {amount}" if amount > 0 else label
+        if status != "bet" or amount <= 0:
+            return "Skip"
+        return f"{label} | {amount}"
     if status == "pick" and poll_kind in ZERO_COST_PICK_DISPLAY_KINDS:
         text = _compact_label(label)
         if include_action_token:
@@ -1522,22 +1595,26 @@ def _lineup_metric_text(row: dict[str, str], field: str) -> str:
     return _format_number(str(row.get(field) or ""), digits=2)
 
 
+def _lineup_notes_text(row: dict[str, str]) -> str:
+    return str(row.get("notes") or "").strip()
+
+
 def _render_lineup_section(rows: list[dict[str, str]]) -> list[str]:
     lineup_rows = [
         row
         for row in _lineup_rows(rows)
-        if str(row.get("status") or "").strip().lower() == "pick"
+        if str(row.get("status") or "").strip().lower() in {"pick", "no_market", "missing_poll_data"}
     ]
     if not lineup_rows:
         return []
     ordered_rows = sorted(lineup_rows, key=_lineup_rank_sort)
     sections = [
-        "## Lineup Contest Picks",
+        "## Lineup Contests",
         "",
-        "Only the top 3 lineup plays are shown below. The `Top 5` order is the recommended player rank order from Rotowire fantasy projections.",
+        "Lineup plays and no-market rows are shown below. The `Top 5` order is the recommended player rank order from Rotowire fantasy projections when projections are available.",
         "",
-        "| Rank | Game | Action | Top 5 | Gap 5v6 | Min Rank Gap | Top-5 Total |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| Rank | Game | Action | Top 5 | Gap 5v6 | Min Rank Gap | Top-5 Total | Notes |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in ordered_rows:
         cells = [
@@ -1548,6 +1625,7 @@ def _render_lineup_section(rows: list[dict[str, str]]) -> list[str]:
             _lineup_metric_text(row, "lineup_cutoff_gap"),
             _lineup_metric_text(row, "lineup_min_rank_gap"),
             _lineup_metric_text(row, "lineup_top5_total"),
+            _lineup_notes_text(row),
         ]
         sections.append("| " + " | ".join(_table_escape(cell) for cell in cells) + " |")
     sections.append("")
@@ -1608,15 +1686,41 @@ def _section_game_label(row: dict[str, str]) -> str:
 
 
 def _compact_table_row(row: dict[str, str]) -> str:
+    poll_label = _poll_table_label(row)
     cells = [
-        _poll_table_label(row),
+        poll_label,
         _selection_put_text(row),
         _compact_consensus_text(row),
         _compact_ev_text(row),
         _compact_sportsbook_pair(row),
+        _format_odds_updated_at(str(row.get("odds_updated_at") or "")),
         _source_text_with_lines(row),
     ]
     return "| " + " | ".join(_table_escape(cell) for cell in cells) + " |"
+
+
+def _grouped_display_rows(rows: list[dict[str, str]]) -> dict[tuple[str, str, str, str, str, str], list[dict[str, str]]]:
+    display_rows = sorted(_display_rows(rows), key=_poll_sort_key)
+    grouped: dict[tuple[str, str, str, str, str, str], list[dict[str, str]]] = defaultdict(list)
+    for row in display_rows:
+        key = (
+            str(row.get("game_order") or "").strip(),
+            str(row.get("game_time") or "").strip(),
+            str(row.get("game_label") or "").strip(),
+            str(row.get("away_team") or "").strip(),
+            str(row.get("home_team") or "").strip(),
+            str(row.get("game_id") or "").strip(),
+        )
+        grouped[key].append(row)
+    return grouped
+
+
+def render_vote_sheet_metadata(rows: list[dict[str, str]]) -> dict[str, object]:
+    metadata_rows: list[dict[str, str]] = []
+    for game_rows in _grouped_display_rows(rows).values():
+        for row in sorted(game_rows, key=_poll_sort_key):
+            metadata_rows.append(_row_meta_payload(row))
+    return {"version": 1, "rows": metadata_rows}
 
 
 def _display_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -1754,20 +1858,8 @@ def render_vote_sheet(
         prediction_positions_input=prediction_positions_input,
         not_started_only=not_started_only,
     )
-    rows = _display_rows(rows)
-    rows = sorted(rows, key=_poll_sort_key)
-
-    grouped: dict[tuple[str, str, str, str, str, str], list[dict[str, str]]] = defaultdict(list)
-    for row in rows:
-        key = (
-            str(row.get("game_order") or "").strip(),
-            str(row.get("game_time") or "").strip(),
-            str(row.get("game_label") or "").strip(),
-            str(row.get("away_team") or "").strip(),
-            str(row.get("home_team") or "").strip(),
-            str(row.get("game_id") or "").strip(),
-        )
-        grouped[key].append(row)
+    grouped = _grouped_display_rows(rows)
+    rows = [row for game_rows in grouped.values() for row in game_rows]
 
     sections: list[str] = [
         f"# {sport} Vote Sheet - {day}",
@@ -1787,8 +1879,8 @@ def render_vote_sheet(
         sections.append(f"`{_format_game_time(game_time)}`")
         rows_for_game = sorted(game_rows, key=_poll_sort_key)
         sections.append("")
-        sections.append("| Poll | Selection+Put | Consensus Prob (Odds) | EV | Sportsbook Odds | Source |")
-        sections.append("| --- | --- | --- | --- | --- | --- |")
+        sections.append("| Poll | Selection+Put | Consensus Prob (Odds) | EV | Sportsbook Odds | Odds Updated | Source |")
+        sections.append("| --- | --- | --- | --- | --- | --- | --- |")
         sections.extend(_compact_table_row(row) for row in rows_for_game)
         sections.append("")
 
@@ -1814,14 +1906,17 @@ def main() -> None:
         )
     output_path = Path(args.output) if args.output else _default_output(rows or all_rows)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        render_vote_sheet(
-            rows,
-            lineup_input=args.lineup_input,
-            predictions_input=args.predictions_input,
-            prediction_positions_input=args.prediction_positions_input,
-            not_started_only=args.not_started_only,
-        ),
+    rendered_text = render_vote_sheet(
+        rows,
+        lineup_input=args.lineup_input,
+        predictions_input=args.predictions_input,
+        prediction_positions_input=args.prediction_positions_input,
+        not_started_only=args.not_started_only,
+    )
+    output_path.write_text(rendered_text, encoding="utf8")
+    metadata_path = output_path.with_name(f"{output_path.name}.meta.json")
+    metadata_path.write_text(
+        json.dumps(render_vote_sheet_metadata(rows), indent=2, ensure_ascii=True) + "\n",
         encoding="utf8",
     )
     print(f"Saved vote sheet to {output_path}")

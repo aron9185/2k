@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -330,7 +331,13 @@ def _poll_kind(
         if sport_key == "golf":
             return "golf_leaderboard"
     if poll_type == "teamstat":
+        if "fighter" in combined_text or "strikes" in combined_text or "takedowns" in combined_text:
+            return "fighter_stat_winner"
         return "team_stat"
+    if poll_type == "gameoutcome":
+        return "fight_method"
+    if poll_type == "endingperiod":
+        return "fight_round"
     if poll_type == "totaloverunder":
         return "game_total"
     if poll_type == "gamewinner":
@@ -397,6 +404,33 @@ def _evaluation_value(evaluation: Any, field: str) -> Any:
     if isinstance(evaluation, dict):
         return evaluation.get(field)
     return getattr(evaluation, field, None)
+
+
+def _option_choices_json(evaluations: list[dict[str, Any]]) -> str:
+    choices: list[dict[str, Any]] = []
+    for item in evaluations:
+        option = item.get("option") or {}
+        evaluation = item.get("evaluation") or {}
+        book_outcome = item.get("book_outcome") or {}
+        label = str(item.get("label") or option.get("label") or "").strip()
+        if not label:
+            continue
+        choices.append(
+            {
+                "slot": str(item.get("slot") or "").strip(),
+                "key": str(item.get("key") or "").strip(),
+                "label": label,
+                "real_odds": item.get("real_odds") if item.get("real_odds") is not None else "",
+                "sportsbook_label": str(book_outcome.get("label") or book_outcome.get("key") or "").strip(),
+                "sportsbook_odds": book_outcome.get("odds") if book_outcome.get("odds") is not None else "",
+                "fair_prob": round(float(_evaluation_value(evaluation, "fair_prob") or 0.0), 6),
+                "fair_odds": int(_evaluation_value(evaluation, "fair_odds") or probability_to_american(0.5)),
+                "ev_percent": round(float(_evaluation_value(evaluation, "ev_percent") or 0.0), 4),
+            }
+        )
+    if not choices:
+        return ""
+    return json.dumps(choices, separators=(",", ":"), ensure_ascii=True)
 
 
 def _choose_zero_or_max_action(
@@ -477,6 +511,7 @@ def _recommend_multi_outcome(
     poll_kind: str,
     stat: str,
     period: str = "",
+    match_stat: bool = False,
     notes_prefix: str,
 ) -> dict[str, Any]:
     game = entry["game"]
@@ -511,9 +546,12 @@ def _recommend_multi_outcome(
         market_family=market_family,
         period=period,
     )
+    if match_stat:
+        stat_key = normalize_stat(stat)
+        game_quotes = [market for market in game_quotes if market.stat_key == stat_key]
     representative_market = _representative_game_market(game_quotes)
     if not representative_market:
-        return {
+        return _with_odds_updated({
             **base,
             "status": "no_market",
             "recommended_option": "",
@@ -525,7 +563,7 @@ def _recommend_multi_outcome(
             "matched_books": 0,
             "books": "",
             "notes": f"No matching sportsbook {notes_prefix} quotes found.",
-        }
+        }, game_quotes)
 
     book_outcomes = _market_extra_outcomes(representative_market)
     keyed_book_outcomes: dict[str, dict[str, Any]] = {}
@@ -535,7 +573,7 @@ def _recommend_multi_outcome(
         if key and odds is not None:
             keyed_book_outcomes[key] = {**outcome, "odds": odds}
     if not keyed_book_outcomes:
-        return {
+        return _with_odds_updated({
             **base,
             "status": "no_market",
             "recommended_option": "",
@@ -547,28 +585,33 @@ def _recommend_multi_outcome(
             "matched_books": len(game_quotes),
             "books": " | ".join(sorted({market.book for market in game_quotes})),
             "notes": f"Matching {notes_prefix} rows were missing outcome odds.",
-        }
+        }, game_quotes)
 
     implied_total = sum(american_to_implied_prob(outcome["odds"]) for outcome in keyed_book_outcomes.values())
     if implied_total <= 0:
         implied_total = 1.0
     evaluations = []
-    for option in options:
+    for option_index, option in enumerate(options):
         option_key = _canonical_poll_option_key(option, game)
         book_outcome = keyed_book_outcomes.get(option_key)
         offered_odds = _normalize_option_odds(option)
         if book_outcome is None or offered_odds is None:
             continue
         fair_prob = american_to_implied_prob(book_outcome["odds"]) / implied_total
+        label = str(option.get("label") or "").strip()
         evaluations.append(
             {
                 "option": option,
+                "slot": ("a", "b", "c")[option_index] if option_index < 3 else str(option_index + 1),
+                "key": option_key,
+                "label": label,
+                "real_odds": offered_odds,
                 "book_outcome": book_outcome,
                 "evaluation": _evaluate_binary_offer(fair_prob, offered_odds),
             }
         )
     if not evaluations:
-        return {
+        return _with_odds_updated({
             **base,
             **_book_outcome_fields(book_outcomes),
             "status": "missing_poll_data",
@@ -581,7 +624,7 @@ def _recommend_multi_outcome(
             "matched_books": len(game_quotes),
             "books": " | ".join(sorted({market.book for market in game_quotes})),
             "notes": f"Could not align Real options with sportsbook {notes_prefix} outcomes.",
-        }
+        }, game_quotes)
 
     selected_action = _choose_zero_or_max_action(
         poll.get("maxWager"),
@@ -594,7 +637,7 @@ def _recommend_multi_outcome(
         ],
     )
     if selected_action is None:
-        return {
+        return _with_odds_updated({
             **base,
             **_book_outcome_fields(book_outcomes),
             "status": "missing_poll_data",
@@ -607,10 +650,10 @@ def _recommend_multi_outcome(
             "matched_books": len(game_quotes),
             "books": " | ".join(sorted({market.book for market in game_quotes})),
             "notes": f"Could not evaluate {notes_prefix} action choices.",
-        }
+        }, game_quotes)
     best = selected_action
     best_eval = best["evaluation"]
-    return {
+    return _with_odds_updated({
         **base,
         **_book_outcome_fields(book_outcomes),
         "status": str(best.get("status") or "pick"),
@@ -622,8 +665,9 @@ def _recommend_multi_outcome(
         "fair_odds": int(_evaluation_value(best_eval, "fair_odds") or probability_to_american(0.5)),
         "matched_books": len(game_quotes),
         "books": " | ".join(sorted({market.book for market in game_quotes})),
+        "option_choices_json": _option_choices_json(evaluations),
         "notes": f"no-vig {notes_prefix} from sportsbook odds",
-    }
+    }, game_quotes)
 
 
 def _same_game(game: dict[str, Any], market: MarketRow) -> bool:
@@ -860,6 +904,7 @@ def _is_full_game_total_market(market: MarketRow) -> bool:
             "overunder" in name
             and (name.endswith("goals") or name.endswith("runs") or name.endswith("points"))
             and "half" not in name
+            and "inning" not in name
             and "quarter" not in name
             and "period" not in name
             and "team" not in name
@@ -947,6 +992,36 @@ def _canonical_book_outcome_key(outcome: dict[str, Any], market: MarketRow) -> s
     key = normalize_text(str(outcome.get("key") or "")).replace(" ", "")
     label = str(outcome.get("label") or "").strip()
     label_key = normalize_text(label).replace(" ", "")
+    method_key = {
+        "ko": "ko",
+        "kotko": "ko",
+        "kotkodq": "ko",
+        "knockout": "ko",
+        "submission": "sub",
+        "sub": "sub",
+        "decision": "decision",
+        "points": "decision",
+        "bydecision": "decision",
+        "round1": "1st",
+        "1st": "1st",
+        "first": "1st",
+        "round2": "2nd",
+        "2nd": "2nd",
+        "second": "2nd",
+        "round3": "3rd",
+        "3rd": "3rd",
+        "third": "3rd",
+        "round4": "4th",
+        "4th": "4th",
+        "fourth": "4th",
+        "round5": "5th",
+        "5th": "5th",
+        "fifth": "5th",
+    }
+    if key in method_key:
+        return method_key[key]
+    if label_key in method_key:
+        return method_key[label_key]
     if key in {"home", "1"}:
         return "home"
     if key in {"away", "2"}:
@@ -1019,6 +1094,33 @@ def _canonical_poll_option_key(option: dict[str, Any], game: dict[str, Any]) -> 
     if normalized_label == normalize_team(game.get("awayTeamKey") or ""):
         return "away"
     label_key = normalize_text(label).replace(" ", "")
+    fight_aliases = {
+        "ko": "ko",
+        "kotko": "ko",
+        "kotkodq": "ko",
+        "knockout": "ko",
+        "sub": "sub",
+        "submission": "sub",
+        "decision": "decision",
+        "points": "decision",
+        "1st": "1st",
+        "first": "1st",
+        "round1": "1st",
+        "2nd": "2nd",
+        "second": "2nd",
+        "round2": "2nd",
+        "3rd": "3rd",
+        "third": "3rd",
+        "round3": "3rd",
+        "4th": "4th",
+        "fourth": "4th",
+        "round4": "4th",
+        "5th": "5th",
+        "fifth": "5th",
+        "round5": "5th",
+    }
+    if label_key in fight_aliases:
+        return fight_aliases[label_key]
     if label_key in {"draw", "tie", "yes", "no"}:
         return {"tie": "draw"}.get(label_key, label_key)
     return label_key
@@ -1064,6 +1166,34 @@ def _book_abbreviation(book: str) -> str:
         "fanduel": "FD",
     }
     return aliases.get(normalized, normalized.upper() if normalized else "Book")
+
+
+def _latest_odds_updated_at(items: list[Any]) -> str:
+    best_value: Any = None
+    best_key: float | str | None = None
+    for item in items:
+        updated_at = getattr(item, "updated_at", None)
+        if updated_at in (None, "", "None"):
+            continue
+        try:
+            sort_key: float | str = float(updated_at.timestamp())
+        except Exception:
+            sort_key = str(updated_at)
+        if best_key is None or sort_key > best_key:
+            best_key = sort_key
+            best_value = updated_at
+    if best_value is None:
+        return ""
+    try:
+        return str(best_value.isoformat())
+    except Exception:
+        return str(best_value)
+
+
+def _with_odds_updated(row: dict[str, Any], items: list[Any]) -> dict[str, Any]:
+    if not row.get("odds_updated_at"):
+        row["odds_updated_at"] = _latest_odds_updated_at(items)
+    return row
 
 
 def _representative_market_quote(quotes: list[MarketQuote], target_line: float) -> MarketQuote | None:
@@ -1125,6 +1255,91 @@ def _quote_books_text(quotes: list[MarketQuote]) -> str:
     return " | ".join(
         sorted({str(quote.book or "").strip() for quote in quotes if str(quote.book or "").strip()})
     )
+
+
+def _team_period_total_synthetic_quotes(
+    markets: list[MarketRow],
+    *,
+    sport: str,
+    game: dict[str, Any],
+    period: str,
+) -> tuple[list[MarketQuote], str]:
+    grouped: dict[str, dict[str, tuple[MarketRow, float, float]]] = {}
+    home_key = normalize_team(game.get("homeTeamKey") or "")
+    away_key = normalize_team(game.get("awayTeamKey") or "")
+    requested_period = str(period or "").strip()
+
+    for market in markets:
+        if market.sport != sport or market.market_family != "team_period_total":
+            continue
+        if requested_period and str(market.period or "").strip() != requested_period:
+            continue
+        if not requested_period and str(market.period or "").strip():
+            continue
+        if not _same_game(game, market):
+            continue
+        if market.line is None or abs(float(market.line) - 0.5) > 1e-9:
+            continue
+        if market.over_odds is None or market.under_odds is None:
+            continue
+
+        team_key = normalize_team((market.raw or {}).get("player_name") or "")
+        side = ""
+        if team_key and team_key == home_key:
+            side = "home"
+        elif team_key and team_key == away_key:
+            side = "away"
+        if not side:
+            continue
+
+        try:
+            devigged = devig_quote(
+                MarketQuote(
+                    book=market.book,
+                    line=float(market.line),
+                    over_odds=market.over_odds,
+                    under_odds=market.under_odds,
+                    updated_at=market.updated_at,
+                )
+            )
+        except Exception:
+            continue
+        grouped.setdefault(market.book, {})[side] = (market, devigged.over_prob, devigged.weight)
+
+    quotes: list[MarketQuote] = []
+    source_parts: list[str] = []
+    for book, by_side in sorted(grouped.items()):
+        home_item = by_side.get("home")
+        away_item = by_side.get("away")
+        if home_item is None or away_item is None:
+            continue
+        home_market, home_score_prob, home_weight = home_item
+        away_market, away_score_prob, away_weight = away_item
+        any_run_prob = 1.0 - ((1.0 - home_score_prob) * (1.0 - away_score_prob))
+        any_run_prob = max(0.000001, min(0.999999, any_run_prob))
+        no_run_prob = 1.0 - any_run_prob
+        updated_candidates = [home_market.updated_at, away_market.updated_at]
+        updated_at = max([value for value in updated_candidates if value is not None], default=None)
+        quotes.append(
+            MarketQuote(
+                book=book,
+                line=0.5,
+                over_odds=probability_to_american(any_run_prob),
+                under_odds=probability_to_american(no_run_prob),
+                updated_at=updated_at,
+                weight=(float(home_weight) + float(away_weight)) / 2.0,
+            )
+        )
+        source_parts.append(
+            (
+                f"{_book_abbreviation(book)}: "
+                f"{home_market.raw.get('player_name') or 'Home'} run "
+                f"{_format_american(home_market.over_odds)} / {_format_american(home_market.under_odds)}; "
+                f"{away_market.raw.get('player_name') or 'Away'} run "
+                f"{_format_american(away_market.over_odds)} / {_format_american(away_market.under_odds)}"
+            )
+        )
+    return quotes, "\n".join(source_parts)
 
 
 def _mlb_hrr_component_model(
@@ -1300,23 +1515,12 @@ def _fetch_active_day_game_entries(
         if str(game.get("day") or "").strip() == resolved_day
     ]
     entries: list[dict[str, Any]] = []
-    game_sort_meta: dict[str, tuple[str, str, int]] = {}
+    # Preserve Real's home-tab game order; the dashboard uses game_order verbatim.
     for game_order, game in enumerate(games):
         game_payload = client.get_game_feed(game.get("id"), sport=sport)
         players_by_id = _player_lookup(game_payload.get("players") or [])
         game_payload_game = game_payload.get("game") or game
-        game_id = str(game_payload_game.get("id") or game.get("id") or "").strip()
-        game_date_time = str(game_payload_game.get("dateTime") or game.get("dateTime") or "").strip()
         posts = game_payload.get("posts") or []
-        first_post_created_at = ""
-        for post in posts:
-            created_at = str(post.get("createdAt") or "").strip()
-            if not created_at:
-                continue
-            if not first_post_created_at or created_at < first_post_created_at:
-                first_post_created_at = created_at
-        if game_id and game_id not in game_sort_meta:
-            game_sort_meta[game_id] = (game_date_time, first_post_created_at, game_order)
         for post_order, post in enumerate(posts):
             poll_id = _extract_poll_id(post)
             if poll_id:
@@ -1345,21 +1549,6 @@ def _fetch_active_day_game_entries(
                     "post_order": post_order,
                 }
             )
-    if game_sort_meta and entries:
-        ordered_game_ids = sorted(
-            game_sort_meta,
-            key=lambda gid: (
-                game_sort_meta[gid][0] if game_sort_meta[gid][0] else "9999-99-99T99:99:99.999Z",
-                game_sort_meta[gid][1] if game_sort_meta[gid][1] else "9999-99-99T99:99:99.999Z",
-                game_sort_meta[gid][2],
-                gid,
-            ),
-        )
-        game_rank = {gid: rank for rank, gid in enumerate(ordered_game_ids)}
-        for entry in entries:
-            gid = str((entry.get("game") or {}).get("id") or "").strip()
-            if gid in game_rank:
-                entry["game_order"] = game_rank[gid]
     return resolved_day, entries
 
 
@@ -1375,6 +1564,7 @@ def _fetch_requested_day_game_entries(
 
     posts_by_id: dict[str, dict[str, Any]] = {}
     games_by_id: dict[str, dict[str, Any]] = {}
+    game_order_by_id: dict[str, int] = {}
     before: str | None = None
     for _ in range(8):
         try:
@@ -1385,6 +1575,9 @@ def _fetch_requested_day_game_entries(
             game_id = str(game.get("id") or "").strip()
             if game_id:
                 games_by_id[game_id] = game
+                if game_id not in game_order_by_id:
+                    # The sport/day poll endpoint already returns games in Real app order.
+                    game_order_by_id[game_id] = len(game_order_by_id)
         posts = [
             post
             for post in (payload.get("posts") or [])
@@ -1412,18 +1605,10 @@ def _fetch_requested_day_game_entries(
         game_payloads[game_id] = game_payload
         player_lookups[game_id] = _player_lookup(game_payload.get("players") or [])
 
-    ordered_games = sorted(
-        games_by_id,
-        key=lambda gid: (
-            str(games_by_id[gid].get("dateTime") or "9999-99-99T99:99:99.999Z"),
-            gid,
-        ),
-    )
-    game_rank = {gid: index for index, gid in enumerate(ordered_games)}
     ordered_posts = sorted(
         posts_by_id.values(),
         key=lambda post: (
-            str((games_by_id.get(str(post.get("gameId") or "").strip()) or {}).get("dateTime") or "9999-99-99T99:99:99.999Z"),
+            game_order_by_id.get(str(post.get("gameId") or "").strip(), 999999),
             str(post.get("createdAt") or ""),
             int(post.get("id") or 0),
         ),
@@ -1462,7 +1647,7 @@ def _fetch_requested_day_game_entries(
                 "post": post,
                 "poll": poll,
                 "player_lookup": player_lookups.get(game_id, {}),
-                "game_order": game_rank.get(game_id, 999999),
+                "game_order": game_order_by_id.get(game_id, 999999),
                 "post_order": post_order,
             }
         )
@@ -2140,6 +2325,8 @@ def _build_daily_pool_slate_rows(
             for payout, probability in zip(payouts, tier_probabilities)
         )
         expected_ev_percent = (expected_return_multiple - 1.0) * 100.0
+        pool_entry_amount = max_wager if max_wager > 0 else 100
+        expected_profit = (expected_return_multiple * pool_entry_amount) - pool_entry_amount
         recommended_amount = max_wager if expected_ev_percent > 0 and max_wager > 0 else 0
         status = "bet" if recommended_amount > 0 else "no_edge"
         selection_text = " / ".join(str(leg["label"]) for leg in legs)
@@ -2221,7 +2408,8 @@ def _build_daily_pool_slate_rows(
                     f"{'; '.join(tier_notes)}; "
                     f"cash {_format_probability_note(cash_probability)}; "
                     f"lose {_format_probability_note(lose_probability)}; "
-                    f"expected return {expected_return_multiple:.2f}x; {chance_note}"
+                    f"expected return {expected_return_multiple:.2f}x; "
+                    f"EV {expected_profit:+.2f} on {pool_entry_amount} entry; {chance_note}"
                     + (
                         f"; missing child polls assumed at 50/50 ({', '.join(missing_poll_ids)})"
                         if missing_poll_ids
@@ -2629,7 +2817,7 @@ def _recommend_player_over_under(
         "sportsbook_b_odds": "",
     }
     if not player_name or line_value is None or over_odds is None or under_odds is None:
-        return {
+        return _with_odds_updated({
             **base,
             "status": "missing_poll_data",
             "recommended_option": "",
@@ -2641,7 +2829,7 @@ def _recommend_player_over_under(
             "matched_books": 0,
             "books": "",
             "notes": "Missing player id/name, line, or option odds.",
-        }
+        }, [])
 
     stat_key = normalize_stat(additional.get("stat") or "")
     quotes = _matching_player_quotes(
@@ -2799,7 +2987,7 @@ def _recommend_player_over_under(
         ],
     )
     if selected_action is None:
-        return {
+        return _with_odds_updated({
             **base,
             "status": "missing_poll_data",
             "recommended_option": "",
@@ -2814,9 +3002,9 @@ def _recommend_player_over_under(
             "sportsbook_a_odds": representative.over_odds if representative else "",
             "sportsbook_b_odds": representative.under_odds if representative else "",
             "source_lines": source_lines,
-        }
+        }, quotes)
     selected_eval = selected_action["evaluation"]
-    return {
+    return _with_odds_updated({
         **base,
         "status": str(selected_action.get("status") or "pick"),
         "recommended_option": str(selected_action.get("label") or ""),
@@ -2836,7 +3024,7 @@ def _recommend_player_over_under(
         "sportsbook_a_odds": representative.over_odds if representative else "",
         "sportsbook_b_odds": representative.under_odds if representative else "",
         "source_lines": source_lines,
-    }
+    }, quotes)
 
 
 def _recommend_game_total(
@@ -2975,7 +3163,7 @@ def _recommend_game_total(
         ],
     )
     if selected_action is None:
-        return {
+        return _with_odds_updated({
             **base,
             "status": "missing_poll_data",
             "recommended_option": "",
@@ -2990,9 +3178,9 @@ def _recommend_game_total(
             "sportsbook_a_odds": representative.over_odds if representative else "",
             "sportsbook_b_odds": representative.under_odds if representative else "",
             "source_lines": source_lines,
-        }
+        }, quotes)
     selected_eval = selected_action["evaluation"]
-    return {
+    return _with_odds_updated({
         **base,
         "status": str(selected_action.get("status") or "pick"),
         "recommended_option": str(selected_action.get("label") or ""),
@@ -3012,7 +3200,7 @@ def _recommend_game_total(
         "sportsbook_a_odds": representative.over_odds if representative else "",
         "sportsbook_b_odds": representative.under_odds if representative else "",
         "source_lines": source_lines,
-    }
+    }, quotes)
 
 
 def _recommend_two_way_winner(
@@ -3129,6 +3317,7 @@ def _recommend_two_way_winner(
     fair_away_prob = 1.0 - fair_home_prob
     home_eval = _evaluate_binary_offer(fair_home_prob, int(home_odds))
     away_eval = _evaluate_binary_offer(fair_away_prob, int(away_odds))
+    book_names = sorted({market.book for market in game_quotes})
     selected_action = _choose_zero_or_max_action(
         poll.get("maxWager"),
         [
@@ -3143,7 +3332,7 @@ def _recommend_two_way_winner(
         ],
     )
     if selected_action is None:
-        return {
+        return _with_odds_updated({
             **base,
             "status": "missing_poll_data",
             "recommended_option": "",
@@ -3157,15 +3346,14 @@ def _recommend_two_way_winner(
             "notes": "Could not evaluate winner action choices.",
             "sportsbook_a_odds": representative_market.over_odds if representative_market else "",
             "sportsbook_b_odds": representative_market.under_odds if representative_market else "",
-        }
+        }, game_quotes)
     recommended_eval = selected_action["evaluation"]
-    book_names = sorted({market.book for market in game_quotes})
     source_lines = _book_moneyline_summary(
         game_quotes,
         str(home_option.get("label") or game.get("homeTeamKey") or ""),
         str(away_option.get("label") or game.get("awayTeamKey") or ""),
     )
-    return {
+    return _with_odds_updated({
         **base,
         "status": str(selected_action.get("status") or "pick"),
         "recommended_option": str(selected_action.get("label") or ""),
@@ -3180,7 +3368,7 @@ def _recommend_two_way_winner(
         "notes": _moneyline_source_note(success_note, len(book_names)),
         "sportsbook_a_odds": representative_market.over_odds if representative_market else "",
         "sportsbook_b_odds": representative_market.under_odds if representative_market else "",
-    }
+    }, game_quotes)
 
 
 def _recommend_game_winner(
@@ -3205,6 +3393,73 @@ def _recommend_game_winner(
         poll_kind="game_winner",
         no_market_note="No matching sportsbook moneyline quotes found.",
         success_note="weighted no-vig moneyline consensus",
+    )
+
+
+def _ufc_fighter_stat_key(content_text: str) -> str:
+    text = normalize_text(content_text)
+    compact = text.replace(" ", "")
+    if "leg" in text and "strike" in text:
+        return "significantlegstrikes"
+    if "significantstrike" in compact or "sigstrike" in compact:
+        return "significantstrikes"
+    if "takedown" in text:
+        return "takedowns"
+    if "knockdown" in text:
+        return "knockdowns"
+    if "strike" in text:
+        return "strikes"
+    return "teamstat"
+
+
+def _recommend_ufc_fighter_stat_winner(
+    entry: dict[str, Any],
+    markets: list[MarketRow],
+    sport: str,
+) -> dict[str, Any]:
+    content_text = _first_text((((entry.get("post") or {}).get("content") or {}).get("nodes")) or [])
+    stat_key = _ufc_fighter_stat_key(content_text)
+    return _recommend_multi_outcome(
+        entry,
+        markets,
+        sport,
+        market_family="fighter_stat_winner",
+        poll_kind="fighter_stat_winner",
+        stat=stat_key,
+        match_stat=True,
+        notes_prefix=f"UFC {stat_key} head-to-head",
+    )
+
+
+def _recommend_fight_method(
+    entry: dict[str, Any],
+    markets: list[MarketRow],
+    sport: str,
+) -> dict[str, Any]:
+    return _recommend_multi_outcome(
+        entry,
+        markets,
+        sport,
+        market_family="fight_method",
+        poll_kind="fight_method",
+        stat="method",
+        notes_prefix="fight-method",
+    )
+
+
+def _recommend_fight_round(
+    entry: dict[str, Any],
+    markets: list[MarketRow],
+    sport: str,
+) -> dict[str, Any]:
+    return _recommend_multi_outcome(
+        entry,
+        markets,
+        sport,
+        market_family="fight_round",
+        poll_kind="fight_round",
+        stat="endinground",
+        notes_prefix="fight-ending-round",
     )
 
 
@@ -3365,7 +3620,7 @@ def _recommend_team_next_points(
         ],
     )
     if selected_action is None:
-        return {
+        return _with_odds_updated({
             **base,
             "status": "missing_poll_data",
             "recommended_option": "",
@@ -3377,7 +3632,7 @@ def _recommend_team_next_points(
             "matched_books": len(devigged),
             "books": " | ".join(sorted({market.book for market in moneyline_rows})),
             "notes": "Could not evaluate next-score proxy action choices.",
-        }
+        }, moneyline_rows)
 
     representative_market = _representative_game_market(moneyline_rows)
     team_book_odds = ""
@@ -3388,7 +3643,7 @@ def _recommend_team_next_points(
             else representative_market.under_odds
         )
     selected_eval = selected_action["evaluation"]
-    return {
+    return _with_odds_updated({
         **base,
         "sportsbook_a_label": str(team_option.get("label") or ""),
         "sportsbook_a_odds": team_book_odds if team_book_odds is not None else "",
@@ -3404,7 +3659,7 @@ def _recommend_team_next_points(
         "matched_books": len(devigged),
         "books": " | ".join(sorted({market.book for market in moneyline_rows})),
         "notes": "No direct next-score market matched; used weighted no-vig moneyline proxy.",
-    }
+    }, moneyline_rows)
 
 
 def _period_market_code(sport: str, period_value: str) -> str:
@@ -3412,7 +3667,7 @@ def _period_market_code(sport: str, period_value: str) -> str:
     if not normalized_period:
         return ""
     period_key = normalized_period.upper()
-    if period_key.endswith(("I", "Q", "P", "H")):
+    if period_key.endswith(("I", "Q", "P", "H", "R")):
         return period_key
     if sport == "mlb" and normalized_period.isdigit():
         return f"{normalized_period}I"
@@ -3560,7 +3815,7 @@ def _recommend_period_winner(
         ],
     )
     if selected_action is None:
-        return {
+        return _with_odds_updated({
             **base,
             "status": "missing_poll_data",
             "recommended_option": "",
@@ -3574,9 +3829,9 @@ def _recommend_period_winner(
             "notes": f"Could not evaluate {market_period} winner action choices.",
             "sportsbook_a_odds": representative.over_odds if representative else "",
             "sportsbook_b_odds": representative.under_odds if representative else "",
-        }
+        }, quotes)
     selected_eval = selected_action["evaluation"]
-    return {
+    return _with_odds_updated({
         **base,
         "status": str(selected_action.get("status") or "pick"),
         "recommended_option": str(selected_action.get("label") or ""),
@@ -3591,7 +3846,7 @@ def _recommend_period_winner(
         "notes": f"{snapshot['estimate'].source}; {market_period} spread proxy for period winner",
         "sportsbook_a_odds": representative.over_odds if representative else "",
         "sportsbook_b_odds": representative.under_odds if representative else "",
-    }
+    }, quotes)
 
 
 def _recommend_game_spread(
@@ -3734,7 +3989,7 @@ def _recommend_game_spread(
         ],
     )
     if selected_action is None:
-        return {
+        return _with_odds_updated({
             **base,
             "status": "missing_poll_data",
             "recommended_option": "",
@@ -3748,9 +4003,9 @@ def _recommend_game_spread(
             "notes": "Could not evaluate live spread action choices.",
             "sportsbook_a_odds": representative.over_odds if representative else "",
             "sportsbook_b_odds": representative.under_odds if representative else "",
-        }
+        }, quotes)
     selected_eval = selected_action["evaluation"]
-    return {
+    return _with_odds_updated({
         **base,
         "status": str(selected_action.get("status") or "pick"),
         "recommended_option": str(selected_action.get("label") or ""),
@@ -3768,7 +4023,7 @@ def _recommend_game_spread(
         ),
         "sportsbook_a_odds": representative.over_odds if representative else "",
         "sportsbook_b_odds": representative.under_odds if representative else "",
-    }
+    }, quotes)
 
 
 def _recommend_period_total_yes_no(
@@ -3780,10 +4035,23 @@ def _recommend_period_total_yes_no(
     post = entry["post"]
     poll = entry["poll"]
     additional = poll.get("additionalInfo") or {}
+    content_text = _first_text(((post.get("content") or {}).get("nodes")) or [])
     over_option, under_option = _choose_over_under_options(poll.get("options") or [])
     over_odds = _normalize_option_odds(over_option)
     under_odds = _normalize_option_odds(under_option)
     period = str(additional.get("period") or "").strip()
+    if not period:
+        period_match = re.search(
+            r"\b([1-9][0-9]*)(?:st|nd|rd|th)?\s+(?:inning|period|quarter)\b",
+            content_text,
+            flags=re.IGNORECASE,
+        )
+        if period_match:
+            period = period_match.group(1)
+    if not period and sport == "mlb":
+        ordinal_match = re.search(r"\b([1-9][0-9]*)(?:st|nd|rd|th)\b", content_text, flags=re.IGNORECASE)
+        if ordinal_match:
+            period = ordinal_match.group(1)
     market_period = _period_market_code(sport, period)
 
     line_value = None
@@ -3800,6 +4068,8 @@ def _recommend_period_total_yes_no(
                 line_value = float(over_under_amount)
             except Exception:
                 line_value = None
+    if line_value is None and sport == "mlb" and re.search(r"\b(any\s+run|run\s+score)\b", content_text, flags=re.IGNORECASE):
+        line_value = 0.5
 
     base = {
         "poll_id": poll.get("id"),
@@ -3810,7 +4080,7 @@ def _recommend_period_total_yes_no(
         "home_team": game.get("homeTeamKey") or "",
         "away_team": game.get("awayTeamKey") or "",
         "header": post.get("header") or "",
-        "content_text": _first_text(((post.get("content") or {}).get("nodes")) or []),
+        "content_text": content_text,
         "poll_kind": "period_total_yes_no",
         "player_name": "",
         "stat": "total",
@@ -3859,6 +4129,16 @@ def _recommend_period_total_yes_no(
         for market in game_quotes
         if market.line is not None and market.over_odds is not None and market.under_odds is not None
     ]
+    source_lines_override = ""
+    used_team_run_fallback = False
+    if not quotes:
+        quotes, source_lines_override = _team_period_total_synthetic_quotes(
+            markets,
+            sport=sport,
+            game=game,
+            period=market_period,
+        )
+        used_team_run_fallback = bool(quotes)
     if not quotes:
         return {
             **base,
@@ -3881,7 +4161,7 @@ def _recommend_period_total_yes_no(
         under_odds=under_odds,
     )
     representative = _representative_market_quote(quotes, line_value)
-    source_lines = _book_line_summary(quotes, line_value, prefer_exact=True)
+    source_lines = source_lines_override or _book_line_summary(quotes, line_value, prefer_exact=True)
     over_eval = snapshot["over"]
     under_eval = snapshot["under"]
     selected_action = _choose_zero_or_max_action(
@@ -3898,7 +4178,7 @@ def _recommend_period_total_yes_no(
         ],
     )
     if selected_action is None:
-        return {
+        return _with_odds_updated({
             **base,
             "status": "missing_poll_data",
             "recommended_option": "",
@@ -3913,9 +4193,9 @@ def _recommend_period_total_yes_no(
             "sportsbook_a_odds": representative.over_odds if representative else "",
             "sportsbook_b_odds": representative.under_odds if representative else "",
             "source_lines": source_lines,
-        }
+        }, quotes)
     selected_eval = selected_action["evaluation"]
-    return {
+    return _with_odds_updated({
         **base,
         "status": str(selected_action.get("status") or "pick"),
         "recommended_option": str(selected_action.get("label") or ""),
@@ -3927,11 +4207,18 @@ def _recommend_period_total_yes_no(
         "consensus_fair_line": round(snapshot["estimate"].fair_line, 4),
         "matched_books": _quote_book_count(quotes),
         "books": _quote_books_text(quotes),
-        "notes": f"{snapshot['estimate'].source}; period total runs",
+        "notes": (
+            f"{snapshot['estimate'].source}; period total runs"
+            + (
+                "; derived from team run-scored yes/no markets"
+                if used_team_run_fallback
+                else ""
+            )
+        ),
         "sportsbook_a_odds": representative.over_odds if representative else "",
         "sportsbook_b_odds": representative.under_odds if representative else "",
         "source_lines": source_lines,
-    }
+    }, quotes)
 
 
 def _market_proxy_fields(
@@ -3950,6 +4237,7 @@ def _market_proxy_fields(
         "consensus_fair_line": "",
         "matched_books": 0,
         "books": "",
+        "odds_updated_at": "",
         "sportsbook_a_label": "",
         "sportsbook_a_odds": "",
         "sportsbook_b_label": "",
@@ -3983,7 +4271,7 @@ def _market_proxy_fields(
         under_odds=representative.under_odds,
     )
     over_eval = snapshot["over"]
-    return {
+    return _with_odds_updated({
         "recommended_ev_percent": round(over_eval.ev_percent, 4),
         "fair_prob": round(over_eval.fair_prob, 6),
         "fair_odds": over_eval.fair_odds,
@@ -3995,7 +4283,7 @@ def _market_proxy_fields(
         "sportsbook_b_label": "",
         "sportsbook_b_odds": "",
         "proxy_note": snapshot["estimate"].source,
-    }
+    }, quotes)
 
 
 def _threshold_to_market_line(value: Any) -> float | None:
@@ -4143,6 +4431,47 @@ def _allowed_game_players(game_payload: dict[str, Any]) -> set[str]:
     return players
 
 
+def _poll_option_player_names(entry: dict[str, Any]) -> set[str]:
+    poll = entry.get("poll") or {}
+    player_lookup = entry.get("player_lookup") or {}
+    players: set[str] = set()
+    for option in poll.get("options") or []:
+        if not isinstance(option, dict):
+            continue
+        additional = option.get("additionalInfo") or {}
+        player_id = str(additional.get("playerId") or option.get("playerId") or "").strip()
+        candidates = [
+            player_lookup.get(player_id, "") if player_id else "",
+            option.get("fullName"),
+            option.get("displayName"),
+            option.get("label"),
+        ]
+        for player_name in candidates:
+            normalized = normalize_player_name(str(player_name or ""))
+            if normalized:
+                players.add(normalized)
+                break
+    return players
+
+
+def _golf_player_key_matches(candidate_key: str, target_key: str) -> bool:
+    candidate_parts = normalize_player_name(candidate_key).split()
+    target_parts = normalize_player_name(target_key).split()
+    if not candidate_parts or not target_parts:
+        return False
+    if candidate_parts == target_parts:
+        return True
+    if candidate_parts[-1] != target_parts[-1]:
+        return False
+    candidate_first = candidate_parts[0]
+    target_first = target_parts[0]
+    return bool(candidate_first and target_first and candidate_first[0] == target_first[0])
+
+
+def _golf_player_key_in_set(candidate_key: str, target_keys: set[str]) -> bool:
+    return any(_golf_player_key_matches(candidate_key, target_key) for target_key in target_keys)
+
+
 def _group_same_game_player_markets(
     markets: list[MarketRow],
     *,
@@ -4255,6 +4584,7 @@ def _player_market_candidate(
         "consensus_fair_line": round(snapshot["estimate"].fair_line, 4),
         "matched_books": _quote_book_count(quotes),
         "books": _quote_books_text(quotes),
+        "odds_updated_at": _latest_odds_updated_at(quotes),
         "sportsbook_odds": representative.over_odds,
         "source_lines": source_lines,
         "source_note": str(snapshot["estimate"].source),
@@ -4715,6 +5045,7 @@ def _zero_cost_player_choices_json(candidates: list[dict[str, Any]]) -> str:
                 else "",
                 "matched_books": int(candidate.get("matched_books") or 0),
                 "books": str(candidate.get("books") or "").strip(),
+                "odds_updated_at": str(candidate.get("odds_updated_at") or "").strip(),
                 "source_lines": str(candidate.get("source_lines") or "").strip(),
                 "source_note": str(candidate.get("source_note") or "").strip(),
             }
@@ -4876,6 +5207,10 @@ def _zero_cost_pick_base(
     content_text = _first_text(((post.get("content") or {}).get("nodes")) or [])
     if str(additional.get("type") or "").strip().lower() == "daily":
         content_text = str(additional.get("detail") or content_text).strip()
+    options = poll.get("options") or []
+    option_a = options[0] if len(options) > 0 and isinstance(options[0], dict) else {}
+    option_b = options[1] if len(options) > 1 and isinstance(options[1], dict) else {}
+    option_c = options[2] if len(options) > 2 and isinstance(options[2], dict) else {}
     return {
         "poll_id": poll.get("id"),
         "post_id": post.get("id"),
@@ -4892,12 +5227,12 @@ def _zero_cost_pick_base(
         "line": line_value if line_value is not None else "",
         "can_wager": poll.get("canWager"),
         "max_wager": poll.get("maxWager", ""),
-        "option_a_label": "",
-        "option_a_odds": "",
-        "option_b_label": "",
-        "option_b_odds": "",
-        "option_c_label": "",
-        "option_c_odds": "",
+        "option_a_label": str(option_a.get("label") or "").strip(),
+        "option_a_odds": _normalize_option_odds(option_a) if option_a else "",
+        "option_b_label": str(option_b.get("label") or "").strip(),
+        "option_b_odds": _normalize_option_odds(option_b) if option_b else "",
+        "option_c_label": str(option_c.get("label") or "").strip(),
+        "option_c_odds": _normalize_option_odds(option_c) if option_c else "",
         "sportsbook_a_label": "",
         "sportsbook_a_odds": "",
         "sportsbook_b_label": "",
@@ -4914,6 +5249,7 @@ def _zero_cost_pick_base(
         "consensus_fair_line": "",
         "matched_books": 0,
         "books": "",
+        "odds_updated_at": "",
         "player_choices_json": "",
         "source_lines": "",
         "notes": "",
@@ -5203,6 +5539,7 @@ def _recommend_zero_cost_player_poll(
         "consensus_fair_line": selected.get("consensus_fair_line") or "",
         "matched_books": int(selected.get("matched_books") or 0),
         "books": str(selected.get("books") or ""),
+        "odds_updated_at": str(selected.get("odds_updated_at") or ""),
         "player_choices_json": _zero_cost_player_choices_json(ranked_candidates),
         "source_lines": str(selected.get("source_lines") or ""),
         "notes": "; ".join(note_parts),
@@ -5227,8 +5564,18 @@ def _golf_leaderboard_context(entry: dict[str, Any]) -> tuple[str, float, str, s
     if top_match:
         min_rank = int(top_match.group(1))
 
-    if period == "R1" and ("leader" in text or min_rank == 1):
-        return "leader", 1.0, period, "round 1 leader"
+    if additional.get("isMatchupPoll") and round_value:
+        return "roundmatchup", 1.0, period, f"round {round_value} matchup"
+
+    round_leader_text = bool(
+        additional.get("isRoundLeaderPoll")
+        or "round leader" in text
+        or re.search(r"\bround\s+[0-9]+\s+leader\b", text)
+        or re.search(r"\b[0-9]+(?:st|nd|rd|th)\s+round\s+leader\b", text)
+    )
+    if period and ("leader" in text or round_leader_text):
+        round_label = f"round {round_value} leader" if round_value else "round leader"
+        return "leader", 1.0, period, round_label
     if min_rank is not None and min_rank > 1:
         label = f"round {round_value} top {min_rank}" if period else f"top {min_rank}"
         return "topfinish", float(min_rank), period, label
@@ -5244,8 +5591,10 @@ def _golf_leaderboard_candidates(
     line_value: float,
     period: str,
     allowed_players: set[str],
+    required_players: set[str] | None = None,
 ) -> list[dict[str, Any]]:
     market_groups: dict[tuple[str, str], list[MarketRow]] = {}
+    required_players = required_players or set()
     for market in markets:
         if market.sport != "golf" or market.market_family != "player_finish":
             continue
@@ -5259,7 +5608,7 @@ def _golf_leaderboard_candidates(
             continue
         if not market.player_name or market.over_odds is None:
             continue
-        if allowed_players and market.player_name not in allowed_players:
+        if allowed_players and not _golf_player_key_in_set(market.player_name, allowed_players):
             continue
         market_id = str(market.raw.get("provider_market_id") or market.raw.get("provider_market_name") or "").split(":", 1)[0]
         market_groups.setdefault((market.book, market_id), []).append(market)
@@ -5269,7 +5618,13 @@ def _golf_leaderboard_candidates(
     books_map: dict[str, set[str]] = {}
     display_names: dict[str, str] = {}
     source_map: dict[str, list[str]] = {}
+    updated_items: dict[str, list[MarketRow]] = {}
     for (book, _market_id), rows in market_groups.items():
+        if required_players and not all(
+            any(_golf_player_key_matches(row.player_name, required_key) for row in rows)
+            for required_key in required_players
+        ):
+            continue
         total_implied = sum(
             american_to_implied_prob(row.over_odds)
             for row in rows
@@ -5285,6 +5640,7 @@ def _golf_leaderboard_candidates(
             probability_map.setdefault(row.player_name, []).append(fair_prob)
             price_map.setdefault(row.player_name, []).append(row.over_odds)
             books_map.setdefault(row.player_name, set()).add(book)
+            updated_items.setdefault(row.player_name, []).append(row)
             display_names.setdefault(
                 row.player_name,
                 clean_player_name(str(row.raw.get("player_name") or "").strip()) or row.player_name,
@@ -5317,8 +5673,108 @@ def _golf_leaderboard_candidates(
                 "sportsbook_odds": sportsbook_odds,
                 "source_lines": "\n".join(source_map.get(player_key, [])[:6]),
                 "source_note": "normalized golf leaderboard implied probabilities",
+                "odds_updated_at": _latest_odds_updated_at(updated_items.get(player_key) or []),
             }
         )
+    return candidates
+
+
+def _golf_round_score_candidates(
+    markets: list[MarketRow],
+    *,
+    period: str,
+    allowed_players: set[str],
+) -> list[dict[str, Any]]:
+    player_rows: dict[str, list[MarketRow]] = {}
+    display_names: dict[str, str] = {}
+    for market in markets:
+        if market.sport != "golf" or market.market_family != "player_over_under":
+            continue
+        if market.stat_key != "roundscore":
+            continue
+        if period and str(market.period or "").strip().upper() != period:
+            continue
+        if not market.player_name or market.line is None or market.over_odds is None:
+            continue
+        if allowed_players and not _golf_player_key_in_set(market.player_name, allowed_players):
+            continue
+        player_key = normalize_player_name(market.player_name)
+        if not player_key:
+            continue
+        player_rows.setdefault(player_key, []).append(market)
+        display_names.setdefault(
+            player_key,
+            clean_player_name(str(market.raw.get("player_name") or "").strip()) or market.player_name,
+        )
+
+    if len(player_rows) < 2:
+        return []
+
+    ratings: dict[str, float] = {}
+    price_map: dict[str, list[int]] = {}
+    books_map: dict[str, set[str]] = {}
+    source_map: dict[str, list[str]] = {}
+    updated_items: dict[str, list[MarketRow]] = {}
+    for player_key, rows in player_rows.items():
+        player_ratings: list[float] = []
+        for row in rows:
+            if row.line is None or row.over_odds is None:
+                continue
+            over_prob = american_to_implied_prob(row.over_odds)
+            if row.under_odds is not None:
+                under_prob = american_to_implied_prob(row.under_odds)
+                total_prob = over_prob + under_prob
+                if total_prob > 0:
+                    over_prob = over_prob / total_prob
+            # Lower round score is better. A higher over probability nudges the
+            # projected score above the posted line; higher under probability nudges it below.
+            rating = float(row.line) + ((over_prob - 0.5) * 1.5)
+            player_ratings.append(rating)
+            if row.under_odds is not None:
+                price_map.setdefault(player_key, []).append(row.under_odds)
+            books_map.setdefault(player_key, set()).add(row.book)
+            updated_items.setdefault(player_key, []).append(row)
+            source_map.setdefault(player_key, []).append(
+                f"{_book_abbreviation(row.book)} {display_names.get(player_key, row.player_name)} "
+                f"{str(row.period or period)} {float(row.line):g}: "
+                f"O {_format_american(row.over_odds)}"
+                + (f" / U {_format_american(row.under_odds)}" if row.under_odds is not None else "")
+            )
+        if player_ratings:
+            ratings[player_key] = sum(player_ratings) / len(player_ratings)
+
+    if len(ratings) < 2:
+        return []
+
+    scale = 1.25
+    weights = {player_key: math.exp(-rating / scale) for player_key, rating in ratings.items()}
+    total_weight = sum(weights.values())
+    if total_weight <= 0:
+        return []
+
+    candidates: list[dict[str, Any]] = []
+    for player_key, weight in weights.items():
+        fair_prob = weight / total_weight
+        price_candidates = price_map.get(player_key) or []
+        sportsbook_odds: int | str = ""
+        if price_candidates:
+            sportsbook_odds = min(
+                price_candidates,
+                key=lambda price: abs(american_to_implied_prob(price) - fair_prob),
+            )
+        candidate = {
+            "player_key": player_key,
+            "selection": display_names.get(player_key, player_key),
+            "fair_prob": fair_prob,
+            "fair_odds": int(probability_to_american(fair_prob)),
+            "consensus_fair_line": round(ratings[player_key], 4),
+            "matched_books": len(books_map.get(player_key) or []),
+            "books": " | ".join(sorted(books_map.get(player_key) or [])),
+            "sportsbook_odds": sportsbook_odds,
+            "source_lines": "\n".join(source_map.get(player_key, [])[:6]),
+            "source_note": "round-score O/U proxy for best-score matchup",
+        }
+        candidates.append(_with_odds_updated(candidate, updated_items.get(player_key) or []))
     return candidates
 
 
@@ -5345,13 +5801,25 @@ def _recommend_golf_leaderboard_poll(
         }
 
     stat_key, line_value, period, market_label = context
+    option_players = _poll_option_player_names(entry)
+    required_players = option_players if stat_key == "roundmatchup" else set()
+    allowed_players = option_players or _allowed_game_players(entry.get("game_payload") or {})
     candidates = _golf_leaderboard_candidates(
         markets,
         stat_key=stat_key,
         line_value=line_value,
         period=period,
-        allowed_players=_allowed_game_players(entry.get("game_payload") or {}),
+        allowed_players=allowed_players,
+        required_players=required_players,
     )
+    if not candidates and stat_key == "roundmatchup":
+        candidates = _golf_round_score_candidates(
+            markets,
+            period=period,
+            allowed_players=option_players or allowed_players,
+        )
+        if candidates:
+            market_label = f"round {period[1:]} best score" if period.startswith("R") else "round best score"
     if not candidates:
         return {
             **base,
@@ -5403,6 +5871,7 @@ def _recommend_golf_leaderboard_poll(
         "fair_odds": int(selected.get("fair_odds") or probability_to_american(0.5)),
         "matched_books": int(selected.get("matched_books") or 0),
         "books": str(selected.get("books") or ""),
+        "odds_updated_at": str(selected.get("odds_updated_at") or ""),
         "player_choices_json": _zero_cost_player_choices_json(ranked_candidates),
         "source_lines": str(selected.get("source_lines") or ""),
         "notes": "; ".join(part for part in note_parts if part),
@@ -5842,6 +6311,12 @@ def build_recommendations(
             recommendation = _recommend_halftime_result(entry, markets, sport)
         elif poll_kind == "golf_leaderboard":
             recommendation = _recommend_golf_leaderboard_poll(entry, markets, sport)
+        elif poll_kind == "fighter_stat_winner":
+            recommendation = _recommend_ufc_fighter_stat_winner(entry, markets, sport)
+        elif poll_kind == "fight_method":
+            recommendation = _recommend_fight_method(entry, markets, sport)
+        elif poll_kind == "fight_round":
+            recommendation = _recommend_fight_round(entry, markets, sport)
         elif poll_kind == "team_stat":
             recommendation = _recommend_team_stat_poll(
                 entry,
@@ -5941,7 +6416,9 @@ def write_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
         "consensus_fair_line",
         "matched_books",
         "books",
+        "odds_updated_at",
         "player_choices_json",
+        "option_choices_json",
         "source_lines",
         "lineup_rank",
         "lineup_players",

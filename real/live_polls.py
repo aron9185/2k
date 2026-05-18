@@ -201,16 +201,32 @@ def _normalize_poll_kind(post: dict[str, Any], poll: dict[str, Any]) -> str:
     additional = poll.get("additionalInfo") or {}
     post_additional = post.get("additionalInfo") or {}
     poll_type = str(additional.get("type") or post_additional.get("type") or "").strip().lower()
+    sport_key = str(additional.get("sport") or poll.get("sport") or post.get("sport") or "").strip().lower()
     header = str(post.get("header") or "").strip().lower()
     is_anytime = bool(additional.get("isAnytimePlay") or post_additional.get("isAnytimePlay"))
     if is_anytime:
         return "pick_a_player" if header == "pick a player" else "anytime_play"
     if additional.get("isHeadToHead") or post_additional.get("isHeadToHead"):
         return "player_head_to_head"
+    if poll_type == "player" and (additional.get("isLeaderboardPoll") or post_additional.get("isLeaderboardPoll")):
+        if sport_key == "golf":
+            return "golf_leaderboard"
+    if poll_type == "player" and (additional.get("isMatchupPoll") or post_additional.get("isMatchupPoll")):
+        if sport_key == "golf":
+            return "golf_leaderboard"
     if additional.get("isOverUnder") or post_additional.get("isOverUnder"):
         return "player_over_under" if poll_type == "player" else "game_total"
     if poll_type == "gamewinner" or additional.get("isPickWinner"):
         return "game_winner"
+    if poll_type == "teamstat":
+        content_text = _first_text(((post.get("content") or {}).get("nodes")) or []).lower()
+        if sport_key == "ufc" or "fighter" in content_text or "strikes" in content_text or "takedowns" in content_text:
+            return "fighter_stat_winner"
+        return "team_stat"
+    if poll_type == "gameoutcome":
+        return "fight_method"
+    if poll_type == "endingperiod":
+        return "fight_round"
     if poll_type == "midgame":
         point_spread = additional.get("pointSpread")
         try:
@@ -220,6 +236,8 @@ def _normalize_poll_kind(post: dict[str, Any], poll: dict[str, Any]) -> str:
         if spread_value is not None:
             return "period_winner" if spread_value == 0 else "game_spread"
         return "midgame"
+    if poll_type == "minimumperiodtotalpoints":
+        return "period_total_yes_no"
     return poll_type
 
 
@@ -250,6 +268,38 @@ def _format_play_types(value: Any) -> str:
     return str(value or "").strip()
 
 
+def _golf_leaderboard_market_fields(
+    poll_kind: str,
+    additional: dict[str, Any],
+    content_text: str,
+) -> tuple[str, Any, str]:
+    if poll_kind != "golf_leaderboard":
+        return "", "", ""
+
+    text = f"{content_text} {additional.get('karmaDisplay') or ''}".lower()
+    round_value = str(additional.get("round") or "").strip()
+    period = f"R{round_value}" if round_value.isdigit() else ""
+
+    if additional.get("isMatchupPoll") or "best score" in text:
+        return "roundscore", 1.0, period
+    if additional.get("isRoundLeaderPoll") or "round leader" in text or "leader" in text:
+        return "leader", 1.0, period
+
+    min_rank: int | None = None
+    try:
+        min_rank = int(float(additional.get("minRank")))
+    except Exception:
+        min_rank = None
+    top_match = re.search(r"\btop\s+([0-9]+)\b", text)
+    if top_match:
+        min_rank = int(top_match.group(1))
+    if min_rank is not None and min_rank > 1:
+        return "topfinish", float(min_rank), period
+    if min_rank == 1 or "win the tournament" in text or "tournament winner" in text:
+        return "winner", 1.0, ""
+    return "", "", period
+
+
 def _normalize_poll_row(post: dict[str, Any], poll_payload: dict[str, Any]) -> dict[str, Any]:
     poll = poll_payload.get("poll") or {}
     additional = poll.get("additionalInfo") or {}
@@ -263,6 +313,14 @@ def _normalize_poll_row(post: dict[str, Any], poll_payload: dict[str, Any]) -> d
     content_text = _first_text(((post.get("content") or {}).get("nodes")) or [])
     poll_kind = _normalize_poll_kind(post, poll)
     entity_type = str(additional.get("entityType") or additional.get("type") or "").strip()
+    derived_stat, derived_line, derived_period = _golf_leaderboard_market_fields(
+        poll_kind,
+        additional,
+        content_text,
+    )
+    line_value = additional.get("overUnderAmount")
+    if line_value in (None, "", "None") and derived_line not in (None, "", "None"):
+        line_value = derived_line
 
     return {
         "source": "livefeed",
@@ -278,12 +336,12 @@ def _normalize_poll_row(post: dict[str, Any], poll_payload: dict[str, Any]) -> d
         "poll_kind": poll_kind,
         "market_type": additional.get("type") or (post.get("additionalInfo") or {}).get("type") or "",
         "entity_type": entity_type,
-        "stat": additional.get("stat") or "",
+        "stat": additional.get("stat") or derived_stat or "",
         "player_id": additional.get("playerId") or "",
         "player_name": _extract_player_name(content_text, poll_kind=poll_kind, entity_type=entity_type),
-        "period": additional.get("period"),
+        "period": additional.get("period") or derived_period,
         "is_over_under": bool(additional.get("isOverUnder")),
-        "line": additional.get("overUnderAmount"),
+        "line": line_value,
         "point_spread": poll.get("pointSpread"),
         "spread_team_id": additional.get("spreadTeamId") or "",
         "home_team": poll.get("homeTeamKey"),

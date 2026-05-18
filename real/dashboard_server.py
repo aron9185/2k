@@ -24,9 +24,12 @@ DASHBOARD_DIR = BASE_DIR / "output" / "dashboard"
 CORE_MARKETS_CSV = BASE_DIR / "sportsbook_markets_consensus_live.csv"
 SOCCER_MARKETS_CSV = BASE_DIR / "sportsbook_markets_soccer_live.csv"
 GOLF_MARKETS_CSV = BASE_DIR / "sportsbook_markets_golf_live.csv"
+UFC_MARKETS_CSV = BASE_DIR / "sportsbook_markets_ufc_live.csv"
 LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 ACTION_TOKEN_RE = re.compile(r"\s*<!--REAL_ACTIONS:([A-Za-z0-9_\-=]+)-->\s*$")
 SOURCE_LINES_TOKEN_RE = re.compile(r"\s*<!--REAL_SOURCE_LINES:([A-Za-z0-9_\-=]+)-->\s*$")
+ROW_META_TOKEN_RE = re.compile(r"\s*<!--REAL_ROW:([A-Za-z0-9_\-=]+)-->\s*$")
+DEFAULT_REAL_COMMENT_GROUP_ID = 33162
 DOC_SPECS = [
     {
         "id": "mlb-vote",
@@ -75,6 +78,14 @@ DOC_SPECS = [
         "sport": "golf",
         "stable_path": DASHBOARD_DIR / "golf.md",
         "fallback_glob": "golf_v*.md",
+    },
+    {
+        "id": "ufc-vote",
+        "category": "Vote Sheets",
+        "label": "UFC Vote Sheet",
+        "sport": "ufc",
+        "stable_path": DASHBOARD_DIR / "ufc.md",
+        "fallback_glob": "ufc_v*.md",
     },
     {
         "id": "live-polls",
@@ -131,7 +142,7 @@ CATEGORY_ORDER = {
     "Live": 1,
     "Predictions": 2,
 }
-REFRESHABLE_VOTE_SPORTS = {"mlb", "nba", "nhl", "wnba", "soccer", "golf"}
+REFRESHABLE_VOTE_SPORTS = {"mlb", "nba", "nhl", "wnba", "soccer", "golf", "ufc"}
 REFRESHABLE_PREDICTION_SPORTS = {"mlb", "nba", "nhl", "soccer"}
 REFRESHABLE_TARGETS = {"live-polls"}
 REFRESH_TARGET_ALIASES = {
@@ -148,6 +159,7 @@ SPORT_LABELS = {
     "wnba": "WNBA",
     "soccer": "Soccer",
     "golf": "Golf",
+    "ufc": "UFC",
 }
 
 
@@ -173,7 +185,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sports",
-        default="mlb,nba,nhl,wnba,golf",
+        default="mlb,nba,nhl,wnba,golf,ufc",
         help="Comma-separated sports passed through to refresh_dashboard_data.py.",
     )
     parser.add_argument(
@@ -220,6 +232,8 @@ def _odds_source_path_for_sport(sport: str) -> Path:
         return SOCCER_MARKETS_CSV
     if sport_key == "golf":
         return GOLF_MARKETS_CSV
+    if sport_key == "ufc":
+        return UFC_MARKETS_CSV
     return CORE_MARKETS_CSV
 
 
@@ -256,9 +270,10 @@ def _existing_document_paths() -> list[dict[str, object]]:
     for order, spec in enumerate(DOC_SPECS):
         stable_path = Path(spec["stable_path"])
         source_path = stable_path if stable_path.exists() else _latest_matching_file(str(spec["fallback_glob"]))
-        if source_path is None or not source_path.exists():
+        can_refresh = _can_refresh_doc(spec)
+        if (source_path is None or not source_path.exists()) and not can_refresh:
             continue
-        stat = source_path.stat()
+        stat = source_path.stat() if source_path is not None and source_path.exists() else None
         documents.append(
             {
                 "id": spec["id"],
@@ -266,15 +281,19 @@ def _existing_document_paths() -> list[dict[str, object]]:
                 "label": spec["label"],
                 "sport": spec["sport"],
                 "path": source_path,
-                "mtime": stat.st_mtime,
-                "updated_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+                "mtime": stat.st_mtime if stat is not None else 0.0,
+                "updated_at": (
+                    datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
+                    if stat is not None
+                    else ""
+                ),
                 "odds_updated_at": _odds_updated_at_for_sport(str(spec["sport"])),
-                "filename": source_path.name,
+                "filename": source_path.name if source_path is not None else stable_path.name,
                 "order": order,
-                "can_refresh": _can_refresh_doc(spec),
-                "refresh_sport": str(spec["sport"]) if _can_refresh_doc(spec) else "",
-                "refresh_target": str(spec.get("refresh_target") or "") if _can_refresh_doc(spec) else "",
-                "refresh_label": _refresh_label_for_doc(spec) if _can_refresh_doc(spec) else "",
+                "can_refresh": can_refresh,
+                "refresh_sport": str(spec["sport"]) if can_refresh else "",
+                "refresh_target": str(spec.get("refresh_target") or "") if can_refresh else "",
+                "refresh_label": _refresh_label_for_doc(spec) if can_refresh else "",
             }
         )
     documents.sort(
@@ -398,6 +417,47 @@ def _decode_source_lines(cell: str) -> tuple[str, str]:
     return visible_text, decoded.strip()
 
 
+def _decode_row_meta(cell: str) -> tuple[str, dict[str, object]]:
+    text = str(cell or "")
+    match = ROW_META_TOKEN_RE.search(text)
+    if not match:
+        return text, {}
+    visible_text = text[: match.start()].strip()
+    encoded = match.group(1)
+    try:
+        padded = encoded + ("=" * (-len(encoded) % 4))
+        decoded = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf8")
+        payload = json.loads(decoded)
+    except Exception:
+        return visible_text, {}
+    return visible_text, payload if isinstance(payload, dict) else {}
+
+
+def _row_meta_attrs(payload: dict[str, object]) -> str:
+    if not payload:
+        return ""
+    allowed_keys = {
+        "post_id",
+        "poll_id",
+        "sport",
+        "poll_kind",
+        "group_id",
+        "section_group_id",
+        "header",
+        "content_text",
+        "game_label",
+        "game_id",
+    }
+    attrs: list[str] = []
+    for key in sorted(allowed_keys):
+        value = str(payload.get(key) or "").strip()
+        if not value:
+            continue
+        data_key = key.replace("_", "-")
+        attrs.append(f' data-{data_key}="{html.escape(value, quote=True)}"')
+    return "".join(attrs)
+
+
 def _header_index(header_cells: list[str], target: str) -> int | None:
     normalized_target = target.strip().lower()
     for index, cell in enumerate(header_cells):
@@ -457,6 +517,8 @@ def _render_action_select(visible_text: str, payload: dict[str, object]) -> str:
         selected = " selected" if selection_put == default_text else ""
         attrs = {
             "value": selection_put,
+            "data-selection": str(action.get("selection") or ""),
+            "data-amount": str(action.get("amount") or ""),
             "data-consensus": str(action.get("consensus") or ""),
             "data-ev": str(action.get("ev") or ""),
             "data-sportsbook": str(action.get("sportsbook") or ""),
@@ -476,8 +538,14 @@ def _render_action_select(visible_text: str, payload: dict[str, object]) -> str:
     return "".join(html_parts)
 
 
-def _render_table(lines: list[str], start_index: int) -> tuple[str, int]:
+def _render_table(
+    lines: list[str],
+    start_index: int,
+    row_metadata: list[dict[str, object]] | None = None,
+    row_metadata_index: int = 0,
+) -> tuple[str, int, int]:
     header_cells = _split_markdown_row(lines[start_index])
+    poll_index = _header_index(header_cells, "Poll")
     selection_index = _header_index(header_cells, "Selection+Put")
     consensus_index = _header_index(header_cells, "Consensus Prob (Odds)")
     ev_index = _header_index(header_cells, "EV")
@@ -493,14 +561,29 @@ def _render_table(lines: list[str], start_index: int) -> tuple[str, int]:
     for cell in header_cells:
         html_parts.append(f"<th>{_render_inline(cell)}</th>")
     html_parts.append("</tr></thead><tbody>")
+    is_poll_pick_table = poll_index is not None and selection_index is not None
     for row in body_rows:
+        row = list(row)
+        row_meta: dict[str, object] = {}
+        if poll_index is not None and poll_index < len(row):
+            visible_poll, row_meta = _decode_row_meta(row[poll_index])
+            row[poll_index] = visible_poll
+        if (
+            not row_meta
+            and is_poll_pick_table
+            and row_metadata is not None
+            and row_metadata_index < len(row_metadata)
+        ):
+            candidate = row_metadata[row_metadata_index]
+            if isinstance(candidate, dict):
+                row_meta = candidate
+            row_metadata_index += 1
         row_source_lines = ""
         if source_index is not None and source_index < len(row):
             visible_source, row_source_lines = _decode_source_lines(row[source_index])
             if row_source_lines:
-                row = list(row)
                 row[source_index] = visible_source
-        html_parts.append("<tr>")
+        html_parts.append(f"<tr{_row_meta_attrs(row_meta)}>")
         for cell_index, cell in enumerate(row):
             data_field = ""
             if cell_index == consensus_index:
@@ -524,13 +607,17 @@ def _render_table(lines: list[str], start_index: int) -> tuple[str, int]:
             html_parts.append(f"<td{data_field}>{_render_inline(cell)}</td>")
         html_parts.append("</tr>")
     html_parts.append("</tbody></table></div>")
-    return "".join(html_parts), index
+    return "".join(html_parts), index, row_metadata_index
 
 
-def markdown_to_html(markdown_text: str) -> str:
+def markdown_to_html(
+    markdown_text: str,
+    row_metadata: list[dict[str, object]] | None = None,
+) -> str:
     lines = markdown_text.splitlines()
     html_parts: list[str] = []
     index = 0
+    row_metadata_index = 0
     while index < len(lines):
         line = lines[index]
         stripped = line.strip()
@@ -547,7 +634,12 @@ def markdown_to_html(markdown_text: str) -> str:
             index += 1
             continue
         if stripped.startswith("|") and index + 1 < len(lines) and _is_table_separator(lines[index + 1]):
-            table_html, next_index = _render_table(lines, index)
+            table_html, next_index, row_metadata_index = _render_table(
+                lines,
+                index,
+                row_metadata,
+                row_metadata_index,
+            )
             html_parts.append(table_html)
             index = next_index
             continue
@@ -775,6 +867,7 @@ class DashboardContext:
                 "core_odds_updated_at": _path_updated_at(CORE_MARKETS_CSV),
                 "soccer_odds_updated_at": _path_updated_at(SOCCER_MARKETS_CSV),
                 "golf_odds_updated_at": _path_updated_at(GOLF_MARKETS_CSV),
+                "ufc_odds_updated_at": _path_updated_at(UFC_MARKETS_CSV),
             }
 
 
@@ -1010,20 +1103,28 @@ def _html_shell() -> str:
     .game-copy-row h2 {
       margin: 0;
     }
-    .copy-game-picks {
+    .copy-game-picks,
+    .post-game-picks {
       padding: 0.48rem 0.78rem;
       background: rgba(15, 92, 77, 0.09);
       color: var(--accent);
       font-size: 0.82rem;
       box-shadow: inset 0 0 0 1px rgba(15, 92, 77, 0.16);
     }
-    .copy-game-picks:hover {
+    .copy-game-picks:hover,
+    .post-game-picks:hover {
       background: rgba(15, 92, 77, 0.14);
     }
-    .copy-game-picks.copied {
+    .copy-game-picks.copied,
+    .post-game-picks.posted {
       background: var(--accent);
       color: white;
       box-shadow: none;
+    }
+    .post-game-picks.failed {
+      background: rgba(189, 45, 45, 0.12);
+      color: #9a2d2d;
+      box-shadow: inset 0 0 0 1px rgba(154, 45, 45, 0.2);
     }
     .daily-lineup-copy-row {
       margin-top: 0;
@@ -1219,7 +1320,14 @@ def _html_shell() -> str:
     async function fetchJson(url, options) {
       const response = await fetch(url, options);
       if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
+        let message = `Request failed: ${response.status}`;
+        try {
+          const payload = await response.json();
+          if (payload && payload.error) message = payload.error;
+        } catch (error) {
+          // Keep the generic status message.
+        }
+        throw new Error(message);
       }
       return response.json();
     }
@@ -1384,7 +1492,7 @@ def _html_shell() -> str:
 
     function isGamePollHeading(heading) {
       const text = (heading.textContent || "").trim();
-      return /^(?:[A-Z]+\s*[-:]\s*)?[A-Z0-9 .'-]+\s+@\s+[A-Z0-9 .'-]+$/.test(text);
+      return /^(?:[A-Z]+\\s*[-:]\\s*)?[A-Z0-9 .'-]+\\s+@\\s+[A-Z0-9 .'-]+$/.test(text);
     }
 
     function getTableColumnIndex(table, label) {
@@ -1454,6 +1562,86 @@ def _html_shell() -> str:
       return picks.join("\\n");
     }
 
+    function cellText(row, index) {
+      if (index < 0 || index >= row.cells.length) return "";
+      const cell = row.cells[index];
+      if (!cell) return "";
+      return String(cell.dataset.oddsText || cell.textContent || "").replace(/\\s+/g, " ").trim();
+    }
+
+    function selectedAction(row, selectionIndex) {
+      const cell = row.cells[selectionIndex];
+      const select = cell ? cell.querySelector(".selection-put-select") : null;
+      const option = select && select.selectedOptions ? select.selectedOptions[0] : null;
+      const value = cleanSelectionPutValue(option ? option.value : cellText(row, selectionIndex));
+      return {
+        value,
+        selection: option ? (option.dataset.selection || value) : value,
+        amount: option ? (option.dataset.amount || "") : "",
+        consensus: option ? (option.dataset.consensus || "") : "",
+        ev: option ? (option.dataset.ev || "") : "",
+        sportsbook: option ? (option.dataset.sportsbook || "") : "",
+        source: option ? (option.dataset.source || "") : "",
+      };
+    }
+
+    function collectGameRecommendationRows(table) {
+      const pollIndex = getTableColumnIndex(table, "Poll");
+      const selectionIndex = getTableColumnIndex(table, "Selection+Put");
+      const consensusIndex = getTableColumnIndex(table, "Consensus Prob (Odds)");
+      const evIndex = getTableColumnIndex(table, "EV");
+      const sportsbookIndex = getTableColumnIndex(table, "Sportsbook Odds");
+      const sourceIndex = getTableColumnIndex(table, "Source");
+      if (pollIndex < 0 || selectionIndex < 0) return [];
+      const rows = [];
+      for (const row of table.querySelectorAll("tbody tr")) {
+        const action = selectedAction(row, selectionIndex);
+        if (!action.value) continue;
+        rows.push({
+          element: row,
+          postId: row.dataset.postId || "",
+          pollId: row.dataset.pollId || "",
+          pollKind: row.dataset.pollKind || "",
+          groupId: row.dataset.groupId || row.dataset.sectionGroupId || "",
+          sectionGroupId: row.dataset.sectionGroupId || row.dataset.groupId || "",
+          poll: cellText(row, pollIndex),
+          selectionPut: action.value,
+          selection: action.selection,
+          amount: action.amount,
+          consensus: action.consensus || cellText(row, consensusIndex),
+          ev: action.ev || cellText(row, evIndex),
+          sportsbook: action.sportsbook || cellText(row, sportsbookIndex),
+          source: action.source || cellText(row, sourceIndex),
+        });
+      }
+      return rows;
+    }
+
+    function postTargetPriority(pollKind) {
+      const priority = {
+        game_winner: 0,
+        point_spread: 1,
+        game_total: 2,
+        period_total_yes_no: 3,
+        both_teams_score: 4,
+        halftime_result: 5,
+        double_chance: 6,
+      };
+      return Object.prototype.hasOwnProperty.call(priority, pollKind) ? priority[pollKind] : 50;
+    }
+
+    function choosePostTarget(rows) {
+      return rows
+        .filter((row) => row.postId)
+        .slice()
+        .sort((a, b) => postTargetPriority(a.pollKind) - postTargetPriority(b.pollKind))[0] || null;
+    }
+
+    function buildRecommendationComment(heading, table) {
+      const rows = collectGameRecommendationRows(table);
+      return { text: collectGamePickText(table), target: choosePostTarget(rows) };
+    }
+
     function collectDailyLineupNames(table) {
       const playerIndex = getTableColumnIndex(table, "Player");
       if (playerIndex < 0) return "";
@@ -1515,6 +1703,59 @@ def _html_shell() -> str:
       }, copied ? 1500 : 1800);
     }
 
+    function setPostButtonState(button, label, stateName, disabled) {
+      window.clearTimeout(button.postResetTimer);
+      button.textContent = label;
+      button.disabled = !!disabled;
+      button.classList.toggle("posted", stateName === "posted");
+      button.classList.toggle("failed", stateName === "failed");
+      if (stateName === "posted" || stateName === "failed") {
+        button.postResetTimer = window.setTimeout(() => {
+          button.textContent = button.dataset.defaultLabel || "Post Picks";
+          button.classList.remove("posted", "failed");
+          button.disabled = false;
+        }, stateName === "posted" ? 2200 : 3000);
+      }
+    }
+
+    function attachHeadingPostButton(row, heading, table, scope) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "post-game-picks";
+      button.textContent = "Post Picks";
+      button.dataset.defaultLabel = "Post Picks";
+      button.title = `Post current recommendations as a Real comment on this ${scope}'s game-lines poll`;
+      button.addEventListener("click", async () => {
+        const built = buildRecommendationComment(heading, table);
+        if (!built.text) {
+          setPostButtonState(button, "Nothing to post", "failed", false);
+          return;
+        }
+        if (!built.target || !built.target.postId) {
+          setPostButtonState(button, "No post id", "failed", false);
+          return;
+        }
+        const groupId = built.target.groupId || built.target.sectionGroupId || "";
+        const groupText = groupId ? ` in group ${groupId}` : "";
+        if (!window.confirm(`Post these picks to Real post ${built.target.postId}${groupText}?`)) {
+          return;
+        }
+        setPostButtonState(button, "Posting...", "", true);
+        try {
+          await fetchJson("/api/post-recommendation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ post_id: built.target.postId, group_id: groupId, text: built.text }),
+          });
+          setPostButtonState(button, "Posted", "posted", false);
+        } catch (error) {
+          setPostButtonState(button, "Post failed", "failed", false);
+          button.title = String(error && error.message ? error.message : error);
+        }
+      });
+      row.appendChild(button);
+    }
+
     function attachHeadingCopyButton(heading, rowClassName, label, title, collectText) {
       const row = document.createElement("div");
       row.className = rowClassName;
@@ -1541,6 +1782,7 @@ def _html_shell() -> str:
         }
       });
       row.appendChild(button);
+      return row;
     }
 
     function hydratePollCopyButtons() {
@@ -1550,13 +1792,14 @@ def _html_shell() -> str:
         const table = findPollPickTable(heading);
         if (!table) continue;
         const scope = isGamePollHeading(heading) ? "game" : "section";
-        attachHeadingCopyButton(
+        const row = attachHeadingCopyButton(
           heading,
           "game-copy-row",
           "Copy Picks",
           `Copy current Selection+Put values for this ${scope}`,
           () => collectGamePickText(table)
         );
+        attachHeadingPostButton(row, heading, table, scope);
       }
     }
 
@@ -1662,6 +1905,9 @@ def _html_shell() -> str:
       if (payload.golf_odds_updated_at) {
         parts.push(`Golf odds: ${formatTimestamp(payload.golf_odds_updated_at)}`);
       }
+      if (payload.ufc_odds_updated_at) {
+        parts.push(`UFC odds: ${formatTimestamp(payload.ufc_odds_updated_at)}`);
+      }
       parts.push(`Auto odds refresh: ${payload.refresh_seconds > 0 ? `${payload.refresh_seconds}s` : "off"}`);
       parts.push(`Sports: ${payload.sports}${payload.refresh_soccer ? ", soccer" : ""}`);
       if (payload.last_succeeded_at) {
@@ -1747,8 +1993,12 @@ def _document_payload(doc_id: str) -> dict[str, object] | None:
     for doc in _existing_document_paths():
         if str(doc["id"]) != doc_id:
             continue
-        path = Path(doc["path"])
-        markdown_text = path.read_text(encoding="utf8")
+        path_value = doc.get("path")
+        path = Path(path_value) if path_value else None
+        if path is not None and path.exists():
+            markdown_text = path.read_text(encoding="utf8")
+        else:
+            markdown_text = f"# {doc['label']}\n\nNo sheet has been generated yet.\n"
         return {
             "id": doc["id"],
             "category": doc["category"],
@@ -1761,7 +2011,7 @@ def _document_payload(doc_id: str) -> dict[str, object] | None:
             "refresh_sport": doc["refresh_sport"],
             "refresh_target": doc["refresh_target"],
             "refresh_label": doc["refresh_label"],
-            "html": markdown_to_html(markdown_text),
+            "html": markdown_to_html(markdown_text, _document_row_metadata(path)),
         }
     return None
 
@@ -1827,6 +2077,75 @@ def _refresh_request_scope(
     return (None, sports, ("soccer" in requested), only_predictions, f"{label} {label_suffix}", "")
 
 
+def _post_recommendation(payload: dict[str, object]) -> tuple[dict[str, object], int]:
+    post_id = str(payload.get("post_id") or payload.get("postId") or "").strip()
+    text = str(payload.get("text") or "").strip()
+    group_id_raw = str(
+        payload.get("group_id")
+        or payload.get("groupId")
+        or payload.get("section_group_id")
+        or payload.get("sectionGroupId")
+        or ""
+    ).strip()
+    group_id: int | str = DEFAULT_REAL_COMMENT_GROUP_ID
+    if group_id_raw:
+        group_id = int(group_id_raw) if group_id_raw.isdigit() else group_id_raw
+
+    if not post_id or not post_id.isdigit():
+        return ({"error": "A numeric Real post_id is required."}, 400)
+    if not text:
+        return ({"error": "Recommendation text is required."}, 400)
+    if len(text) > 1800:
+        text = text[:1797].rstrip() + "..."
+
+    request_payload = {
+        "post_id": post_id,
+        "group_id": group_id,
+        "text": text,
+    }
+    if _truthy_payload_flag(payload.get("dry_run")):
+        return ({"posted": False, "dry_run": True, "request": request_payload}, 200)
+
+    try:
+        from realsports_api import RealSportsError, build_realsports_client
+
+        response = build_realsports_client().add_post_comment(
+            post_id,
+            text=text,
+            group_id=group_id,
+        )
+    except RealSportsError as exc:
+        return ({"error": str(exc)}, 502)
+    except Exception as exc:
+        return ({"error": f"Posting failed: {exc}"}, 500)
+
+    comment = response.get("comment") if isinstance(response, dict) else None
+    return (
+        {
+            "posted": True,
+            "post_id": post_id,
+            "comment": comment if isinstance(comment, dict) else response,
+        },
+        200,
+    )
+
+
+def _document_row_metadata(path: Path | None) -> list[dict[str, object]]:
+    if path is None:
+        return []
+    metadata_path = path.with_name(f"{path.name}.meta.json")
+    if not metadata_path.exists():
+        return []
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf8"))
+    except Exception:
+        return []
+    rows = payload.get("rows") if isinstance(payload, dict) else None
+    if not isinstance(rows, list):
+        return []
+    return [row for row in rows if isinstance(row, dict)]
+
+
 def build_handler(context: DashboardContext) -> type[BaseHTTPRequestHandler]:
     class DashboardHandler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
@@ -1874,6 +2193,10 @@ def build_handler(context: DashboardContext) -> type[BaseHTTPRequestHandler]:
 
         def do_POST(self) -> None:  # noqa: N802
             parsed = urlparse(self.path)
+            if parsed.path == "/api/post-recommendation":
+                response_payload, status = _post_recommendation(_request_json(self))
+                _json_response(self, response_payload, status=status)
+                return
             if parsed.path != "/api/refresh":
                 _json_response(self, {"error": "not found"}, status=404)
                 return
