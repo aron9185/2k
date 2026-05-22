@@ -22,6 +22,16 @@ class SportsbookFetchBlocked(RuntimeError):
     pass
 
 
+def _blocked_message(status_code: int, url: str) -> str:
+    message = f"{status_code} from {url}"
+    if curl_requests is None:
+        message += (
+            " (curl_cffi is not installed, so this request used plain requests; "
+            "protected sportsbook endpoints often block that client)"
+        )
+    return message
+
+
 def _clear_proxy_env() -> None:
     for key in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"):
         os.environ.pop(key, None)
@@ -56,7 +66,7 @@ def get_browser_like_json(
                 curl_kwargs["proxies"] = proxies
             response = curl_requests.get(url, **curl_kwargs)
             if response.status_code >= 400:
-                raise SportsbookFetchBlocked(f"{response.status_code} from {url}")
+                raise SportsbookFetchBlocked(_blocked_message(response.status_code, url))
             return response.json()
         except Exception as exc:
             last_error = exc
@@ -70,7 +80,7 @@ def get_browser_like_json(
     try:
         response = session.get(url, timeout=timeout)
         if response.status_code >= 400:
-            raise SportsbookFetchBlocked(f"{response.status_code} from {url}")
+            raise SportsbookFetchBlocked(_blocked_message(response.status_code, url))
         return response.json()
     except Exception as exc:
         if last_error is not None:
@@ -105,7 +115,7 @@ def post_browser_like_json(
                 curl_kwargs["proxies"] = proxies
             response = curl_requests.post(url, **curl_kwargs)
             if response.status_code >= 400:
-                raise SportsbookFetchBlocked(f"{response.status_code} from {url}")
+                raise SportsbookFetchBlocked(_blocked_message(response.status_code, url))
             return response.json()
         except Exception as exc:
             last_error = exc
@@ -119,7 +129,7 @@ def post_browser_like_json(
     try:
         response = session.post(url, json=payload, timeout=timeout)
         if response.status_code >= 400:
-            raise SportsbookFetchBlocked(f"{response.status_code} from {url}")
+            raise SportsbookFetchBlocked(_blocked_message(response.status_code, url))
         return response.json()
     except Exception as exc:
         if last_error is not None:

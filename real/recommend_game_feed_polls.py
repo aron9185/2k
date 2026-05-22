@@ -22,6 +22,11 @@ from lineup_contest_polls import (
     is_lineup_contest_post,
     lineup_contest_additional,
 )
+from lineup import (
+    is_unavailable_or_questionable_record,
+    player_full_name,
+    safe_float,
+)
 from mlb_special_polls import load_optimal_projections, projected_hitter_candidates
 from nba_team_stat_polls import (
     TEAM_STAT_ID_METRICS,
@@ -46,6 +51,7 @@ from realsports_api import build_realsports_client
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_MARKETS_CSV = BASE_DIR / "sportsbook_markets.csv"
 DEFAULT_OUTPUT = BASE_DIR / "poll_vote_recommendations.csv"
+FANTASY_POINTS_FILE = BASE_DIR / "fantasy_points.json"
 NBA_SPLIT_STAT_TYPES = {
     "points": 1,
     "rebounds": 2,
@@ -64,6 +70,13 @@ NHL_SPLIT_STAT_TYPES = {
     "hits": 60,
 }
 MLB_HRR_COMPONENT_STATS = ("hits", "runs", "rbis")
+SOCCER_PROJECTION_STATS = {
+    "goals": ("goals", 0.15, False),
+    "assists": ("assists", 0.10, False),
+    "chancescreated": ("chancesCreated", 1.20, False),
+    "shots": ("shotsOnTarget", 0.90, False),
+    "saves": ("saves", 3.00, True),
+}
 ZERO_PUT_WIN_WAGER = 10.0
 ZERO_COST_PLAYER_POLL_KINDS = {"anytime_play", "player_most_stat", "first_basket"}
 UNPRICED_POLL_KINDS = ZERO_COST_PLAYER_POLL_KINDS | {"team_stat", "golf_leaderboard"}
@@ -4984,6 +4997,223 @@ def _mlb_projection_fallback_candidates(
     return results
 
 
+@lru_cache(maxsize=8)
+def _cached_fantasy_points_records(path_text: str, mtime_ns: int) -> tuple[dict[str, Any], ...]:
+    path = Path(path_text)
+    try:
+        payload = json.loads(path.read_text(encoding="utf8"))
+    except Exception:
+        return tuple()
+    if not isinstance(payload, list):
+        return tuple()
+    return tuple(record for record in payload if isinstance(record, dict))
+
+
+def _fantasy_points_records(path: Path = FANTASY_POINTS_FILE) -> tuple[dict[str, Any], ...]:
+    try:
+        stat = path.stat()
+    except OSError:
+        return tuple()
+    return _cached_fantasy_points_records(str(path), int(stat.st_mtime_ns))
+
+
+def _soccer_game_pair_candidates(game: dict[str, Any]) -> set[tuple[str, str]]:
+    values: dict[str, list[str]] = {"home": [], "away": []}
+    for side in ("home", "away"):
+        for key in (f"{side}TeamKey", f"{side}TeamAbbr"):
+            value = str(game.get(key) or "").strip()
+            if value:
+                values[side].append(value)
+        team = game.get(f"{side}Team")
+        if isinstance(team, dict):
+            for key in ("key", "abbreviation", "displayName", "name", "city", "nickname"):
+                value = str(team.get(key) or "").strip()
+                if value:
+                    values[side].append(value)
+
+    pairs: set[tuple[str, str]] = set()
+    for home in values["home"]:
+        for away in values["away"]:
+            if home and away and home != away:
+                pairs.add(team_pair(home, away))
+    return pairs
+
+
+def _soccer_record_pair_candidates(record: dict[str, Any]) -> set[tuple[str, str]]:
+    team = record.get("team") or {}
+    opponent = record.get("opponent") or {}
+    team_values: list[str] = []
+    opponent_values: list[str] = []
+    if isinstance(team, dict):
+        for key in ("abbr", "city", "nickname", "name"):
+            value = str(team.get(key) or "").strip()
+            if value:
+                team_values.append(value)
+    if isinstance(opponent, dict):
+        for key in ("team", "abbr", "name", "city", "nickname"):
+            value = str(opponent.get(key) or "").strip()
+            if value:
+                opponent_values.append(value)
+
+    pairs: set[tuple[str, str]] = set()
+    for team_value in team_values:
+        for opponent_value in opponent_values:
+            if team_value and opponent_value and team_value != opponent_value:
+                pairs.add(team_pair(team_value, opponent_value))
+    return pairs
+
+
+def _poisson_over_probability(mean: float, target_line: float) -> float:
+    if mean <= 0:
+        return 0.0
+    threshold = int(math.floor(float(target_line)) + 1)
+    if threshold <= 0:
+        return 1.0
+    term = math.exp(-mean)
+    cumulative = term
+    for count in range(1, threshold):
+        term *= mean / float(count)
+        cumulative += term
+    return max(0.0, min(1.0, 1.0 - cumulative))
+
+
+def _soccer_expected_minutes(record: dict[str, Any]) -> float:
+    stats = (record.get("stats") or {}).get("seasonStats") or {}
+    minutes = safe_float(stats.get("minutes"))
+    starts = safe_float(stats.get("starts"))
+    appearances = safe_float(stats.get("appearances"))
+    lineup = record.get("lineup") or {}
+    has_lineup_slot = bool(str(lineup.get("slot") or "").strip())
+    if record.get("isGoalie"):
+        return 90.0 if has_lineup_slot else 75.0
+    if starts > 0:
+        expected = minutes / starts
+    elif appearances > 0:
+        expected = minutes / appearances
+    else:
+        expected = 60.0 if has_lineup_slot else 35.0
+    floor = 55.0 if has_lineup_slot else 25.0
+    return max(floor, min(90.0, expected))
+
+
+def _soccer_projection_probability(
+    record: dict[str, Any],
+    *,
+    stat_key: str,
+    target_line: float,
+) -> tuple[float, float, float, float] | None:
+    context = SOCCER_PROJECTION_STATS.get(stat_key)
+    if context is None:
+        return None
+    stat_field, prior_per90, goalie_only = context
+    if goalie_only and not bool(record.get("isGoalie")):
+        return None
+    if not goalie_only and bool(record.get("isGoalie")):
+        return None
+
+    stats = (record.get("stats") or {}).get("seasonStats") or {}
+    stat_value = safe_float(stats.get(stat_field))
+    minutes = safe_float(stats.get("minutes"))
+    expected_minutes = _soccer_expected_minutes(record)
+    observed_per90 = (stat_value / minutes * 90.0) if minutes > 0 else float(prior_per90)
+    sample_weight = minutes / (minutes + 900.0) if minutes > 0 else 0.0
+    smoothed_per90 = (sample_weight * observed_per90) + ((1.0 - sample_weight) * float(prior_per90))
+    mean = max(0.0, smoothed_per90 * expected_minutes / 90.0)
+    probability = _poisson_over_probability(mean, target_line)
+    return probability, mean, smoothed_per90, expected_minutes
+
+
+def _soccer_projection_fallback_candidates(
+    entry: dict[str, Any],
+    *,
+    stat_key: str,
+    target_line: float,
+    daily_poll: bool,
+) -> list[dict[str, Any]]:
+    if stat_key not in SOCCER_PROJECTION_STATS:
+        return []
+
+    if daily_poll:
+        games = entry.get("active_day_games") or []
+    else:
+        games = [entry.get("game") or {}]
+    target_pairs: set[tuple[str, str]] = set()
+    for game in games:
+        if isinstance(game, dict):
+            target_pairs.update(_soccer_game_pair_candidates(game))
+    if not target_pairs:
+        return []
+
+    candidates: list[dict[str, Any]] = []
+    threshold = int(math.floor(float(target_line)) + 1)
+    threshold_text = f"{threshold}+"
+    projection_records = entry.get("projection_records")
+    if not isinstance(projection_records, (list, tuple)):
+        projection_records = _fantasy_points_records()
+    for record in projection_records:
+        if not isinstance(record, dict):
+            continue
+        if is_unavailable_or_questionable_record(record):
+            continue
+        if _soccer_record_pair_candidates(record).isdisjoint(target_pairs):
+            continue
+        stats = (record.get("stats") or {}).get("seasonStats") or {}
+        minutes = safe_float(stats.get("minutes"))
+        projected_points = safe_float(record.get("pts"))
+        min_minutes = 180.0 if record.get("isGoalie") else 300.0
+        if projected_points <= 0:
+            continue
+        if minutes < min_minutes and projected_points < 8.0:
+            continue
+        projection = _soccer_projection_probability(
+            record,
+            stat_key=stat_key,
+            target_line=target_line,
+        )
+        if projection is None:
+            continue
+        fair_prob, mean, smoothed_per90, expected_minutes = projection
+        if fair_prob <= 0:
+            continue
+        selection = player_full_name(record) or str(record.get("fullName") or "").strip()
+        if not selection:
+            continue
+        stat_field = SOCCER_PROJECTION_STATS[stat_key][0]
+        stat_value = safe_float(stats.get(stat_field))
+        source_site = str(record.get("sourceSite") or "Rotowire").strip()
+        stat_label = {
+            "goals": "goals",
+            "assists": "assists",
+            "chancescreated": "chances created",
+            "shots": "shots on target",
+            "saves": "saves",
+        }.get(stat_key, stat_key)
+        candidates.append(
+            {
+                "player_key": normalize_player_name(selection),
+                "selection": selection,
+                "fair_prob": fair_prob,
+                "fair_odds": int(probability_to_american(fair_prob)),
+                "consensus_fair_line": round(mean, 4),
+                "matched_books": 0,
+                "books": "",
+                "sportsbook_odds": "",
+                "source_lines": (
+                    f"{source_site}: {selection} {stat_value:g} {stat_label} in "
+                    f"{minutes:g} min; smoothed {smoothed_per90:.2f}/90; "
+                    f"projected {mean:.2f} for {threshold_text}"
+                ),
+                "source_note": (
+                    f"soccer Rotowire season-rate projection fallback for {threshold_text} "
+                    f"{stat_label}; no sportsbook player prop matched"
+                ),
+                "odds_updated_at": "",
+                "expected_minutes": round(expected_minutes, 1),
+            }
+        )
+    return candidates
+
+
 def _rank_zero_cost_candidates(
     candidates: list[dict[str, Any]],
     payout_base: int,
@@ -5430,6 +5660,18 @@ def _recommend_zero_cost_player_poll(
                         f"{existing_note}; {fallback_note}" if existing_note else fallback_note
                     )
                     candidates.append(candidate)
+
+        if (
+            not candidates
+            and sport == "soccer"
+            and poll_kind in {"anytime_play", "pick_a_player", "player_most_stat"}
+        ):
+            candidates = _soccer_projection_fallback_candidates(
+                entry,
+                stat_key=stat_key,
+                target_line=float(target_line),
+                daily_poll=is_daily_poll,
+            )
 
     if not candidates:
         if poll_kind == "first_basket":
@@ -6280,6 +6522,11 @@ def build_recommendations(
             )
         except Exception as exc:
             contest_error = f"Rotowire lineup projection load failed: {exc}"
+    if sport == "soccer" and isinstance(contest_projection_summary, dict):
+        projection_records = contest_projection_summary.get("records")
+        if isinstance(projection_records, list) and projection_records:
+            for entry in entries:
+                entry["projection_records"] = projection_records
     recommendations: list[dict[str, Any]] = []
     for entry in entries:
         poll = entry["poll"]
