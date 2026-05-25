@@ -19,6 +19,9 @@ DEFAULT_MARKET_SETTINGS = {
     "presets": [{"value": 10}, {"value": 100}, {"value": 500}],
     "allowAcceptPriceChanges": False,
 }
+REAL_APP_HOME_COHORT_BY_SPORT = {
+    "soccer": 777777777,
+}
 FIELDNAMES = [
     "market_id",
     "sport",
@@ -95,6 +98,112 @@ def parse_args() -> argparse.Namespace:
 
 def _progress(message: str) -> None:
     print(message, flush=True)
+
+
+def _clean_id(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text or text.lower() == "none":
+        return ""
+    return text
+
+
+def _game_id_from_home_item(value: Any) -> str:
+    if not isinstance(value, dict):
+        return ""
+    for key in ("game", "entity", "payload", "data"):
+        nested = value.get(key)
+        if isinstance(nested, dict):
+            game_id = _game_id_from_home_item(nested)
+            if game_id:
+                return game_id
+    for key in ("gameId", "gameID", "entityId", "entityID", "id"):
+        game_id = _clean_id(value.get(key))
+        if game_id:
+            return game_id
+    return ""
+
+
+def _append_ordered_game_id(ordered_ids: list[str], seen_ids: set[str], game_id: Any) -> None:
+    game_key = _clean_id(game_id)
+    if not game_key or game_key in seen_ids:
+        return
+    seen_ids.add(game_key)
+    ordered_ids.append(game_key)
+
+
+def _home_tab_game_order_ids(payload: dict[str, Any]) -> list[str]:
+    latest = payload.get("latestDayContent") or {}
+    ordered_ids: list[str] = []
+    seen_ids: set[str] = set()
+
+    for item in latest.get("items") or []:
+        if not isinstance(item, dict):
+            continue
+        item_games = item.get("games")
+        if isinstance(item_games, list):
+            for game in item_games:
+                _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(game))
+        entity_type = str(item.get("entityType") or item.get("type") or "").strip().lower()
+        if entity_type in {"game", "games"}:
+            _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(item))
+
+    for game in latest.get("games") or []:
+        _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(game))
+    return ordered_ids
+
+
+def _home_tab_games_by_id(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    latest = payload.get("latestDayContent") or {}
+    games_by_id: dict[str, dict[str, Any]] = {}
+
+    def add_game(game: Any) -> None:
+        if not isinstance(game, dict):
+            return
+        game_id = _game_id_from_home_item(game)
+        if game_id and game_id not in games_by_id:
+            games_by_id[game_id] = game
+
+    for item in latest.get("items") or []:
+        if not isinstance(item, dict):
+            continue
+        item_games = item.get("games")
+        if isinstance(item_games, list):
+            for game in item_games:
+                add_game(game)
+        entity_type = str(item.get("entityType") or item.get("type") or "").strip().lower()
+        if entity_type in {"game", "games"}:
+            add_game(item)
+    for game in latest.get("games") or []:
+        add_game(game)
+    return games_by_id
+
+
+def _real_app_game_context_map(client: Any, sport: str) -> dict[str, dict[str, Any]]:
+    sport_key = str(sport or "").strip().lower()
+    if not sport_key:
+        return {}
+    cohort = REAL_APP_HOME_COHORT_BY_SPORT.get(sport_key, 0)
+    try:
+        payload = client.get_home_tab(sport_key, cohort=cohort)
+    except Exception as exc:
+        _progress(f"Could not fetch Real home order for {sport_key}: {exc}")
+        return {}
+    ordered_ids = _home_tab_game_order_ids(payload)
+    games_by_id = _home_tab_games_by_id(payload)
+    return {
+        game_id: {
+            "order": index,
+            "game_time": str((games_by_id.get(game_id) or {}).get("dateTime") or "").strip(),
+        }
+        for index, game_id in enumerate(ordered_ids)
+    }
+
+
+def _real_app_game_order(context: dict[str, Any]) -> int | None:
+    try:
+        return int(context.get("order"))
+    except Exception:
+        return None
 
 
 def _parse_game_display(display: str) -> tuple[str, str]:
@@ -657,6 +766,7 @@ def _row_from_evals(
 def _evaluate_market(
     order_payload: dict[str, Any],
     game_id: Any,
+    game_time: str,
     game_display: str,
     game_path: str,
     game_order: int | str,
@@ -673,7 +783,7 @@ def _evaluate_market(
         market_id,
         sport=sport,
         game_id=game_id,
-        game_time="",
+        game_time=game_time,
         game_display=game_display,
         game_path=game_path,
         game_order=game_order,
@@ -810,6 +920,9 @@ def main() -> int:
     game_markets = payload.get("gameMarkets") or []
     if args.limit > 0:
         game_markets = game_markets[: args.limit]
+    real_app_contexts = _real_app_game_context_map(client, args.sport)
+    if real_app_contexts:
+        _progress(f"Loaded Real app game order for {len(real_app_contexts)} games.")
     mode = "market-order endpoint" if args.use_market_orders else "game-market list payload"
     _progress(f"Evaluating {len(game_markets)} prediction markets using {mode}.")
 
@@ -819,6 +932,10 @@ def main() -> int:
         if not isinstance(game_market, dict):
             continue
         market_id = game_market.get("id")
+        game_id = _clean_id(game_market.get("gameId"))
+        real_app_context = real_app_contexts.get(game_id) or {}
+        real_app_order = _real_app_game_order(real_app_context)
+        fallback_game_order = len(real_app_contexts) + index - 1 if real_app_contexts else index - 1
         order_payload = (
             client.get_prediction_market_order(market_id, mode="buy")
             if args.use_market_orders
@@ -827,9 +944,10 @@ def main() -> int:
         row = _evaluate_market(
             order_payload,
             game_id=game_market.get("gameId"),
+            game_time=str(real_app_context.get("game_time") or "").strip(),
             game_display=str((game_market.get("gameDisplay") or {}).get("display") or "").strip(),
             game_path=str((game_market.get("gameDisplay") or {}).get("path") or "").strip(),
-            game_order=index - 1,
+            game_order=real_app_order if real_app_order is not None else fallback_game_order,
             sport=str(game_market.get("sport") or args.sport).strip().lower(),
             sportsbook_markets=sportsbook_markets,
         )

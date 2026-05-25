@@ -12,6 +12,7 @@ from realsports_api import build_realsports_client
 
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUT = BASE_DIR / "live_polls.csv"
+DEFAULT_LIVEFEED_PAGES = 5
 EVEN_MONEY_ODDS = 100
 PLAYER_NAME_WITH_LINE_RE = re.compile(
     r"^(?P<name>.+?)\s*(?:·|‧|•|-|–|—)\s*\d+(?:\.\d+)?\s+\S",
@@ -103,6 +104,12 @@ def parse_args():
         type=int,
         default=0,
         help="Optional max number of posts to inspect before expanding polls.",
+    )
+    parser.add_argument(
+        "--pages",
+        type=int,
+        default=DEFAULT_LIVEFEED_PAGES,
+        help="Maximum livefeed pages to inspect per feed segment when --source livefeed is used.",
     )
     parser.add_argument(
         "--dump-json",
@@ -404,18 +411,59 @@ def _filter_requested_sport(post: dict[str, Any], poll_payload: dict[str, Any], 
     return requested in {poll_sport, post_sport}
 
 
+def _livefeed_before_cursor(posts: list[dict[str, Any]]) -> str:
+    if not posts:
+        return ""
+    last_post = posts[-1]
+    return str(last_post.get("createdAt") or "").strip()
+
+
+def _fetch_livefeed_posts(
+    client: Any,
+    *,
+    feed: str,
+    limit: int = 0,
+    max_pages: int = DEFAULT_LIVEFEED_PAGES,
+) -> list[dict[str, Any]]:
+    posts: list[dict[str, Any]] = []
+    seen_post_ids: set[str] = set()
+    before = ""
+    page_count = max(1, int(max_pages or 1))
+
+    for _page_index in range(page_count):
+        payload = client.get_livefeed_posts(feed=feed, before=before)
+        page_posts = [post for post in (payload.get("posts") or []) if isinstance(post, dict)]
+        if not page_posts:
+            break
+
+        for post in page_posts:
+            post_id = str(post.get("id") or "").strip()
+            if post_id and post_id in seen_post_ids:
+                continue
+            if post_id:
+                seen_post_ids.add(post_id)
+            posts.append(post)
+            if limit > 0 and len(posts) >= limit:
+                return posts
+
+        next_before = _livefeed_before_cursor(page_posts)
+        if not next_before or next_before == before:
+            break
+        before = next_before
+
+    return posts
+
+
 def fetch_live_polls(
     feed: str = "all",
     *,
     include_locked: bool = True,
     wagerable_only: bool = False,
     limit: int = 0,
+    pages: int = DEFAULT_LIVEFEED_PAGES,
 ):
     client = build_realsports_client()
-    payload = client.get_livefeed_posts(feed=feed)
-    posts = payload.get("posts") or []
-    if limit > 0:
-        posts = posts[:limit]
+    posts = _fetch_livefeed_posts(client, feed=feed, limit=limit, max_pages=pages)
 
     rows = []
     raw = []
@@ -737,6 +785,7 @@ def main():
             include_locked=include_locked,
             wagerable_only=args.wagerable_only,
             limit=args.limit,
+            pages=args.pages,
         )
     write_csv(args.output, rows)
     print(f"Saved {len(rows)} live poll rows to {args.output}")

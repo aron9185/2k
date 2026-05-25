@@ -617,8 +617,19 @@ class RealSportsClient:
             },
         )
 
-    def get_livefeed_posts(self, feed: str = "all") -> dict[str, Any]:
-        return self.get_json(f"https://web.realapp.com/livefeed/{feed}/posts")
+    def get_livefeed_posts(
+        self,
+        feed: str = "all",
+        *,
+        before: int | str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {}
+        if before not in (None, ""):
+            params["before"] = before
+        return self.get_json(
+            f"https://web.realapp.com/livefeed/{feed}/posts",
+            params=params or None,
+        )
 
     def get_prediction_game_markets(self, sport: str) -> dict[str, Any]:
         sport_key = str(sport or "").strip().lower()

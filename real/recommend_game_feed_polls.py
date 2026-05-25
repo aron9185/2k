@@ -80,6 +80,7 @@ SOCCER_PROJECTION_STATS = {
 ZERO_PUT_WIN_WAGER = 10.0
 ZERO_COST_PLAYER_POLL_KINDS = {"anytime_play", "player_most_stat", "first_basket"}
 UNPRICED_POLL_KINDS = ZERO_COST_PLAYER_POLL_KINDS | {"team_stat", "golf_leaderboard"}
+SOCCER_REAL_APP_HOME_COHORT = 777777777
 
 
 def parse_args() -> argparse.Namespace:
@@ -164,6 +165,137 @@ def _extract_poll_ids(post: dict[str, Any]) -> list[int]:
         except Exception:
             continue
     return poll_ids
+
+
+def _clean_id(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text or text.lower() == "none":
+        return ""
+    return text
+
+
+def _game_id_from_home_item(value: Any) -> str:
+    if not isinstance(value, dict):
+        return ""
+    for key in ("game", "entity", "payload", "data"):
+        nested = value.get(key)
+        if isinstance(nested, dict):
+            game_id = _game_id_from_home_item(nested)
+            if game_id:
+                return game_id
+    for key in ("gameId", "gameID", "entityId", "entityID", "id"):
+        game_id = _clean_id(value.get(key))
+        if game_id:
+            return game_id
+    return ""
+
+
+def _game_matches_day(game: dict[str, Any], day: str) -> bool:
+    if not day:
+        return True
+    game_day = str(game.get("day") or "").strip()
+    return game_day == day
+
+
+def _append_ordered_game_id(
+    ordered_ids: list[str],
+    seen_ids: set[str],
+    game_id: str,
+) -> None:
+    game_id = _clean_id(game_id)
+    if not game_id or game_id in seen_ids:
+        return
+    seen_ids.add(game_id)
+    ordered_ids.append(game_id)
+
+
+def _home_tab_game_order_ids(latest: dict[str, Any], *, day: str = "") -> list[str]:
+    ordered_ids: list[str] = []
+    seen_ids: set[str] = set()
+
+    for item in latest.get("items") or []:
+        if not isinstance(item, dict):
+            continue
+        item_games = item.get("games")
+        if isinstance(item_games, list):
+            for game in item_games:
+                if isinstance(game, dict) and _game_matches_day(game, day):
+                    _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(game))
+        entity_type = str(item.get("entityType") or item.get("type") or "").strip().lower()
+        if entity_type in {"game", "games"}:
+            _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(item))
+
+    for game in latest.get("games") or []:
+        if isinstance(game, dict) and _game_matches_day(game, day):
+            _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(game))
+    return ordered_ids
+
+
+def _game_ids_from_games(games: list[dict[str, Any]]) -> list[str]:
+    ordered_ids: list[str] = []
+    seen_ids: set[str] = set()
+    for game in games:
+        _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(game))
+    return ordered_ids
+
+
+def _ordered_home_tab_games(
+    latest: dict[str, Any],
+    *,
+    day: str,
+    preferred_order_ids: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    games = [
+        game
+        for game in (latest.get("games") or [])
+        if isinstance(game, dict) and _game_matches_day(game, day)
+    ]
+    if len(games) < 2:
+        return games
+
+    ordered_ids = preferred_order_ids or _home_tab_game_order_ids(latest, day=day)
+    order_by_id = {game_id: index for index, game_id in enumerate(ordered_ids)}
+    fallback_offset = len(order_by_id)
+    return [
+        game
+        for _, game in sorted(
+            enumerate(games),
+            key=lambda item: (
+                order_by_id.get(_game_id_from_home_item(item[1]), fallback_offset + item[0]),
+                item[0],
+            ),
+        )
+    ]
+
+
+def _soccer_home_tab_game_order_ids(
+    client: Any,
+    *,
+    day: str,
+    base_latest: dict[str, Any],
+) -> list[str]:
+    base_ids = _home_tab_game_order_ids(base_latest, day=day)
+    ordered_ids: list[str] = []
+    seen_ids: set[str] = set()
+
+    try:
+        payload = client.get_home_tab(sport="soccer", cohort=SOCCER_REAL_APP_HOME_COHORT)
+    except Exception:
+        payload = {}
+    latest = payload.get("latestDayContent") or {}
+    latest_day = str(latest.get("day") or payload.get("latestDay") or "").strip()
+    if latest_day == day:
+        app_games = [
+            game
+            for game in (latest.get("games") or [])
+            if isinstance(game, dict) and _game_matches_day(game, day)
+        ]
+        for game_id in _game_ids_from_games(app_games):
+            _append_ordered_game_id(ordered_ids, seen_ids, game_id)
+
+    for game_id in base_ids:
+        _append_ordered_game_id(ordered_ids, seen_ids, game_id)
+    return ordered_ids
 
 
 def _contest_payload_from_post(post: dict[str, Any]) -> dict[str, Any]:
@@ -1522,13 +1654,20 @@ def _fetch_active_day_game_entries(
     latest = home_payload.get("latestDayContent") or {}
     active_day = str(latest.get("day") or home_payload.get("latestDay") or "").strip()
     resolved_day = requested_day or active_day
-    games = [
-        game
-        for game in (latest.get("games") or [])
-        if str(game.get("day") or "").strip() == resolved_day
-    ]
+    preferred_order_ids = None
+    if str(sport or "").strip().lower() == "soccer":
+        preferred_order_ids = _soccer_home_tab_game_order_ids(
+            client,
+            day=resolved_day,
+            base_latest=latest,
+        )
+    games = _ordered_home_tab_games(
+        latest,
+        day=resolved_day,
+        preferred_order_ids=preferred_order_ids,
+    )
     entries: list[dict[str, Any]] = []
-    # Preserve Real's home-tab game order; the dashboard uses game_order verbatim.
+    # Preserve Real's visible home-tab game order; the dashboard uses game_order verbatim.
     for game_order, game in enumerate(games):
         game_payload = client.get_game_feed(game.get("id"), sport=sport)
         players_by_id = _player_lookup(game_payload.get("players") or [])

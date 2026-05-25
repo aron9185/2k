@@ -1620,7 +1620,7 @@ def _html_shell() -> str:
     function postTargetPriority(pollKind) {
       const priority = {
         game_winner: 0,
-        point_spread: 1,
+        game_spread: 1,
         game_total: 2,
         period_total_yes_no: 3,
         both_teams_score: 4,

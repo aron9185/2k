@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from live_polls import fetch_live_polls
+from live_polls import DEFAULT_LIVEFEED_PAGES, fetch_live_polls
 from market_csv import dedupe_market_rows, write_market_rows
 from poll_market_matcher import (
     MarketRow,
@@ -140,6 +140,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=0,
         help="Optional max number of livefeed posts to inspect per iteration.",
+    )
+    parser.add_argument(
+        "--pages",
+        type=int,
+        default=DEFAULT_LIVEFEED_PAGES,
+        help="Maximum livefeed pages to inspect per feed segment per iteration.",
     )
     return parser.parse_args()
 
@@ -314,6 +320,7 @@ def _fetch_open_live_poll_entries(
     feed: str,
     include_locked: bool,
     limit: int,
+    pages: int,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
     observed_at = _iso_now()
     observed_at_dt = _parse_utc_datetime(observed_at) or datetime.now(timezone.utc)
@@ -328,6 +335,7 @@ def _fetch_open_live_poll_entries(
                 feed=segment,
                 include_locked=include_locked,
                 limit=limit,
+                pages=pages,
             )
             fetch_count += 1
         except Exception as exc:
@@ -701,6 +709,7 @@ def recommend_live_rows(
     markets: list[MarketRow],
     include_locked: bool = True,
     limit: int = 0,
+    pages: int = DEFAULT_LIVEFEED_PAGES,
     prefetched_rows: list[dict[str, Any]] | None = None,
     prefetched_raw_entries: list[dict[str, Any]] | None = None,
     observed_at: str = "",
@@ -713,7 +722,12 @@ def recommend_live_rows(
         rows = list(prefetched_rows)
         raw_entries = list(prefetched_raw_entries)
     else:
-        rows, raw_entries = fetch_live_polls(feed=feed, include_locked=include_locked, limit=limit)
+        rows, raw_entries = fetch_live_polls(
+            feed=feed,
+            include_locked=include_locked,
+            limit=limit,
+            pages=pages,
+        )
     recommendations: list[dict[str, Any]] = []
 
     for row, raw_entry in zip(rows, raw_entries):
@@ -896,6 +910,7 @@ def main() -> None:
             feed=args.feed,
             include_locked=include_locked,
             limit=args.limit,
+            pages=args.pages,
         )
         requirements = _build_live_poll_market_requirements(open_rows)
         if args.refresh_markets:
@@ -950,6 +965,7 @@ def main() -> None:
             markets=markets,
             include_locked=include_locked,
             limit=args.limit,
+            pages=args.pages,
             prefetched_rows=open_rows,
             prefetched_raw_entries=open_raw_entries,
             observed_at=observed_at,

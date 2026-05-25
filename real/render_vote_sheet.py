@@ -1603,7 +1603,7 @@ def _render_lineup_section(rows: list[dict[str, str]]) -> list[str]:
     lineup_rows = [
         row
         for row in _lineup_rows(rows)
-        if str(row.get("status") or "").strip().lower() in {"pick", "no_market", "missing_poll_data"}
+        if str(row.get("status") or "").strip().lower() == "pick"
     ]
     if not lineup_rows:
         return []
@@ -1611,7 +1611,7 @@ def _render_lineup_section(rows: list[dict[str, str]]) -> list[str]:
     sections = [
         "## Lineup Contests",
         "",
-        "Lineup plays and no-market rows are shown below. The `Top 5` order is the recommended player rank order from Rotowire fantasy projections when projections are available.",
+        "Lineup plays are shown below. The `Top 5` order is the recommended player rank order from Rotowire fantasy projections when projections are available.",
         "",
         "| Rank | Game | Action | Top 5 | Gap 5v6 | Min Rank Gap | Top-5 Total | Notes |",
         "| --- | --- | --- | --- | --- | --- | --- | --- |",
