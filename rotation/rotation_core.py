@@ -22,8 +22,10 @@ ROTATION_COLUMNS = [
 
 REG_SECONDS = 48 * 60
 
-CDN_PBP = "https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_{GAME_ID}.json"
-CDN_BOXSCORE = "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{GAME_ID}.json"
+NBA_LIVE_CDN_BASE = "https://cdn.nba.com/static/json/liveData"
+NBA_LIVE_S3_BASE = "https://nba-prod-us-east-1-mediaops-stats.s3.amazonaws.com/NBA/liveData"
+CDN_PBP = NBA_LIVE_CDN_BASE + "/playbyplay/playbyplay_{GAME_ID}.json"
+CDN_BOXSCORE = NBA_LIVE_CDN_BASE + "/boxscore/boxscore_{GAME_ID}.json"
 
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache_json")
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -91,6 +93,13 @@ def _cache_path(key: str) -> str:
     return os.path.join(CACHE_DIR, safe + ".json")
 
 
+def _url_candidates(url: str) -> List[str]:
+    candidates = [_safe_str(url)]
+    if candidates[0].startswith(NBA_LIVE_CDN_BASE):
+        candidates.append(NBA_LIVE_S3_BASE + candidates[0][len(NBA_LIVE_CDN_BASE):])
+    return [candidate for candidate in candidates if candidate]
+
+
 def _read_cache(path: str) -> Optional[Dict[str, Any]]:
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -127,16 +136,17 @@ def fetch_json(url: str, cache_key: str, ttl_sec: int = DEFAULT_TTL_SEC, stale_s
 
     session = requests.Session()
     session.trust_env = False
-    for timeout in RETRY_TIMEOUTS:
-        try:
-            r = session.get(url, timeout=timeout, headers=DEFAULT_HEADERS)
-            if r.status_code == 200:
-                obj = r.json()
-                if isinstance(obj, dict):
-                    _write_cache_atomic(path, obj)
-                    return obj
-        except Exception:
-            continue
+    for candidate_url in _url_candidates(url):
+        for timeout in RETRY_TIMEOUTS:
+            try:
+                r = session.get(candidate_url, timeout=timeout, headers=DEFAULT_HEADERS)
+                if r.status_code == 200:
+                    obj = r.json()
+                    if isinstance(obj, dict):
+                        _write_cache_atomic(path, obj)
+                        return obj
+            except Exception:
+                continue
 
     if os.path.exists(path):
         age = now - os.path.getmtime(path)
@@ -785,7 +795,7 @@ def split_home_away(df: pd.DataFrame, meta: Dict[str, Any], notes: List[str]) ->
 def fetch_game_rotation(game_id: str) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[str, Any]]:
     notes: List[str] = []
 
-    pbp = fetch_json(CDN_PBP.format(GAME_ID=game_id), cache_key=f"pbp_{game_id}", ttl_sec=10, stale_sec=DEFAULT_STALE_SEC)
+    pbp = fetch_json(CDN_PBP.format(GAME_ID=game_id), cache_key=f"pbp_{game_id}", ttl_sec=0, stale_sec=DEFAULT_STALE_SEC)
     actions = iter_pbp_actions(pbp)
 
     if DEBUG_ROTATION:
@@ -797,7 +807,7 @@ def fetch_game_rotation(game_id: str) -> Tuple[pd.DataFrame, pd.DataFrame, Dict[
         meta = {"home_team_id": 0, "away_team_id": 0, "home_abbr": "", "away_abbr": "", "notes": notes}
         return empty_rotation_df(), empty_rotation_df(), meta
 
-    box = fetch_json(CDN_BOXSCORE.format(GAME_ID=game_id), cache_key=f"box_{game_id}", ttl_sec=20, stale_sec=DEFAULT_STALE_SEC)
+    box = fetch_json(CDN_BOXSCORE.format(GAME_ID=game_id), cache_key=f"box_{game_id}", ttl_sec=0, stale_sec=DEFAULT_STALE_SEC)
     meta = parse_boxscore_meta(box)
 
     pid_info, starters_by_team = parse_boxscore_players(box)

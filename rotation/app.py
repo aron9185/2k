@@ -38,6 +38,11 @@ WEB_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
 }
+SCHEDULE_TIMEOUTS = (
+    (4, 10),
+    (4, 10),
+    (8, 16),
+)
 
 ROTO_BASE_URL = "https://www.rotowire.com"
 ROTO_SEARCH_URL = ROTO_BASE_URL + "/search.php?term={QUERY}"
@@ -126,6 +131,19 @@ ROTO_TEAM_ALIASES = {
     "GSW": {"GSW", "GS"},
     "SAS": {"SAS", "SA"},
 }
+NBA_URL_TEAM_ALIASES = {
+    "BRK": "BKN",
+    "GS": "GSW",
+    "NO": "NOP",
+    "PHO": "PHX",
+    "SA": "SAS",
+}
+NBA_GAME_LINK_RE = re.compile(
+    r'href=["\'](?P<href>(?:https?://www\.nba\.com)?/game/'
+    r'(?P<away>[a-z0-9]+)-vs-(?P<home>[a-z0-9]+)-(?P<game_id>\d{10})'
+    r'(?:[/?#][^"\']*)?)["\']',
+    re.IGNORECASE,
+)
 
 os.makedirs(ROTO_CACHE_DIR, exist_ok=True)
 
@@ -632,7 +650,7 @@ def _parse_requested_date(raw: Optional[str]) -> dt.date:
     text = _safe_str(raw)
     if text:
         try:
-            return dt.date.fromisoformat(text)
+            return dt.date.fromisoformat(text.replace("/", "-"))
         except Exception:
             pass
     return dt.date.today()
@@ -928,20 +946,32 @@ def _best_lan_ip() -> str:
         probe.close()
 
 
-def _fetch_schedule_page(date_str: str) -> Dict[str, Any]:
+def _fetch_schedule_html(date_str: str) -> str:
+    for timeout in SCHEDULE_TIMEOUTS:
+        try:
+            with requests.Session() as session:
+                session.trust_env = False
+                response = session.get(SCHEDULE_PAGE.format(DATE=date_str), timeout=timeout, headers=WEB_HEADERS)
+            if response.status_code == 200 and response.text:
+                return response.text
+        except Exception:
+            continue
+    return ""
+
+
+def _extract_schedule_page_payload(html: str) -> Dict[str, Any]:
+    match = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', html or "")
+    if not match:
+        return {}
     try:
-        session = requests.Session()
-        session.trust_env = False
-        response = session.get(SCHEDULE_PAGE.format(DATE=date_str), timeout=(4, 10), headers=WEB_HEADERS)
-        if response.status_code != 200:
-            return {}
-        match = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', response.text)
-        if not match:
-            return {}
-        payload = json.loads(match.group(1))
+        payload = json.loads(unescape(match.group(1)))
         return payload if isinstance(payload, dict) else {}
     except Exception:
         return {}
+
+
+def _fetch_schedule_page(date_str: str) -> Dict[str, Any]:
+    return _extract_schedule_page_payload(_fetch_schedule_html(date_str))
 
 
 def _game_card_from_parts(
@@ -978,6 +1008,107 @@ def _game_card_from_parts(
     }
 
 
+def _canonical_nba_url_abbr(value: Any) -> str:
+    abbr = _safe_str(value).upper()
+    return NBA_URL_TEAM_ALIASES.get(abbr, abbr)
+
+
+def _game_card_from_boxscore_game(
+    game: Dict[str, Any],
+    *,
+    date_str: str,
+    game_id: str = "",
+    source: str = "",
+) -> Optional[Dict[str, Any]]:
+    if not isinstance(game, dict) or not game:
+        return None
+
+    game_date_str = _game_date_from_iso(game.get("gameEt"), game.get("gameTimeUTC"), game.get("gameTimeLocal"))
+    if date_str and game_date_str and game_date_str != date_str:
+        return None
+
+    home = game.get("homeTeam") or {}
+    away = game.get("awayTeam") or {}
+    resolved_game_id = _safe_str(game.get("gameId")) or _safe_str(game_id)
+    if not resolved_game_id:
+        return None
+
+    return _game_card_from_parts(
+        game_id=resolved_game_id,
+        date_str=game_date_str or date_str,
+        home_abbr=_safe_str(home.get("teamTricode")),
+        away_abbr=_safe_str(away.get("teamTricode")),
+        home_score=_safe_str(home.get("score")),
+        away_score=_safe_str(away.get("score")),
+        status=_status_text(game.get("gameStatus"), game.get("gameStatusText")),
+        tipoff=_format_iso_datetime(game.get("gameEt") or game.get("gameTimeUTC") or game.get("gameTimeLocal")),
+        arena=_arena_summary(game.get("arena") or {}),
+        source=source,
+    )
+
+
+def _game_links_from_schedule_html(html: str) -> List[Dict[str, str]]:
+    links: List[Dict[str, str]] = []
+    seen: set[str] = set()
+    for match in NBA_GAME_LINK_RE.finditer(html or ""):
+        game_id = _safe_str(match.group("game_id"))
+        if not game_id or game_id in seen:
+            continue
+        seen.add(game_id)
+        links.append(
+            {
+                "game_id": game_id,
+                "away_abbr": _canonical_nba_url_abbr(match.group("away")),
+                "home_abbr": _canonical_nba_url_abbr(match.group("home")),
+            }
+        )
+    return links
+
+
+def _game_card_from_schedule_link(link: Dict[str, str], date_str: str) -> Optional[Dict[str, Any]]:
+    game_id = _safe_str(link.get("game_id"))
+    if not game_id:
+        return None
+
+    payload = fetch_json(
+        CDN_BOXSCORE.format(GAME_ID=game_id),
+        cache_key=f"box_{game_id}",
+        ttl_sec=0,
+        stale_sec=365 * 24 * 3600,
+    )
+    game = (payload.get("game") or {}) if isinstance(payload, dict) else {}
+    card = _game_card_from_boxscore_game(game, date_str=date_str, game_id=game_id, source="nba.com")
+    if card is not None:
+        return card
+
+    home_abbr = _safe_str(link.get("home_abbr"))
+    away_abbr = _safe_str(link.get("away_abbr"))
+    if not home_abbr or not away_abbr:
+        return None
+
+    return _game_card_from_parts(
+        game_id=game_id,
+        date_str=date_str,
+        home_abbr=home_abbr,
+        away_abbr=away_abbr,
+        status="Scheduled",
+        source="nba.com",
+    )
+
+
+def _dedupe_game_cards(games: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for game in games:
+        game_id = _safe_str(game.get("game_id"))
+        if not game_id or game_id in seen:
+            continue
+        seen.add(game_id)
+        out.append(game)
+    out.sort(key=lambda item: (item.get("tipoff") or "", item.get("game_id") or ""))
+    return out
+
+
 def _cached_games_for_date(game_date: dt.date) -> List[Dict[str, Any]]:
     date_str = game_date.isoformat()
     games: List[Dict[str, Any]] = []
@@ -998,30 +1129,12 @@ def _cached_games_for_date(game_date: dt.date) -> List[Dict[str, Any]]:
         if not isinstance(game, dict) or not game:
             continue
 
-        game_date_str = _game_date_from_iso(game.get("gameEt"), game.get("gameTimeUTC"), game.get("gameTimeLocal"))
-        if game_date_str != date_str:
-            continue
-
-        home = game.get("homeTeam") or {}
-        away = game.get("awayTeam") or {}
         game_id = _safe_str(game.get("gameId")) or name.removeprefix("box_").removesuffix(".json")
-        games.append(
-            _game_card_from_parts(
-                game_id=game_id,
-                date_str=date_str,
-                home_abbr=_safe_str(home.get("teamTricode")),
-                away_abbr=_safe_str(away.get("teamTricode")),
-                home_score=_safe_str(home.get("score")),
-                away_score=_safe_str(away.get("score")),
-                status=_status_text(game.get("gameStatus"), game.get("gameStatusText")),
-                tipoff=_format_iso_datetime(game.get("gameEt") or game.get("gameTimeUTC") or game.get("gameTimeLocal")),
-                arena=_arena_summary(game.get("arena") or {}),
-                source="cache",
-            )
-        )
+        card = _game_card_from_boxscore_game(game, date_str=date_str, game_id=game_id, source="cache")
+        if card is not None:
+            games.append(card)
 
-    games.sort(key=lambda item: (item.get("tipoff") or "", item.get("game_id") or ""))
-    return games
+    return _dedupe_game_cards(games)
 
 
 def available_cached_dates(limit: int = 18) -> List[str]:
@@ -1046,7 +1159,8 @@ def available_cached_dates(limit: int = 18) -> List[str]:
 
 def _live_games_for_date(game_date: dt.date) -> List[Dict[str, Any]]:
     date_str = game_date.isoformat()
-    payload = _fetch_schedule_page(date_str)
+    html = _fetch_schedule_html(date_str)
+    payload = _extract_schedule_page_payload(html)
     page_props = (payload.get("props") or {}).get("pageProps") or {}
     game_card_feed = page_props.get("gameCardFeed") or {}
     modules = game_card_feed.get("modules") or []
@@ -1094,13 +1208,18 @@ def _live_games_for_date(game_date: dt.date) -> List[Dict[str, Any]]:
             )
         )
 
-    return games
+    for link in _game_links_from_schedule_html(html):
+        card = _game_card_from_schedule_link(link, date_str)
+        if card is not None:
+            games.append(card)
+
+    return _dedupe_game_cards(games)
 
 
 def fetch_games_for_date(game_date: dt.date) -> List[Dict[str, Any]]:
     games = _live_games_for_date(game_date)
     if games:
-        return games
+        return _dedupe_game_cards(games + _cached_games_for_date(game_date))
     return _cached_games_for_date(game_date)
 
 
@@ -1293,7 +1412,7 @@ def build_boxscore_context(game_id: str) -> Dict[str, Any]:
     payload = fetch_json(
         CDN_BOXSCORE.format(GAME_ID=game_id),
         cache_key=f"box_{game_id}",
-        ttl_sec=20,
+        ttl_sec=0,
         stale_sec=365 * 24 * 3600,
     )
     game = (payload.get("game") or {}) if isinstance(payload, dict) else {}
