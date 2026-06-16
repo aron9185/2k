@@ -21,6 +21,10 @@ SPORT_URLS = {
         "https://web.realapp.com/rankings/sport/ncaam/entity/player/ranking/tertiary",
         "https://web.realsports.io/rankings/sport/ncaam/entity/player/ranking/tertiary",
     ],
+    "ncaabb": [
+        "https://web.realapp.com/rankings/sport/ncaabb/entity/player/ranking/tertiary",
+        "https://web.realsports.io/rankings/sport/ncaabb/entity/player/ranking/tertiary",
+    ],
     "nba": [
         "https://web.realapp.com/rankings/sport/nba/entity/player/ranking/tertiary",
         "https://web.realsports.io/rankings/sport/nba/entity/player/ranking/tertiary",

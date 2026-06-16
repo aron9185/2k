@@ -14,11 +14,13 @@ from typing import Any
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUT = BASE_DIR / "lineup.html"
 DEFAULT_INPUT_DIR = BASE_DIR / "lineups"
-DEFAULT_SPORTS = "mlb,nba,nhl,wnba,fc,golf"
+DEFAULT_SPORTS = "mlb,cws,nba,nhl,wnba,fc,golf"
 DEFAULT_SEASON = "2025"
 
 SPORT_ALIASES = {
     "mlb": ("mlb", "MLB", "mlb"),
+    "cws": ("ncaabb", "CWS", "ncaabb"),
+    "ncaabb": ("ncaabb", "CWS", "ncaabb"),
     "nba": ("nba", "NBA", "nba"),
     "nhl": ("nhl", "NHL", "nhl"),
     "wnba": ("wnba", "WNBA", "wnba"),

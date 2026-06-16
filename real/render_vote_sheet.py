@@ -62,6 +62,7 @@ ZERO_COST_ACTION_POLL_KINDS = {
     "player_most_stat",
     "first_basket",
     "golf_leaderboard",
+    "tournament_player_award",
 }
 ZERO_COST_PICK_DISPLAY_KINDS = {
     "anytime_play",
@@ -69,6 +70,9 @@ ZERO_COST_PICK_DISPLAY_KINDS = {
     "first_basket",
     "golf_leaderboard",
     "team_stat",
+    "tournament_champion",
+    "tournament_group_winner",
+    "tournament_player_award",
 }
 
 STATUS_ORDER = {
@@ -80,6 +84,14 @@ STATUS_ORDER = {
     "missing_poll_data": 5,
     "unsupported": 6,
 }
+SPORT_LABELS = {
+    "ncaabb": "CWS",
+}
+
+
+def _sport_label(sport: object) -> str:
+    sport_key = str(sport or "").strip().lower()
+    return SPORT_LABELS.get(sport_key, sport_key.upper())
 
 
 def parse_args() -> argparse.Namespace:
@@ -303,7 +315,7 @@ def _matching_labeled_odds(
 ) -> tuple[str, str] | None:
     if not _canonical_label(selection):
         return None
-    for slot in ("a", "b", "c"):
+    for slot in ("a", "b", "c", "d", "e"):
         label = str(row.get(f"{label_prefix}_{slot}_label") or "").strip()
         odds = str(row.get(f"{odds_prefix}_{slot}_odds") or "").strip()
         if not label:
@@ -315,7 +327,7 @@ def _matching_labeled_odds(
 
 def _option_slots(row: dict[str, str], *, prefix: str = "option") -> list[dict[str, str]]:
     slots = []
-    for slot in ("a", "b", "c"):
+    for slot in ("a", "b", "c", "d", "e"):
         label = str(row.get(f"{prefix}_{slot}_label") or "").strip()
         odds = str(row.get(f"{prefix}_{slot}_odds") or "").strip()
         if label:
@@ -766,6 +778,8 @@ def _selection_put_text(row: dict[str, str], *, include_action_token: bool = Tru
     poll_kind = str(row.get("poll_kind") or "").strip().lower()
     if not label:
         return "NoMarket" if status == "no_market" else "Skip"
+    if status in {"no_edge", "pass"}:
+        return "Skip"
     if poll_kind == "daily_pool":
         amount = int(action.get("amount") or 0)
         if status != "bet" or amount <= 0:
@@ -863,20 +877,11 @@ def _labeled_options(*items: tuple[str, str]) -> str:
 
 
 def _real_pair(row: dict[str, str]) -> str:
-    return _labeled_options(
-        (
-            str(row.get("option_a_label") or ""),
-            str(row.get("option_a_odds") or ""),
-        ),
-        (
-            str(row.get("option_b_label") or ""),
-            str(row.get("option_b_odds") or ""),
-        ),
-        (
-            str(row.get("option_c_label") or ""),
-            str(row.get("option_c_odds") or ""),
-        ),
-    ) or _labeled_pair(
+    options = [
+        (str(option["label"] or ""), str(option["odds"] or ""))
+        for option in _option_slots(row)
+    ]
+    return _labeled_options(*options) or _labeled_pair(
         str(row.get("option_a_label") or ""),
         str(row.get("option_a_odds") or ""),
         str(row.get("option_b_label") or ""),
@@ -885,20 +890,11 @@ def _real_pair(row: dict[str, str]) -> str:
 
 
 def _sportsbook_pair(row: dict[str, str]) -> str:
-    return _labeled_options(
-        (
-            str(row.get("sportsbook_a_label") or ""),
-            str(row.get("sportsbook_a_odds") or ""),
-        ),
-        (
-            str(row.get("sportsbook_b_label") or ""),
-            str(row.get("sportsbook_b_odds") or ""),
-        ),
-        (
-            str(row.get("sportsbook_c_label") or ""),
-            str(row.get("sportsbook_c_odds") or ""),
-        ),
-    ) or _labeled_pair(
+    options = [
+        (str(option["label"] or ""), str(option["odds"] or ""))
+        for option in _option_slots(row, prefix="sportsbook")
+    ]
+    return _labeled_options(*options) or _labeled_pair(
         str(row.get("sportsbook_a_label") or ""),
         str(row.get("sportsbook_a_odds") or ""),
         str(row.get("sportsbook_b_label") or ""),
@@ -1235,8 +1231,10 @@ def _lineup_action(row: dict[str, str]) -> str:
     return "Skip"
 
 
-def _lineup_rank_sort(row: dict[str, str]) -> tuple[int, int]:
+def _lineup_rank_sort(row: dict[str, str]) -> tuple[int, int, int, int]:
     rank = _safe_int(str(row.get("lineup_rank") or ""))
+    game_order = _safe_int(str(row.get("game_order") or ""))
+    post_order = _safe_int(str(row.get("post_order") or ""))
     status = str(row.get("status") or "").strip().lower()
     priority = {
         "pick": 0,
@@ -1244,7 +1242,12 @@ def _lineup_rank_sort(row: dict[str, str]) -> tuple[int, int]:
         "no_market": 2,
         "missing_poll_data": 3,
     }.get(status, 4)
-    return priority, rank if rank is not None else 999
+    return (
+        priority,
+        game_order if game_order is not None else 999999,
+        post_order if post_order is not None else 999999,
+        rank if rank is not None else 999,
+    )
 
 
 def _lineup_file_candidates(sport: str, lineup_input: str = "") -> list[Path]:
@@ -1543,15 +1546,30 @@ def _render_daily_lineup_section(
     if not filtered_rows:
         return []
     ordered_rows = sorted(filtered_rows, key=_daily_lineup_rank_sort)[:DAILY_LINEUP_DISPLAY_LIMIT]
+    source_sites = {
+        str(row.get("Rotowire_Site") or "").strip().lower()
+        for row in ordered_rows
+        if str(row.get("Rotowire_Site") or "").strip()
+    }
+    uses_real_rating_fallback = any(site.startswith("real rating") for site in source_sites)
+    if uses_real_rating_fallback:
+        intro = (
+            f"Top {len(ordered_rows)} Real App player-rating ranks from games that have not started yet "
+            f"for this {_sport_label(sport)} slate, after the Real boost multiplier adjustment."
+        )
+        value_header = "Adj Rating Score"
+    else:
+        intro = (
+            f"Top {len(ordered_rows)} `lineup.py` player ranks from games that have not started yet "
+            f"for this {sport.upper()} slate, after the Real multiplier adjustment."
+        )
+        value_header = "Adj FP"
     sections = [
         "## Daily Lineup",
         "",
-        (
-            f"Top {len(ordered_rows)} `lineup.py` player ranks from games that have not started yet "
-            f"for this {sport.upper()} slate, after the Real multiplier adjustment."
-        ),
+        intro,
         "",
-        "| Rank | Player | Team | Pos | Game | Adj FP | Adj Real Rating | Mult | Salary |",
+        f"| Rank | Player | Team | Pos | Game | {value_header} | Adj Real Rating | Mult | Salary |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in ordered_rows:
@@ -1571,9 +1589,25 @@ def _render_daily_lineup_section(
     return sections
 
 
+def _is_group_stage_draft_lineup_row(row: dict[str, str]) -> bool:
+    content_text = str(row.get("content_text") or "").strip().lower()
+    custom_label = str(row.get("game_label") or "").strip().lower()
+    game_id = str(row.get("game_id") or "").strip().lower()
+    is_contest = str(row.get("poll_kind") or "").strip().lower() == "contest"
+    return (
+        is_contest
+        and (game_id.startswith("contest:") or custom_label in {"", "lineup", "contest"})
+        and "world cup" in content_text
+        and "group stage" in content_text
+    )
+
+
 def _lineup_game_label(row: dict[str, str]) -> str:
     custom_label = str(row.get("game_label") or "").strip()
-    if custom_label:
+    content_text = str(row.get("content_text") or "").strip()
+    if _is_group_stage_draft_lineup_row(row):
+        matchup = "World Cup Group Stage Draft"
+    elif custom_label:
         matchup = custom_label
     else:
         away = str(row.get("away_team") or "").strip()
@@ -1582,7 +1616,7 @@ def _lineup_game_label(row: dict[str, str]) -> str:
         if matchup == "@":
             matchup = ""
         if not matchup:
-            matchup = str(row.get("content_text") or row.get("header") or row.get("game_id") or "").strip()
+            matchup = str(content_text or row.get("header") or row.get("game_id") or "").strip()
     game_time = _format_game_time(str(row.get("game_time") or ""))
     return f"{matchup} ({game_time})" if game_time else matchup
 
@@ -1599,21 +1633,22 @@ def _lineup_notes_text(row: dict[str, str]) -> str:
     return str(row.get("notes") or "").strip()
 
 
-def _render_lineup_section(rows: list[dict[str, str]]) -> list[str]:
-    lineup_rows = [
-        row
-        for row in _lineup_rows(rows)
-        if str(row.get("status") or "").strip().lower() == "pick"
-    ]
-    if not lineup_rows:
+def _render_lineup_rows_section(
+    *,
+    heading: str,
+    intro: str,
+    rows: list[dict[str, str]],
+    label_column: str = "Game",
+) -> list[str]:
+    if not rows:
         return []
-    ordered_rows = sorted(lineup_rows, key=_lineup_rank_sort)
+    ordered_rows = sorted(rows, key=_lineup_rank_sort)
     sections = [
-        "## Lineup Contests",
+        f"## {heading}",
         "",
-        "Lineup plays are shown below. The `Top 5` order is the recommended player rank order from Rotowire fantasy projections when projections are available.",
+        intro,
         "",
-        "| Rank | Game | Action | Top 5 | Gap 5v6 | Min Rank Gap | Top-5 Total | Notes |",
+        f"| Rank | {label_column} | Action | Top 5 | Gap 5v6 | Min Rank Gap | Top-5 Total | Notes |",
         "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in ordered_rows:
@@ -1630,6 +1665,42 @@ def _render_lineup_section(rows: list[dict[str, str]]) -> list[str]:
         sections.append("| " + " | ".join(_table_escape(cell) for cell in cells) + " |")
     sections.append("")
     return sections
+
+
+def _render_group_stage_lineup_section(rows: list[dict[str, str]]) -> list[str]:
+    group_stage_rows = [
+        row
+        for row in _lineup_rows(rows)
+        if str(row.get("status") or "").strip().lower() == "pick"
+        and _is_group_stage_draft_lineup_row(row)
+    ]
+    return _render_lineup_rows_section(
+        heading="Group Stage Draft Lineup",
+        intro=(
+            "This is the sport-wide World Cup group-stage player rating contest, "
+            "separate from the Daily Lineup section below. Copy the five names in order."
+        ),
+        rows=group_stage_rows,
+        label_column="Contest",
+    )
+
+
+def _render_lineup_section(rows: list[dict[str, str]]) -> list[str]:
+    lineup_rows = [
+        row
+        for row in _lineup_rows(rows)
+        if str(row.get("status") or "").strip().lower() == "pick"
+        and not _is_group_stage_draft_lineup_row(row)
+    ]
+    return _render_lineup_rows_section(
+        heading="Daily Draft Lineup Contests",
+        intro=(
+            "Game-specific lineup plays are shown in Real game order. The `Action` rank is the "
+            "recommended contest rank, and `Top 5` is the recommended player rank order from "
+            "Rotowire fantasy projections when projections are available."
+        ),
+        rows=lineup_rows,
+    )
 
 
 def _render_predictions_section(
@@ -1844,13 +1915,14 @@ def render_vote_sheet(
 
     day = str(rows[0].get("day") or "").strip()
     sport_key = str(rows[0].get("sport") or "").strip().lower()
-    sport = sport_key.upper()
+    sport = _sport_label(sport_key)
     daily_lineup_section = _render_daily_lineup_section(
         sport=sport_key,
         day=day,
         lineup_input=lineup_input,
         game_rows=rows,
     )
+    group_stage_lineup_section = _render_group_stage_lineup_section(rows)
     lineup_section = _render_lineup_section(rows)
     predictions_section = _render_predictions_section(
         sport=sport_key,
@@ -1869,6 +1941,8 @@ def render_vote_sheet(
         "`Selection+Put` is the side plus the amount to enter, for example `No0`, `No50`, `Yes0`, or `Yes50`. Zero-cost pick rows just show the selection.",
         "",
     ]
+    if group_stage_lineup_section:
+        sections.extend(group_stage_lineup_section)
     if daily_lineup_section:
         sections.extend(daily_lineup_section)
     if lineup_section:

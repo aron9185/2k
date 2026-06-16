@@ -583,18 +583,64 @@ class RealSportsClient:
         sport: str,
         *,
         query: str,
-        day: str,
+        day: str = "",
         search_type: str = "ratingLineup",
         include_no_one_option: bool = False,
+        position: str | None = None,
+        team_id: int | str | None = None,
+        game_id: int | str | None = None,
+        game_ids: list[int | str] | str | None = None,
+        poll_id: int | str | None = None,
+        season: int | str | None = None,
     ) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "includeNoOneOption": str(include_no_one_option).lower(),
+            "query": query,
+            "searchType": search_type,
+        }
+        if day:
+            params["day"] = day
+        if position:
+            params["position"] = position
+        if team_id not in (None, "", "None"):
+            params["teamId"] = str(team_id)
+        if game_id not in (None, "", "None"):
+            params["gameId"] = str(game_id)
+        if game_ids:
+            params["gameIds"] = (
+                ",".join(str(value) for value in game_ids)
+                if isinstance(game_ids, list)
+                else str(game_ids)
+            )
+        if poll_id not in (None, "", "None"):
+            params["pollId"] = str(poll_id)
+        if season not in (None, "", "None"):
+            params["season"] = str(season)
         return self.get_json(
             f"/players/sport/{sport}/search",
-            params={
-                "day": day,
-                "includeNoOneOption": str(include_no_one_option).lower(),
-                "query": query,
-                "searchType": search_type,
-            },
+            params=params,
+        )
+
+    def search_teams(
+        self,
+        sport: str,
+        *,
+        query: str = "",
+        game_id: int | str | None = None,
+        poll_id: int | str | None = None,
+        search_type: str = "",
+        season: int | str | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {"query": query, "searchType": search_type}
+        if game_id not in (None, "", "None"):
+            params["gameId"] = str(game_id)
+        if poll_id not in (None, "", "None"):
+            params["pollId"] = str(poll_id)
+        if season not in (None, "", "None"):
+            params["season"] = str(season)
+        return self.get_json(
+            f"/teams/sport/{sport}/search",
+            params=params,
         )
 
     def get_player_boxscore_splits(

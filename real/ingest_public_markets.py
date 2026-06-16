@@ -66,6 +66,11 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--skip-payload-cache",
+        action="store_true",
+        help="Do not refresh saved sportsbook payload caches after live provider fetches.",
+    )
+    parser.add_argument(
         "--allow-empty",
         action="store_true",
         help="Allow writing a header-only market CSV when providers return zero normalized rows.",
@@ -95,6 +100,25 @@ def _parse_csv_arg(value: str) -> list[str]:
     return [part.strip() for part in str(value or "").split(",") if part.strip()]
 
 
+SPORT_ALIASES = {
+    "cws": "ncaabb",
+}
+
+
+def _canonical_sport_key(value: object) -> str:
+    sport = str(value or "").strip().lower()
+    return SPORT_ALIASES.get(sport, sport)
+
+
+def _parse_sports_arg(value: str) -> list[str]:
+    sports: list[str] = []
+    for part in _parse_csv_arg(value):
+        sport = _canonical_sport_key(part)
+        if sport and sport not in sports:
+            sports.append(sport)
+    return sports
+
+
 def _parse_target_team_pairs_json(value: str) -> dict[str, list[tuple[str, str]]]:
     text = str(value or "").strip()
     if not text:
@@ -108,7 +132,7 @@ def _parse_target_team_pairs_json(value: str) -> dict[str, list[tuple[str, str]]
 
     parsed: dict[str, list[tuple[str, str]]] = {}
     for sport_key, pairs in payload.items():
-        sport = str(sport_key or "").strip().lower()
+        sport = _canonical_sport_key(sport_key)
         if not sport or not isinstance(pairs, list):
             continue
         sport_pairs: list[tuple[str, str]] = []
@@ -142,10 +166,10 @@ def _filter_rows_by_market_scope(rows: list[dict[str, Any]], market_scope: str) 
 def main():
     args = parse_args()
     providers = _parse_csv_arg(args.providers)
-    sports = _parse_csv_arg(args.sports)
+    sports = _parse_sports_arg(args.sports)
     market_scope = str(args.market_scope or "all").strip().lower()
     target_pairs_by_sport = _parse_target_team_pairs_json(args.target_team_pairs_json)
-    should_save_payloads = market_scope == "all" and not target_pairs_by_sport
+    should_save_payloads = market_scope == "all" and not target_pairs_by_sport and not args.skip_payload_cache
 
     provider_rows: list[dict[str, Any]] = []
     raw_payloads: dict[str, Any] = {}
@@ -187,7 +211,10 @@ def main():
             raise SystemExit(f"Unsupported provider: {provider}")
 
         rows = _filter_rows_by_market_scope(rows, market_scope)
-        raw_payloads[provider_key] = raw
+        if args.dump_json_dir:
+            raw_payloads[provider_key] = raw
+        else:
+            raw = None
         provider_rows.extend(rows)
         counts_by_provider[provider_key] += len(rows)
         counts_by_market_type.update(str(row.get("market_type") or "") for row in rows)

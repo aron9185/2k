@@ -131,10 +131,47 @@ def _append_ordered_game_id(ordered_ids: list[str], seen_ids: set[str], game_id:
     ordered_ids.append(game_key)
 
 
+def _game_start_sort_value(game: dict[str, Any]) -> str:
+    for key in ("dateTime", "startTime", "startDate", "gameTime", "scheduledAt"):
+        value = str(game.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _game_id_sort_value(game: dict[str, Any]) -> tuple[int, int | str]:
+    game_id = _clean_id(_game_id_from_home_item(game))
+    if not game_id:
+        return 2, ""
+    try:
+        return 0, int(game_id)
+    except ValueError:
+        return 1, game_id
+
+
+def _rendered_home_tab_games(games: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    # The web app renders same-start games by numeric Real game id, not raw API order.
+    return [
+        game
+        for index, game in sorted(
+            enumerate(games),
+            key=lambda item: (
+                _game_start_sort_value(item[1]) or f"~{item[0]:06d}",
+                _game_id_sort_value(item[1]) if _game_start_sort_value(item[1]) else (2, item[0]),
+                item[0],
+            ),
+        )
+    ]
+
+
 def _home_tab_game_order_ids(payload: dict[str, Any]) -> list[str]:
     latest = payload.get("latestDayContent") or {}
     ordered_ids: list[str] = []
     seen_ids: set[str] = set()
+
+    games = [game for game in (latest.get("games") or []) if isinstance(game, dict)]
+    for game in _rendered_home_tab_games(games):
+        _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(game))
 
     for item in latest.get("items") or []:
         if not isinstance(item, dict):
@@ -146,9 +183,6 @@ def _home_tab_game_order_ids(payload: dict[str, Any]) -> list[str]:
         entity_type = str(item.get("entityType") or item.get("type") or "").strip().lower()
         if entity_type in {"game", "games"}:
             _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(item))
-
-    for game in latest.get("games") or []:
-        _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(game))
     return ordered_ids
 
 

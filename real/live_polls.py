@@ -14,6 +14,9 @@ BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_OUTPUT = BASE_DIR / "live_polls.csv"
 DEFAULT_LIVEFEED_PAGES = 5
 EVEN_MONEY_ODDS = 100
+SPORT_ALIASES = {
+    "cws": "ncaabb",
+}
 PLAYER_NAME_WITH_LINE_RE = re.compile(
     r"^(?P<name>.+?)\s*(?:·|‧|•|-|–|—)\s*\d+(?:\.\d+)?\s+\S",
     re.IGNORECASE,
@@ -23,6 +26,11 @@ PLAYER_NAME_FALLBACK_RE = re.compile(
     re.IGNORECASE,
 )
 PLAYER_NAME_SPLIT_RE = re.compile(r"\s*[·•\-–—]\s*")
+
+
+def _canonical_sport_key(value: object) -> str:
+    sport = str(value or "").strip().lower()
+    return SPORT_ALIASES.get(sport, sport)
 
 
 def parse_args():
@@ -204,12 +212,55 @@ def _option_player_id(option: dict[str, Any]) -> Any:
     return _option_additional(option).get("playerId") or ""
 
 
+def normalize_text(value: str) -> str:
+    text = str(value or "").lower()
+    cleaned = []
+    for char in text:
+        if char.isalnum() or char.isspace():
+            cleaned.append(char)
+        else:
+            cleaned.append(" ")
+    return " ".join("".join(cleaned).split())
+
+
+def _golf_round_value_from_text(text: str) -> str:
+    normalized = normalize_text(text)
+    match = re.search(r"\bround\s+([0-9]+)\b", normalized)
+    if match:
+        return match.group(1)
+    match = re.search(r"\b([0-9]+)(?:st|nd|rd|th)?\s+round\b", normalized)
+    if match:
+        return match.group(1)
+    word_rounds = {
+        "first": "1",
+        "second": "2",
+        "third": "3",
+        "fourth": "4",
+    }
+    for word, value in word_rounds.items():
+        if re.search(rf"\b{word}\s+round\b", normalized):
+            return value
+    return ""
+
+
+def _is_golf_best_score_text(text: str) -> bool:
+    normalized = normalize_text(text)
+    return bool(
+        "best score" in normalized
+        or "best scorer" in normalized
+        or "lowest score" in normalized
+        or re.search(r"\bbest\s+(?:round\s+)?scor(?:e|er)\b", normalized)
+    )
+
+
 def _normalize_poll_kind(post: dict[str, Any], poll: dict[str, Any]) -> str:
     additional = poll.get("additionalInfo") or {}
     post_additional = post.get("additionalInfo") or {}
     poll_type = str(additional.get("type") or post_additional.get("type") or "").strip().lower()
     sport_key = str(additional.get("sport") or poll.get("sport") or post.get("sport") or "").strip().lower()
     header = str(post.get("header") or "").strip().lower()
+    content_text = _first_text(((post.get("content") or {}).get("nodes")) or [])
+    combined_text = normalize_text(f"{header} {content_text} {additional.get('karmaDisplay') or ''}")
     is_anytime = bool(additional.get("isAnytimePlay") or post_additional.get("isAnytimePlay"))
     if is_anytime:
         return "pick_a_player" if header == "pick a player" else "anytime_play"
@@ -221,13 +272,15 @@ def _normalize_poll_kind(post: dict[str, Any], poll: dict[str, Any]) -> str:
     if poll_type == "player" and (additional.get("isMatchupPoll") or post_additional.get("isMatchupPoll")):
         if sport_key == "golf":
             return "golf_leaderboard"
+    if poll_type == "player" and sport_key == "golf" and _is_golf_best_score_text(combined_text):
+        return "golf_leaderboard"
     if additional.get("isOverUnder") or post_additional.get("isOverUnder"):
         return "player_over_under" if poll_type == "player" else "game_total"
     if poll_type == "gamewinner" or additional.get("isPickWinner"):
         return "game_winner"
     if poll_type == "teamstat":
-        content_text = _first_text(((post.get("content") or {}).get("nodes")) or []).lower()
-        if sport_key == "ufc" or "fighter" in content_text or "strikes" in content_text or "takedowns" in content_text:
+        teamstat_text = content_text.lower()
+        if sport_key == "ufc" or "fighter" in teamstat_text or "strikes" in teamstat_text or "takedowns" in teamstat_text:
             return "fighter_stat_winner"
         return "team_stat"
     if poll_type == "gameoutcome":
@@ -283,13 +336,19 @@ def _golf_leaderboard_market_fields(
     if poll_kind != "golf_leaderboard":
         return "", "", ""
 
-    text = f"{content_text} {additional.get('karmaDisplay') or ''}".lower()
+    text = f"{content_text} {additional.get('karmaDisplay') or ''}"
     round_value = str(additional.get("round") or "").strip()
+    if not round_value:
+        round_value = _golf_round_value_from_text(text)
     period = f"R{round_value}" if round_value.isdigit() else ""
 
-    if additional.get("isMatchupPoll") or "best score" in text:
+    normalized_text = normalize_text(text)
+    round_best_score_text = _is_golf_best_score_text(text)
+    if round_best_score_text:
+        return "leader", 1.0, period
+    if additional.get("isMatchupPoll"):
         return "roundscore", 1.0, period
-    if additional.get("isRoundLeaderPoll") or "round leader" in text or "leader" in text:
+    if additional.get("isRoundLeaderPoll") or "round leader" in normalized_text or "leader" in normalized_text:
         return "leader", 1.0, period
 
     min_rank: int | None = None
@@ -297,12 +356,12 @@ def _golf_leaderboard_market_fields(
         min_rank = int(float(additional.get("minRank")))
     except Exception:
         min_rank = None
-    top_match = re.search(r"\btop\s+([0-9]+)\b", text)
+    top_match = re.search(r"\btop\s+([0-9]+)\b", normalized_text)
     if top_match:
         min_rank = int(top_match.group(1))
     if min_rank is not None and min_rank > 1:
         return "topfinish", float(min_rank), period
-    if min_rank == 1 or "win the tournament" in text or "tournament winner" in text:
+    if min_rank == 1 or "win the tournament" in normalized_text or "tournament winner" in normalized_text:
         return "winner", 1.0, ""
     return "", "", period
 
@@ -402,12 +461,12 @@ def _collect_home_tab_post_refs(payload: dict[str, Any]) -> list[dict[str, Any]]
 
 
 def _filter_requested_sport(post: dict[str, Any], poll_payload: dict[str, Any], sport: str) -> bool:
-    requested = str(sport or "").strip().lower()
+    requested = _canonical_sport_key(sport)
     if not requested:
         return True
     poll = poll_payload.get("poll") or {}
-    poll_sport = str(poll.get("sport") or "").strip().lower()
-    post_sport = str(post.get("sport") or "").strip().lower()
+    poll_sport = _canonical_sport_key(poll.get("sport"))
+    post_sport = _canonical_sport_key(post.get("sport"))
     return requested in {poll_sport, post_sport}
 
 
@@ -499,6 +558,7 @@ def fetch_home_tab_polls(
     wagerable_only: bool = False,
     limit: int = 0,
 ):
+    sport = _canonical_sport_key(sport)
     client = build_realsports_client()
     payload = client.get_home_tab(sport=sport, cohort=cohort)
     post_refs = _collect_home_tab_post_refs(payload)
@@ -553,6 +613,7 @@ def fetch_game_feed_polls(
     wagerable_only: bool = False,
     limit: int = 0,
 ):
+    sport = _canonical_sport_key(sport)
     client = build_realsports_client()
     payload = client.get_game_feed(
         game_id,
@@ -626,6 +687,7 @@ def fetch_sport_tab_polls(
     wagerable_only: bool = False,
     limit: int = 0,
 ):
+    sport = _canonical_sport_key(sport)
     client = build_realsports_client()
     info_payload = client.get_polls_info_for_sport(sport)
     resolved_day = day or _choose_default_poll_day(info_payload)

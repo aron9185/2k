@@ -1,11 +1,12 @@
 # 2k Workspace
 
-This repo now has four active work areas:
+This repo now has five active work areas:
 
 - `rotation/`: the live NBA rotation web app
 - `stats/`: the 2K ratings and badges build pipeline
 - `Upgrade/`: Immerse / preset export tooling
 - `real/`: the Real Sports utilities, rank workbooks, caches, and outputs
+- `tracking/`: NBA computer-vision tracking prototype for speed, agility, and speed-with-ball
 
 ## Real Sports
 

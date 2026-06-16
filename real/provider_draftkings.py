@@ -17,11 +17,16 @@ from sportsbook_http import (
 
 SPORT_TO_EVENTGROUP = {
     "mlb": 84240,
+    "ncaabb": 41151,
     "nba": 42648,
     "wnba": 94682,
     "nhl": 42133,
     "nfl": 88808,
     "ufc": 9034,
+}
+
+SPORT_ALIASES = {
+    "cws": "ncaabb",
 }
 
 GOLF_LEAGUE_IDS = {
@@ -39,6 +44,7 @@ GOLF_LEAGUE_SUBCATEGORY_IDS = {
 }
 
 SOCCER_LEAGUE_IDS = {
+    "world_cup_2026": 209533,
     "premier_league": 40253,
     "la_liga": 40031,
     "serie_a": 40030,
@@ -56,6 +62,7 @@ PRIMARY_MARKETS_SUBCATEGORY_IDS = {
     "nba": 4511,
     "wnba": 4511,
     "mlb": 4519,
+    "ncaabb": 4519,
     "nhl": 4525,
 }
 
@@ -119,6 +126,17 @@ MLB_EVENT_SUBCATEGORY_IDS = {
     "inning_team_runs": 12978,
 }
 
+NCAABB_LEAGUE_SUBCATEGORY_IDS = {
+    "first_inning_runs": MLB_LEAGUE_SUBCATEGORY_IDS["first_inning_runs"],
+    "hits": MLB_LEAGUE_SUBCATEGORY_IDS["hits"],
+    "rbis": MLB_LEAGUE_SUBCATEGORY_IDS["rbis"],
+    "alternate_total_runs": MLB_EVENT_SUBCATEGORY_IDS["alternate_total_runs"],
+}
+
+NCAABB_EVENT_SUBCATEGORY_IDS = {
+    "inning_team_runs": MLB_EVENT_SUBCATEGORY_IDS["inning_team_runs"],
+}
+
 NHL_LEAGUE_SUBCATEGORY_IDS = {
     "goal_milestones": 16547,
     "shots": 16544,
@@ -177,6 +195,7 @@ GAME_LINE_MARKET_TYPES = {
 }
 LEAGUE_GAME_LINE_SUBCATEGORY_KEYS_BY_SPORT = {
     "mlb": {"first_inning_runs"},
+    "ncaabb": {"first_inning_runs", "alternate_total_runs"},
     "nba": set(),
     "nhl": set(),
     "soccer": {
@@ -193,11 +212,12 @@ LEAGUE_GAME_LINE_SUBCATEGORY_KEYS_BY_SPORT = {
 }
 EVENT_GAME_LINE_SUBCATEGORY_KEYS_BY_SPORT = {
     "mlb": {"alternate_total_runs", "inning_team_runs"},
+    "ncaabb": {"inning_team_runs"},
     "nba": {"first_quarter_spread", "alternate_total"},
     "wnba": {"alternate_total"},
 }
 
-SPORTS_WITH_LEAGUE_SUBCATEGORY_FEEDS = {"nba", "wnba", "mlb", "nhl", "soccer", "golf", "ufc"}
+SPORTS_WITH_LEAGUE_SUBCATEGORY_FEEDS = {"nba", "wnba", "mlb", "ncaabb", "nhl", "soccer", "golf", "ufc"}
 
 STAT_ALIASES = {
     "hits+runs+rbis": "hitsrunsrbis",
@@ -311,7 +331,12 @@ STAT_ALIASES = {
 
 
 def _normalize_sports(values: Sequence[str]) -> list[str]:
-    return [str(value or "").strip().lower() for value in values if str(value or "").strip()]
+    sports: list[str] = []
+    for value in values:
+        sport = str(value or "").strip().lower()
+        if sport:
+            sports.append(SPORT_ALIASES.get(sport, sport))
+    return sports
 
 
 def _normalize_market_scope(value: str) -> str:
@@ -525,6 +550,7 @@ def _normalized_target_team_pairs_by_sport(
         return normalized
     for sport_key, pairs in target_team_pairs_by_sport.items():
         sport = str(sport_key or "").strip().lower()
+        sport = SPORT_ALIASES.get(sport, sport)
         if not sport or not isinstance(pairs, (set, list, tuple)):
             continue
         normalized_pairs: set[tuple[str, str]] = set()
@@ -631,6 +657,10 @@ def _ufc_round_label(key: str) -> str:
 def _ufc_stat_key(value: str) -> str:
     text = normalize_text(value)
     compact = text.replace(" ", "")
+    if "control" in text and "time" in text:
+        return "controltime"
+    if "head" in text and "strike" in text:
+        return "significantheadstrikes"
     if "leg" in text and "strike" in text:
         return "significantlegstrikes"
     if "significantstrike" in compact or "sigstrike" in compact:
@@ -642,6 +672,60 @@ def _ufc_stat_key(value: str) -> str:
     if "strike" in text:
         return "strikes"
     return ""
+
+
+def _ufc_player_stat_context(market_name: str, market_type_name: str) -> tuple[str, str] | None:
+    market_text = " ".join(str(market_name or "").strip().split())
+    type_text = " ".join(str(market_type_name or "").strip().split())
+    stat_text = f"{market_text} {type_text}"
+    stat_key = _ufc_stat_key(stat_text)
+    if stat_key not in {"significantstrikes", "takedowns", "strikes"}:
+        return None
+
+    patterns = (
+        r"^(.+?)\s+total\s+significant\s+strikes(?:\s+landed)?(?:\s+o/u)?$",
+        r"^(.+?)\s+total\s+takedowns(?:\s+landed)?(?:\s+o/u)?$",
+        r"^(.+?)\s+total\s+strikes(?:\s+landed)?(?:\s+o/u)?$",
+    )
+    for pattern in patterns:
+        match = re.match(pattern, market_text, flags=re.IGNORECASE)
+        if match:
+            player_name = match.group(1).strip()
+            if player_name and normalize_text(player_name) != "total":
+                return player_name, stat_key
+    return None
+
+
+def _selection_over_under_side(selection: dict[str, Any]) -> str:
+    outcome_type = normalize_text(str(selection.get("outcomeType") or "")).replace(" ", "")
+    if outcome_type in {"over", "under"}:
+        return outcome_type
+    label = normalize_text(_selection_label(selection))
+    if label.startswith("over "):
+        return "over"
+    if label.startswith("under "):
+        return "under"
+    return ""
+
+
+def _selection_total_line(selection: dict[str, Any]) -> float | None:
+    points = _parse_line(selection.get("points"))
+    if points is not None:
+        return points
+    match = re.search(r"\b(?:over|under)\s+([0-9]+(?:\.[0-9]+)?)\b", _selection_label(selection), flags=re.IGNORECASE)
+    if match:
+        return _parse_line(match.group(1))
+    return None
+
+
+def _plus_threshold_line(value: Any) -> float | None:
+    match = re.search(r"\b([0-9]+)\s*\+", str(value or ""))
+    if not match:
+        return None
+    try:
+        return float(match.group(1)) - 0.5
+    except Exception:
+        return None
 
 
 def _ufc_selection_side(selection: dict[str, Any]) -> str:
@@ -706,6 +790,85 @@ def _parse_ufc_controldata_grouped_markets(
         if method_key and len(selections) >= 2:
             methods_by_event.setdefault(event_id, {}).setdefault(method_key, []).extend(selections)
             continue
+
+        player_stat = _ufc_player_stat_context(market_name, market_type_name)
+        if player_stat is not None:
+            player_name, player_stat_key = player_stat
+            grouped_by_line: dict[float, dict[str, dict[str, Any]]] = {}
+            for selection in selections:
+                side = _selection_over_under_side(selection)
+                line = _selection_total_line(selection)
+                if side not in {"over", "under"} or line is None:
+                    continue
+                grouped_by_line.setdefault(line, {})[side] = selection
+
+            added_rows = False
+            for line, grouped in sorted(grouped_by_line.items()):
+                over = grouped.get("over")
+                under = grouped.get("under")
+                if not over or not under:
+                    continue
+                over_odds = _selection_display_odds(over)
+                under_odds = _selection_display_odds(under)
+                if over_odds is None or under_odds is None:
+                    continue
+                added_rows = True
+                rows.append(
+                    {
+                        "provider": "draftkings",
+                        "provider_event_id": event_id,
+                        "provider_market_id": f"{market_id}:{line:g}",
+                        "provider_league": "ufc",
+                        "provider_market_name": market_name,
+                        "book": "draftkings",
+                        "sport": "ufc",
+                        "market_type": "player_over_under",
+                        "stat": player_stat_key,
+                        "player_name": player_name,
+                        "line": line,
+                        "home_team": home_team,
+                        "away_team": away_team,
+                        "over_odds": over_odds,
+                        "under_odds": under_odds,
+                        "updated_at": updated_at,
+                        "period": "",
+                        "event_date": event.get("startEventDate") or "",
+                        "question": market_name,
+                    }
+                )
+
+            if not added_rows:
+                for selection in selections:
+                    over_odds = _selection_display_odds(selection)
+                    line = _plus_threshold_line(_selection_label(selection))
+                    if over_odds is None or line is None:
+                        continue
+                    added_rows = True
+                    rows.append(
+                        {
+                            "provider": "draftkings",
+                            "provider_event_id": event_id,
+                            "provider_market_id": f"{market_id}:{selection.get('id') or _selection_label(selection)}",
+                            "provider_league": "ufc",
+                            "provider_market_name": market_name,
+                            "book": "draftkings",
+                            "sport": "ufc",
+                            "market_type": "player_over_under",
+                            "stat": player_stat_key,
+                            "player_name": player_name,
+                            "line": line,
+                            "home_team": home_team,
+                            "away_team": away_team,
+                            "over_odds": over_odds,
+                            "under_odds": _synthetic_under_odds(over_odds),
+                            "updated_at": updated_at,
+                            "period": "",
+                            "event_date": event.get("startEventDate") or "",
+                            "question": f"{player_name} {_selection_label(selection)}",
+                        }
+                    )
+            if added_rows:
+                continue
 
         if normalize_text(market_name).replace(" ", "") in {"winninground", "whatroundwillfightend"}:
             outcomes: list[dict[str, Any]] = []
@@ -1736,6 +1899,8 @@ def _missing_league_subcategory_payloads(sport: str, payload: Any) -> bool:
         expected_keys = set(WNBA_LEAGUE_SUBCATEGORY_IDS)
     elif sport == "mlb":
         expected_keys = set(MLB_LEAGUE_SUBCATEGORY_IDS)
+    elif sport == "ncaabb":
+        expected_keys = set(NCAABB_LEAGUE_SUBCATEGORY_IDS)
     elif sport == "nhl":
         expected_keys = set(NHL_LEAGUE_SUBCATEGORY_IDS)
     elif sport == "soccer":
@@ -1773,7 +1938,7 @@ def _missing_event_subcategory_payloads(sport: str, payload: Any) -> bool:
     if sport == "wnba":
         event_subcategories = payload.get("event_subcategories")
         return not isinstance(event_subcategories, dict) or not event_subcategories
-    if sport != "mlb":
+    if sport not in {"mlb", "ncaabb"}:
         return False
     event_subcategories = payload.get("event_subcategories")
     return not isinstance(event_subcategories, dict) or not event_subcategories
@@ -2060,6 +2225,47 @@ def _fetch_live_nash_sport_payloads(
             for key, subcategory_id in _event_subcategory_items_for_scope(
                 sport,
                 MLB_EVENT_SUBCATEGORY_IDS,
+                market_scope,
+            ):
+                payload_key = f"{event_id}:{key}"
+                try:
+                    payload = get_browser_like_json(
+                        _event_subcategory_url(event_id, subcategory_id),
+                        headers=_nash_headers(feature="eventSubcategory", page="event"),
+                        proxy_url=proxy_url,
+                        impersonate=impersonate,
+                    )
+                except Exception as exc:
+                    event_subcategory_payloads[payload_key] = {"error": str(exc)}
+                    continue
+                event_subcategory_payloads[payload_key] = payload
+                all_rows.extend(parse_payload(payload, sport, event_lookup=merged_event_map))
+        raw_payloads["event_subcategories"] = event_subcategory_payloads
+    elif sport == "ncaabb":
+        merged_event_map = dict(primary_event_map)
+        league_subcategory_payloads: dict[str, Any] = {}
+        for key, subcategory_id in _league_subcategory_items_for_scope(
+            sport,
+            NCAABB_LEAGUE_SUBCATEGORY_IDS,
+            market_scope,
+        ):
+            payload = get_browser_like_json(
+                _league_subcategory_url(league_id, subcategory_id),
+                headers=_nash_headers(feature="leagueSubcategory", page="league"),
+                proxy_url=proxy_url,
+                impersonate=impersonate,
+            )
+            league_subcategory_payloads[key] = payload
+            merged_event_map = _merge_event_maps(merged_event_map, _event_map(payload))
+            all_rows.extend(parse_payload(payload, sport, event_lookup=merged_event_map))
+        raw_payloads["league_subcategories"] = league_subcategory_payloads
+
+        event_subcategory_payloads: dict[str, Any] = {}
+        event_ids = _event_ids_for_target_games(merged_event_map, target_team_pairs)
+        for event_id in event_ids:
+            for key, subcategory_id in _event_subcategory_items_for_scope(
+                sport,
+                NCAABB_EVENT_SUBCATEGORY_IDS,
                 market_scope,
             ):
                 payload_key = f"{event_id}:{key}"

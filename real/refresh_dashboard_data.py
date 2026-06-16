@@ -27,11 +27,23 @@ DEFAULT_MARKETS_CSV = BASE_DIR / "sportsbook_markets_consensus_live.csv"
 DEFAULT_SOCCER_MARKETS_CSV = BASE_DIR / "sportsbook_markets_soccer_live.csv"
 DEFAULT_GOLF_MARKETS_CSV = BASE_DIR / "sportsbook_markets_golf_live.csv"
 DEFAULT_UFC_MARKETS_CSV = BASE_DIR / "sportsbook_markets_ufc_live.csv"
+DEFAULT_CWS_MARKETS_CSV = BASE_DIR / "sportsbook_markets_cws_live.csv"
 LIVE_POLL_MARKETS_CSV = BASE_DIR / "sportsbook_markets_live_polls.csv"
 LIVE_POLL_RECOMMENDATIONS_CSV = BASE_DIR / "live_poll_vote_recommendations.csv"
 PREDICTION_SPORTS = {"mlb", "nba", "nhl", "soccer"}
-LINEUP_CONTEXT_SPORTS = {"golf", "mlb", "nba", "ncaaf", "ncaam", "nfl", "nhl", "soccer", "wnba"}
+LINEUP_CONTEXT_SPORTS = {"golf", "mlb", "nba", "ncaabb", "ncaaf", "ncaam", "nfl", "nhl", "soccer", "wnba"}
 PREDICTION_SPORT_ORDER = ("mlb", "nba", "nhl", "soccer")
+DEFAULT_REFRESH_SPORTS = ("mlb", "ncaabb", "nba", "nhl", "wnba", "golf", "ufc")
+DEFAULT_LIVE_POLL_SPORTS = ("mlb", "ncaabb", "nba", "nhl", "wnba", "soccer", "golf", "ufc")
+SPORT_ALIASES = {
+    "cws": "ncaabb",
+}
+SPORT_LABELS = {
+    "ncaabb": "CWS",
+}
+SPORT_LINEUP_SEASONS = {
+    "ncaabb": "2026",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -43,8 +55,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sports",
-        default="mlb,nba,nhl,wnba,golf,ufc",
-        help="Comma-separated sports to refresh, for example mlb,nba,nhl,wnba,golf,ufc.",
+        default=",".join(DEFAULT_REFRESH_SPORTS),
+        help="Comma-separated sports to refresh, for example mlb,cws,nba,nhl,wnba,golf,ufc.",
     )
     parser.add_argument(
         "--refresh-soccer",
@@ -70,6 +82,11 @@ def parse_args() -> argparse.Namespace:
         "--ufc-markets-csv",
         default=str(DEFAULT_UFC_MARKETS_CSV),
         help="UFC sportsbook CSV path when UFC is refreshed.",
+    )
+    parser.add_argument(
+        "--cws-markets-csv",
+        default=str(DEFAULT_CWS_MARKETS_CSV),
+        help="CWS sportsbook CSV path when CWS is refreshed.",
     )
     parser.add_argument(
         "--season",
@@ -99,6 +116,14 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Do not refresh the live-poll dashboard sheet after pre-game sport sheets.",
     )
+    parser.add_argument(
+        "--dump-market-payloads",
+        action="store_true",
+        help=(
+            "Write raw sportsbook provider JSON debug dumps during market refreshes. "
+            "Disabled by default because full MLB payload dumps can be very large."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -106,12 +131,38 @@ def _normalize_sports_arg(value: str) -> list[str]:
     seen: set[str] = set()
     sports: list[str] = []
     for item in str(value or "").split(","):
-        sport = item.strip().lower()
+        sport = SPORT_ALIASES.get(item.strip().lower(), item.strip().lower())
         if not sport or sport in seen:
             continue
         seen.add(sport)
         sports.append(sport)
     return sports
+
+
+def _live_poll_sports_for_request(
+    requested_sports: list[str],
+    *,
+    include_soccer: bool = False,
+) -> list[str]:
+    if not requested_sports:
+        return list(DEFAULT_LIVE_POLL_SPORTS)
+    selected = list(requested_sports)
+    if include_soccer and "soccer" not in selected:
+        selected.append("soccer")
+    selected_set = set(selected)
+    ordered = [sport for sport in DEFAULT_LIVE_POLL_SPORTS if sport in selected_set]
+    ordered.extend(sport for sport in selected if sport not in DEFAULT_LIVE_POLL_SPORTS)
+    return ordered
+
+
+def _sport_label(sport: object) -> str:
+    sport_key = str(sport or "").strip().lower()
+    return SPORT_LABELS.get(sport_key, sport_key.upper())
+
+
+def _lineup_season_for_sport(sport: object, default_season: object) -> str:
+    sport_key = str(sport or "").strip().lower()
+    return SPORT_LINEUP_SEASONS.get(sport_key, str(default_season))
 
 
 def _run_step(command: list[str]) -> None:
@@ -270,7 +321,7 @@ def _render_live_poll_sheet(rows: list[dict[str, str]]) -> str:
     for key, game_rows in grouped.items():
         sport, game_time, _label, _away_team, _home_team, _game_id = key
         game_label = _section_game_label(game_rows[0])
-        heading = f"{sport.upper()} - {game_label}" if sport else game_label
+        heading = f"{_sport_label(sport)} - {game_label}" if sport else game_label
         sections.append(f"## {heading}")
         sections.append(f"`{_format_game_time(game_time)}`")
         sections.append("")
@@ -316,18 +367,16 @@ def _refresh_core_markets(
     markets_csv: Path,
     *,
     market_scope: str = "all",
+    dump_payloads: bool = False,
 ) -> None:
     if not sports:
         return
     scope_key = str(market_scope or "all").strip().lower()
     print(
-        f"Refreshing sportsbook markets for {', '.join(sport.upper() for sport in sports)} "
+        f"Refreshing sportsbook markets for {', '.join(_sport_label(sport) for sport in sports)} "
         f"({scope_key}).",
         flush=True,
     )
-    dump_name = "dashboard_consensus_live_check"
-    if scope_key != "all":
-        dump_name = f"dashboard_consensus_{scope_key.replace('-', '_')}_live_check"
     command = [
         sys.executable,
         "-B",
@@ -337,11 +386,15 @@ def _refresh_core_markets(
         "--sports",
         ",".join(sports),
         "--force-live",
+        "--skip-payload-cache",
         "--output",
         str(markets_csv),
-        "--dump-json-dir",
-        str(BASE_DIR / "tmp" / dump_name),
     ]
+    if dump_payloads:
+        dump_name = "dashboard_consensus_live_check"
+        if scope_key != "all":
+            dump_name = f"dashboard_consensus_{scope_key.replace('-', '_')}_live_check"
+        command.extend(["--dump-json-dir", str(BASE_DIR / "tmp" / dump_name)])
     if scope_key != "all":
         command.extend(["--market-scope", scope_key])
     _run_step(command)
@@ -389,7 +442,7 @@ def _active_day_target_team_pairs_json(sport: str) -> str:
         home_payload = build_realsports_client().get_home_tab(sport=sport)
     except Exception as exc:
         print(
-            f"Warning: could not load Real active {sport.upper()} games for targeted sportsbook refresh: {exc}",
+            f"Warning: could not load Real active {_sport_label(sport)} games for targeted sportsbook refresh: {exc}",
             flush=True,
         )
         return ""
@@ -424,7 +477,7 @@ def _active_day_target_team_pairs_json(sport: str) -> str:
     if not pairs:
         return ""
     print(
-        f"Targeting {sport.upper()} sportsbook event-tab refresh to {game_count} "
+        f"Targeting {_sport_label(sport)} sportsbook event-tab refresh to {game_count} "
         f"Real active games ({len(pairs)} team-name pairs).",
         flush=True,
     )
@@ -435,12 +488,10 @@ def _refresh_soccer_markets(
     soccer_markets_csv: Path,
     *,
     market_scope: str = "all",
+    dump_payloads: bool = False,
 ) -> None:
     scope_key = str(market_scope or "all").strip().lower()
     print(f"Refreshing soccer sportsbook markets ({scope_key}).", flush=True)
-    dump_name = "dashboard_soccer_live_check"
-    if scope_key != "all":
-        dump_name = f"dashboard_soccer_{scope_key.replace('-', '_')}_live_check"
     command = [
         sys.executable,
         "-B",
@@ -449,11 +500,15 @@ def _refresh_soccer_markets(
         "draftkings,fanduel",
         "--sports",
         "soccer",
+        "--skip-payload-cache",
         "--output",
         str(soccer_markets_csv),
-        "--dump-json-dir",
-        str(BASE_DIR / "tmp" / dump_name),
     ]
+    if dump_payloads:
+        dump_name = "dashboard_soccer_live_check"
+        if scope_key != "all":
+            dump_name = f"dashboard_soccer_{scope_key.replace('-', '_')}_live_check"
+        command.extend(["--dump-json-dir", str(BASE_DIR / "tmp" / dump_name)])
     target_pairs_json = _active_day_target_team_pairs_json("soccer") if scope_key == "all" else ""
     if scope_key != "all":
         command.extend(["--market-scope", scope_key])
@@ -473,7 +528,7 @@ def _refresh_soccer_markets(
     raise RuntimeError("Soccer market refresh failed and no existing soccer market CSV is available.")
 
 
-def _refresh_golf_markets(golf_markets_csv: Path) -> None:
+def _refresh_golf_markets(golf_markets_csv: Path, *, dump_payloads: bool = False) -> None:
     print("Refreshing golf sportsbook markets.", flush=True)
     command = [
         sys.executable,
@@ -484,11 +539,12 @@ def _refresh_golf_markets(golf_markets_csv: Path) -> None:
         "--sports",
         "golf",
         "--force-live",
+        "--skip-payload-cache",
         "--output",
         str(golf_markets_csv),
-        "--dump-json-dir",
-        str(BASE_DIR / "tmp" / "dashboard_golf_live_check"),
     ]
+    if dump_payloads:
+        command.extend(["--dump-json-dir", str(BASE_DIR / "tmp" / "dashboard_golf_live_check")])
     if _try_run_step(command):
         return
     if golf_markets_csv.exists():
@@ -501,7 +557,7 @@ def _refresh_golf_markets(golf_markets_csv: Path) -> None:
     raise RuntimeError("Golf market refresh failed and no existing golf market CSV is available.")
 
 
-def _refresh_ufc_markets(ufc_markets_csv: Path) -> None:
+def _refresh_ufc_markets(ufc_markets_csv: Path, *, dump_payloads: bool = False) -> None:
     print("Refreshing UFC sportsbook markets.", flush=True)
     command = [
         sys.executable,
@@ -512,11 +568,12 @@ def _refresh_ufc_markets(ufc_markets_csv: Path) -> None:
         "--sports",
         "ufc",
         "--force-live",
+        "--skip-payload-cache",
         "--output",
         str(ufc_markets_csv),
-        "--dump-json-dir",
-        str(BASE_DIR / "tmp" / "dashboard_ufc_live_check"),
     ]
+    if dump_payloads:
+        command.extend(["--dump-json-dir", str(BASE_DIR / "tmp" / "dashboard_ufc_live_check")])
     target_pairs_json = _active_day_target_team_pairs_json("ufc")
     if target_pairs_json:
         command.extend(["--target-team-pairs-json", target_pairs_json])
@@ -532,6 +589,44 @@ def _refresh_ufc_markets(ufc_markets_csv: Path) -> None:
     raise RuntimeError("UFC market refresh failed and no existing UFC market CSV is available.")
 
 
+def _refresh_cws_markets(cws_markets_csv: Path, *, dump_payloads: bool = False) -> None:
+    print("Refreshing CWS sportsbook markets.", flush=True)
+    command = [
+        sys.executable,
+        "-B",
+        str(BASE_DIR / "ingest_public_markets.py"),
+        "--providers",
+        "draftkings,fanduel",
+        "--sports",
+        "ncaabb",
+        "--force-live",
+        "--skip-payload-cache",
+        "--allow-empty",
+        "--output",
+        str(cws_markets_csv),
+    ]
+    if dump_payloads:
+        command.extend(["--dump-json-dir", str(BASE_DIR / "tmp" / "dashboard_cws_live_check")])
+    target_pairs_json = _active_day_target_team_pairs_json("ncaabb")
+    if target_pairs_json:
+        command.extend(["--target-team-pairs-json", target_pairs_json])
+    if _try_run_step(command):
+        return
+    if cws_markets_csv.exists():
+        print(
+            "Warning: CWS market refresh failed; continuing with existing "
+            f"{cws_markets_csv}.",
+            flush=True,
+        )
+        return
+    print(
+        "Warning: CWS market refresh failed and no existing market CSV is available; "
+        "continuing with an empty CWS market CSV.",
+        flush=True,
+    )
+    write_market_rows(cws_markets_csv, [], append=False)
+
+
 def _refresh_sport(
     sport: str,
     *,
@@ -540,7 +635,8 @@ def _refresh_sport(
     markets_csv: Path,
 ) -> None:
     recommendation_csv = BASE_DIR / f"poll_vote_recommendations_consensus_{sport}.csv"
-    print(f"Refreshing {sport.upper()} vote recommendations.", flush=True)
+    label = _sport_label(sport)
+    print(f"Refreshing {label} vote recommendations.", flush=True)
     _run_step(
         [
             sys.executable,
@@ -558,28 +654,29 @@ def _refresh_sport(
     first_row = _first_csv_row(recommendation_csv)
     day_value = str((first_row or {}).get("day") or "").strip()
     if day_value and sport in LINEUP_CONTEXT_SPORTS:
-        print(f"Refreshing {sport.upper()} lineup context for {day_value}.", flush=True)
-        lineup_ok = _try_run_step(
-            [
-                sys.executable,
-                "-B",
-                str(BASE_DIR / "lineup.py"),
-                "--sport",
-                sport,
-                "--date",
-                day_value,
-                "--season",
-                str(season),
-            ]
-        )
+        print(f"Refreshing {label} lineup context for {day_value}.", flush=True)
+        lineup_command = [
+            sys.executable,
+            "-B",
+            str(BASE_DIR / "lineup.py"),
+            "--sport",
+            sport,
+            "--date",
+            day_value,
+            "--season",
+            _lineup_season_for_sport(sport, season),
+        ]
+        if sport == "ncaabb":
+            lineup_command.extend(["--game-context-csv", str(recommendation_csv)])
+        lineup_ok = _try_run_step(lineup_command)
         if not lineup_ok:
             print(
-                f"Warning: lineup context refresh failed for {sport.upper()} {day_value}; "
+                f"Warning: lineup context refresh failed for {label} {day_value}; "
                 "continuing with vote sheet render.",
                 flush=True,
             )
     elif day_value:
-        print(f"Skipping {sport.upper()} lineup context; lineup.py does not support this sport.", flush=True)
+        print(f"Skipping {label} lineup context; lineup.py does not support this sport.", flush=True)
 
     render_command = [
         sys.executable,
@@ -599,7 +696,7 @@ def _refresh_sport(
                 str(markets_csv),
             ]
         )
-    print(f"Rendering {sport.upper()} vote sheet.", flush=True)
+    print(f"Rendering {label} vote sheet.", flush=True)
     _run_step(render_command)
 
     if sport not in PREDICTION_SPORTS:
@@ -608,7 +705,7 @@ def _refresh_sport(
     prediction_market_csv = BASE_DIR / f"prediction_market_recommendations_{sport}.csv"
     prediction_position_csv = BASE_DIR / f"prediction_position_recommendations_{sport}.csv"
     if prediction_market_csv.exists():
-        print(f"Rendering {sport.upper()} prediction sheet.", flush=True)
+        print(f"Rendering {label} prediction sheet.", flush=True)
         _run_step(
             [
                 sys.executable,
@@ -695,10 +792,11 @@ def _combined_live_markets_csv(
     soccer_markets_csv: Path | None = None,
     golf_markets_csv: Path | None = None,
     ufc_markets_csv: Path | None = None,
+    cws_markets_csv: Path | None = None,
 ) -> Path:
     source_paths = [
         path
-        for path in (markets_csv, soccer_markets_csv, golf_markets_csv, ufc_markets_csv)
+        for path in (markets_csv, soccer_markets_csv, golf_markets_csv, ufc_markets_csv, cws_markets_csv)
         if path is not None and path.exists()
     ]
     if not source_paths:
@@ -717,7 +815,8 @@ def _combined_live_markets_csv(
     if rows:
         write_market_rows(LIVE_POLL_MARKETS_CSV, dedupe_market_rows(rows), append=False)
         return LIVE_POLL_MARKETS_CSV
-    return markets_csv
+    write_market_rows(LIVE_POLL_MARKETS_CSV, [], append=False)
+    return LIVE_POLL_MARKETS_CSV
 
 
 def _refresh_live_poll_dashboard(
@@ -727,9 +826,30 @@ def _refresh_live_poll_dashboard(
     soccer_markets_csv: Path | None = None,
     golf_markets_csv: Path | None = None,
     ufc_markets_csv: Path | None = None,
+    cws_markets_csv: Path | None = None,
+    sports: list[str] | None = None,
 ) -> None:
-    live_markets_csv = _combined_live_markets_csv(markets_csv, soccer_markets_csv, golf_markets_csv, ufc_markets_csv)
-    print("Refreshing live poll recommendations (targeted sportsbook refresh).", flush=True)
+    live_markets_csv = _combined_live_markets_csv(
+        markets_csv,
+        soccer_markets_csv,
+        golf_markets_csv,
+        ufc_markets_csv,
+        cws_markets_csv,
+    )
+    live_poll_sports = [sport for sport in (sports or list(DEFAULT_LIVE_POLL_SPORTS)) if sport]
+    if not live_poll_sports:
+        live_poll_sports = list(DEFAULT_LIVE_POLL_SPORTS)
+    feed_segments = ["all"]
+    if "golf" in live_poll_sports:
+        feed_segments.append("golf")
+    if "ufc" in live_poll_sports:
+        feed_segments.append("ufc")
+    feed_arg = ",".join(feed_segments)
+    print(
+        "Refreshing live poll recommendations "
+        f"(targeted sportsbook refresh for {', '.join(_sport_label(sport) for sport in live_poll_sports)}).",
+        flush=True,
+    )
     refreshed = _try_run_step(
         [
             sys.executable,
@@ -741,9 +861,9 @@ def _refresh_live_poll_dashboard(
             "--providers",
             "draftkings,fanduel",
             "--feed",
-            "all,golf,ufc",
+            feed_arg,
             "--sports",
-            "mlb,nba,nhl,wnba,soccer,golf,ufc",
+            ",".join(live_poll_sports),
             "--min-market-refresh-interval-seconds",
             "900",
             "--output",
@@ -759,7 +879,13 @@ def _refresh_live_poll_dashboard(
         live_markets_csv = (
             LIVE_POLL_MARKETS_CSV
             if LIVE_POLL_MARKETS_CSV.exists()
-            else _combined_live_markets_csv(markets_csv, soccer_markets_csv, golf_markets_csv, ufc_markets_csv)
+            else _combined_live_markets_csv(
+                markets_csv,
+                soccer_markets_csv,
+                golf_markets_csv,
+                ufc_markets_csv,
+                cws_markets_csv,
+            )
         )
         _run_step(
             [
@@ -769,7 +895,9 @@ def _refresh_live_poll_dashboard(
                 "--markets-csv",
                 str(live_markets_csv),
                 "--feed",
-                "all,golf,ufc",
+                feed_arg,
+                "--sports",
+                ",".join(live_poll_sports),
                 "--output",
                 str(LIVE_POLL_RECOMMENDATIONS_CSV),
                 "--history-jsonl",
@@ -820,23 +948,32 @@ def main() -> int:
     dashboard_dir.mkdir(parents=True, exist_ok=True)
 
     requested_sports = _normalize_sports_arg(args.sports)
-    core_sports = [sport for sport in requested_sports if sport not in {"soccer", "golf", "ufc"}]
+    core_sports = [sport for sport in requested_sports if sport not in {"soccer", "golf", "ufc", "ncaabb"}]
     refresh_soccer = args.refresh_soccer or ("soccer" in requested_sports)
     refresh_golf = "golf" in requested_sports
     refresh_ufc = "ufc" in requested_sports
+    refresh_cws = "ncaabb" in requested_sports
 
     markets_csv = Path(args.markets_csv)
     soccer_markets_csv = Path(args.soccer_markets_csv)
     golf_markets_csv = Path(args.golf_markets_csv)
     ufc_markets_csv = Path(args.ufc_markets_csv)
+    cws_markets_csv = Path(args.cws_markets_csv)
+    include_default_live_soccer = set(requested_sports) == set(DEFAULT_REFRESH_SPORTS)
+    live_poll_sports = _live_poll_sports_for_request(
+        requested_sports,
+        include_soccer=refresh_soccer or include_default_live_soccer,
+    )
 
     if args.only_live_polls:
         _refresh_live_poll_dashboard(
             markets_csv,
             dashboard_dir,
-            soccer_markets_csv=soccer_markets_csv,
-            golf_markets_csv=golf_markets_csv,
-            ufc_markets_csv=ufc_markets_csv,
+            soccer_markets_csv=soccer_markets_csv if "soccer" in live_poll_sports else None,
+            golf_markets_csv=golf_markets_csv if "golf" in live_poll_sports else None,
+            ufc_markets_csv=ufc_markets_csv if "ufc" in live_poll_sports else None,
+            cws_markets_csv=cws_markets_csv if "ncaabb" in live_poll_sports else None,
+            sports=live_poll_sports,
         )
         print("", flush=True)
         print("Stable dashboard files:", flush=True)
@@ -852,9 +989,14 @@ def main() -> int:
             prediction_core_sports,
             markets_csv,
             market_scope="game-lines",
+            dump_payloads=bool(args.dump_market_payloads),
         )
         if refresh_soccer:
-            _refresh_soccer_markets(soccer_markets_csv, market_scope="game-lines")
+            _refresh_soccer_markets(
+                soccer_markets_csv,
+                market_scope="game-lines",
+                dump_payloads=bool(args.dump_market_payloads),
+            )
 
         for sport in prediction_core_sports:
             _refresh_prediction_sport(
@@ -877,13 +1019,15 @@ def main() -> int:
             print(path, flush=True)
         return 0
 
-    _refresh_core_markets(core_sports, markets_csv)
+    _refresh_core_markets(core_sports, markets_csv, dump_payloads=bool(args.dump_market_payloads))
     if refresh_soccer:
-        _refresh_soccer_markets(soccer_markets_csv)
+        _refresh_soccer_markets(soccer_markets_csv, dump_payloads=bool(args.dump_market_payloads))
     if refresh_golf:
-        _refresh_golf_markets(golf_markets_csv)
+        _refresh_golf_markets(golf_markets_csv, dump_payloads=bool(args.dump_market_payloads))
     if refresh_ufc:
-        _refresh_ufc_markets(ufc_markets_csv)
+        _refresh_ufc_markets(ufc_markets_csv, dump_payloads=bool(args.dump_market_payloads))
+    if refresh_cws:
+        _refresh_cws_markets(cws_markets_csv, dump_payloads=bool(args.dump_market_payloads))
 
     for sport in core_sports:
         _refresh_sport(
@@ -915,14 +1059,23 @@ def main() -> int:
             dashboard_dir=dashboard_dir,
             markets_csv=ufc_markets_csv,
         )
+    if refresh_cws:
+        _refresh_sport(
+            "ncaabb",
+            season=str(args.season),
+            dashboard_dir=dashboard_dir,
+            markets_csv=cws_markets_csv,
+        )
 
     if not args.skip_live_polls:
         _refresh_live_poll_dashboard(
             markets_csv,
             dashboard_dir,
-            soccer_markets_csv=soccer_markets_csv,
-            golf_markets_csv=golf_markets_csv,
-            ufc_markets_csv=ufc_markets_csv,
+            soccer_markets_csv=soccer_markets_csv if "soccer" in live_poll_sports else None,
+            golf_markets_csv=golf_markets_csv if "golf" in live_poll_sports else None,
+            ufc_markets_csv=ufc_markets_csv if "ufc" in live_poll_sports else None,
+            cws_markets_csv=cws_markets_csv if "ncaabb" in live_poll_sports else None,
+            sports=live_poll_sports,
         )
     _write_live_prediction_dashboard(dashboard_dir)
 

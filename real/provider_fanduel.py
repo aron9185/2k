@@ -16,8 +16,11 @@ from sportsbook_http import (
 )
 
 
+FANDUEL_BASEBALL_EVENT_TYPE_ID = 7511
+
 SPORT_TO_PAGE = {
     "mlb": "BASEBALL",
+    "ncaabb": FANDUEL_BASEBALL_EVENT_TYPE_ID,
     "nba": "BASKETBALL",
     "wnba": "BASKETBALL",
     "nhl": "ICE_HOCKEY",
@@ -28,6 +31,7 @@ SPORT_TO_PAGE = {
 
 SPORT_TO_HOST = {
     "mlb": "https://sbapi.nj.sportsbook.fanduel.com",
+    "ncaabb": "https://sbapi.nj.sportsbook.fanduel.com",
     "nba": "https://sbapi.nj.sportsbook.fanduel.com",
     "wnba": "https://sbapi.nj.sportsbook.fanduel.com",
     "nhl": "https://sbapi.nj.sportsbook.fanduel.com",
@@ -46,6 +50,10 @@ DEFAULT_QUERY_PARAMS = {
     "_ak": "FhMFpcPWXMeyZxOx",
 }
 
+SPORT_ALIASES = {
+    "cws": "ncaabb",
+}
+
 FANDUEL_API_KEY = DEFAULT_QUERY_PARAMS["_ak"]
 FANDUEL_APP_VERSION = "2.142.2"
 FANDUEL_REGION = "NJ"
@@ -54,9 +62,12 @@ FANDUEL_MGA_HOST = "https://scan.nj.sportsbook.fanduel.com"
 FANDUEL_SBAPI_HOST = "https://api.sportsbook.fanduel.com/sbapi"
 FANDUEL_SMP_HOST = "https://smp.nj.sportsbook.fanduel.com"
 FANDUEL_SOCCER_EVENT_TYPE_ID = 1
+FANDUEL_NCAA_BASEBALL_COMPETITION_ID = 11363642
 FANDUEL_UFC_EVENT_TYPE_ID = 26420387
 FANDUEL_UFC_COMPETITION_IDS = [10581356]
 FANDUEL_SOCCER_COMPETITION_IDS = [
+    12469077,  # FIFA World Cup
+    12801133,  # FIFA World Cup Outrights
     10932509,  # English Premier League
     228,  # UEFA Champions League
     117,  # Spanish La Liga
@@ -66,11 +77,23 @@ FANDUEL_SOCCER_COMPETITION_IDS = [
     61,  # German Bundesliga 2
     141,  # US MLS
 ]
+FANDUEL_SOCCER_CUSTOM_PAGE_IDS = ("fifa-world-cup",)
 FANDUEL_SOCCER_TAB_KEYWORDS = ("popular", "goal scorer", "goals", "half", "assist", "save")
 FANDUEL_SOCCER_GAME_LINE_TAB_KEYWORDS = ("popular", "goals", "half")
 FANDUEL_PRICE_BATCH_SIZE = 70
 FANDUEL_EVENT_TAB_KEYWORDS_BY_SPORT = {
     "mlb": (
+        "innings",
+        "quick bets",
+        "live",
+        "player props",
+        "batter props",
+        "pitcher props",
+        "live player props",
+        "live batter props",
+        "live pitcher props",
+    ),
+    "ncaabb": (
         "innings",
         "quick bets",
         "live",
@@ -132,6 +155,7 @@ FANDUEL_EVENT_TAB_KEYWORDS_BY_SPORT = {
 }
 FANDUEL_GAME_LINE_EVENT_TAB_KEYWORDS_BY_SPORT = {
     "mlb": ("innings", "quick bets", "live"),
+    "ncaabb": ("innings", "quick bets", "live"),
     "nba": ("quick bets", "live", "1st quarter", "quarter"),
     "wnba": ("quick bets", "live", "1st quarter", "quarter"),
     "nhl": ("quick bets", "live", "period", "3rd period"),
@@ -208,7 +232,12 @@ LADDER_MARKET_MAP = (
 
 
 def _normalize_sports(values: Sequence[str]) -> list[str]:
-    return [str(value or "").strip().lower() for value in values if str(value or "").strip()]
+    sports: list[str] = []
+    for value in values:
+        sport = str(value or "").strip().lower()
+        if sport:
+            sports.append(SPORT_ALIASES.get(sport, sport))
+    return sports
 
 
 def _normalize_market_scope(value: str) -> str:
@@ -330,6 +359,37 @@ def _runner_outcomes_json(
     return json.dumps(outcomes, separators=(",", ":"), ensure_ascii=True) if outcomes else ""
 
 
+def _soccer_tournament_future_stat(market_name: str, market_type_name: str) -> str:
+    type_key = str(market_type_name or "").strip().upper()
+    name_norm = normalize_text(market_name)
+    name_compact = name_norm.replace(" ", "")
+    if type_key in {"TOURNAMENT_WINNER", "TOURNAMENT_WINNER_SGX"} or name_norm in {
+        "tournament winner",
+        "world cup winner",
+        "outright winner",
+    }:
+        return "winner"
+    if re.fullmatch(r"GROUP_[A-Z]_WINNER(?:_SGX)?", type_key) or re.fullmatch(
+        r"group [a-z] winner",
+        name_norm,
+    ):
+        return "winner"
+    if type_key in {"GOLDEN_BOOT", "TOP_GOALSCORER_SGX"} or name_compact in {
+        "fifagoldenbootwinner",
+        "topgoalscorer",
+    }:
+        return "goldenboot"
+    if type_key == "GOLDEN_BALL" or "golden ball" in name_norm:
+        return "goldenball"
+    if type_key == "GOLDEN_GLOVE" or "golden glove" in name_norm:
+        return "goldenglove"
+    if type_key == "FIFA_YOUNG_PLAYER_AWARD" or "young player award" in name_norm:
+        return "youngplayer"
+    if type_key == "TOURNAMENT_MOST_ASSISTS" or "assist the most goals" in name_norm:
+        return "mostassists"
+    return ""
+
+
 def _clean_team_name(value: str) -> str:
     text = str(value or "").strip()
     text = re.sub(r"\s*\([^)]*\)\s*", " ", text)
@@ -401,6 +461,7 @@ def _normalized_target_team_pairs_by_sport(
         return normalized
     for sport_key, pairs in target_team_pairs_by_sport.items():
         sport = str(sport_key or "").strip().lower()
+        sport = SPORT_ALIASES.get(sport, sport)
         if not sport or not isinstance(pairs, (set, list, tuple)):
             continue
         normalized_pairs: set[tuple[str, str]] = set()
@@ -872,7 +933,7 @@ def _is_game_total_market(market_name: str, market_type_name: str, sport: str) -
             or type_key.startswith("1ST_HALF_OVER/UNDER")
             or ("over/under" in market_key and "team" not in market_key)
         )
-    if sport == "mlb":
+    if sport in {"mlb", "ncaabb"}:
         return (
             ("total" in market_key and "player" not in market_key)
             or (("inning" in market_key or "innings" in market_key) and "run" in market_key)
@@ -957,6 +1018,10 @@ def _ufc_round_label(key: str) -> str:
 def _ufc_stat_key(value: str) -> str:
     text = normalize_text(value)
     compact = text.replace(" ", "")
+    if "control" in text and "time" in text:
+        return "controltime"
+    if "head" in text and "strike" in text:
+        return "significantheadstrikes"
     if "leg" in text and "strike" in text:
         return "significantlegstrikes"
     if "significantstrike" in compact or "sigstrike" in compact:
@@ -968,6 +1033,39 @@ def _ufc_stat_key(value: str) -> str:
     if "strike" in text:
         return "strikes"
     return ""
+
+
+def _ufc_player_stat_context(market_name: str, market_type_name: str) -> tuple[str, str] | None:
+    market_text = " ".join(str(market_name or "").strip().split())
+    type_key = str(market_type_name or "").strip().upper()
+    if not market_text:
+        return None
+
+    stat_key = ""
+    if "TOTAL_SIGNIFICANT_STRIKES" in type_key:
+        stat_key = "significantstrikes"
+    elif "TOTAL_TAKEDOWNS" in type_key:
+        stat_key = "takedowns"
+    elif "TOTAL_STRIKES" in type_key:
+        stat_key = "strikes"
+    else:
+        stat_key = _ufc_stat_key(market_text)
+
+    if stat_key not in {"significantstrikes", "takedowns", "strikes"}:
+        return None
+
+    patterns = (
+        r"^(.+?)\s+sig(?:nificant)?\.?\s+strikes$",
+        r"^(.+?)\s+takedowns$",
+        r"^(.+?)\s+strikes$",
+    )
+    for pattern in patterns:
+        match = re.match(pattern, market_text, flags=re.IGNORECASE)
+        if match:
+            player_name = match.group(1).strip()
+            if player_name and normalize_text(player_name) != "total":
+                return player_name, stat_key
+    return None
 
 
 def _ufc_runner_side(runner: dict[str, Any], *, home_team: str, away_team: str) -> str:
@@ -1019,6 +1117,11 @@ def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
             continue
         event_id = str(market.get("eventId") or "")
         event = events.get(event_id, {})
+        if (
+            sport == "ncaabb"
+            and str(event.get("competitionId") or "") != str(FANDUEL_NCAA_BASEBALL_COMPETITION_ID)
+        ):
+            continue
         runner_ids = market.get("runnerIds") or market.get("runners") or []
         if runner_ids and all(isinstance(runner, dict) for runner in runner_ids):
             runner_rows = list(runner_ids)
@@ -1139,6 +1242,44 @@ def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
                     )
                     continue
 
+            player_stat = _ufc_player_stat_context(market_name, market_type_name)
+            if player_stat is not None:
+                player_name, player_stat_key = player_stat
+                added_rows = False
+                for runner in runner_rows:
+                    if str(runner.get("runnerStatus") or "").upper() in {"REMOVED", "SUSPENDED"}:
+                        continue
+                    over_odds = _runner_odds(runner)
+                    line = _plus_threshold_line(runner.get("runnerName"))
+                    if over_odds is None or line is None:
+                        continue
+                    added_rows = True
+                    rows.append(
+                        {
+                            "provider": "fanduel",
+                            "provider_event_id": event_id,
+                            "provider_market_id": f"{market_id}:{runner.get('selectionId') or runner.get('runnerName')}",
+                            "provider_league": sport,
+                            "provider_market_name": market_name,
+                            "book": "fanduel",
+                            "sport": sport,
+                            "market_type": "player_over_under",
+                            "stat": player_stat_key,
+                            "player_name": player_name,
+                            "line": line,
+                            "home_team": home_team,
+                            "away_team": away_team,
+                            "over_odds": over_odds,
+                            "under_odds": _synthetic_under_odds(over_odds),
+                            "updated_at": updated_at,
+                            "period": "",
+                            "event_date": event_date,
+                            "question": f"{player_name} {runner.get('runnerName') or ''}".strip(),
+                        }
+                    )
+                if added_rows:
+                    continue
+
             stat_key = _ufc_stat_key(market_name or market_type_name)
             if stat_key and "most" in normalize_text(f"{market_name} {market_type_name}"):
                 outcomes = []
@@ -1167,6 +1308,43 @@ def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
                             "away_team": away_team,
                             "over_odds": outcomes[0].get("odds") if outcomes else "",
                             "under_odds": outcomes[1].get("odds") if len(outcomes) > 1 else "",
+                            "extra_outcomes": extra_outcomes,
+                            "updated_at": updated_at,
+                            "period": "",
+                            "event_date": event_date,
+                            "question": market_name,
+                        }
+                    )
+                    continue
+
+        if sport == "soccer":
+            future_stat = _soccer_tournament_future_stat(market_name, market_type_name)
+            if future_stat:
+                priced_runners = [
+                    runner
+                    for runner in runner_rows
+                    if str(runner.get("runnerStatus") or "").upper() not in {"REMOVED", "SUSPENDED"}
+                    and _runner_odds(runner) is not None
+                ]
+                extra_outcomes = _runner_outcomes_json(priced_runners)
+                if extra_outcomes:
+                    rows.append(
+                        {
+                            "provider": "fanduel",
+                            "provider_event_id": event_id,
+                            "provider_market_id": market_id,
+                            "provider_league": sport,
+                            "provider_market_name": market_name,
+                            "book": "fanduel",
+                            "sport": sport,
+                            "market_type": "tournament_future",
+                            "stat": future_stat,
+                            "player_name": "",
+                            "line": "",
+                            "home_team": "",
+                            "away_team": "",
+                            "over_odds": _runner_odds(priced_runners[0]) if priced_runners else "",
+                            "under_odds": _runner_odds(priced_runners[1]) if len(priced_runners) > 1 else "",
                             "extra_outcomes": extra_outcomes,
                             "updated_at": updated_at,
                             "period": "",
@@ -1430,7 +1608,7 @@ def parse_payload(payload: dict[str, Any], sport: str) -> list[dict[str, Any]]:
 
         alternate_total_pairs = _alternate_total_runner_pairs(runner_rows)
         if (
-            len(alternate_total_pairs) >= 2
+            len(alternate_total_pairs) >= 1
             and _is_game_total_market(market_name, market_type_name, sport)
             and home_team
             and away_team
@@ -1960,6 +2138,22 @@ def _fetch_soccer_competition_page(
     )
 
 
+def _fetch_soccer_custom_page(
+    page_id: str,
+    *,
+    headers: dict[str, str],
+    proxy_url: str | None,
+    impersonate: str,
+) -> dict[str, Any]:
+    url = f"{SPORT_TO_HOST['soccer']}/api/content-managed-page?{urlencode({**DEFAULT_QUERY_PARAMS, 'page': 'CUSTOM', 'customPageId': page_id})}"
+    return get_browser_like_json(
+        url,
+        headers=_fanduel_headers(headers),
+        proxy_url=proxy_url,
+        impersonate=impersonate,
+    )
+
+
 def _fetch_ufc_competition_page(
     competition_id: int,
     *,
@@ -2246,11 +2440,25 @@ def _fetch_live_soccer_payload(
         "markets": {},
     }
     raw: dict[str, Any] = {
+        "custom_pages": {},
         "competition_pages": {},
         "event_tabs": {},
         "event_tab_details": {},
         "prices": [],
     }
+
+    for page_id in FANDUEL_SOCCER_CUSTOM_PAGE_IDS:
+        try:
+            custom_payload = _fetch_soccer_custom_page(
+                page_id,
+                headers=headers,
+                proxy_url=proxy_url,
+                impersonate=impersonate,
+            )
+        except Exception:
+            continue
+        raw["custom_pages"][page_id] = custom_payload
+        _merge_payload_attachments(attachments, custom_payload)
 
     for competition_id in competition_ids:
         competition_payload = _fetch_soccer_competition_page(
@@ -2455,6 +2663,10 @@ def _default_urls(sport: str) -> list[str]:
     if not page_sport or not host:
         return []
     common_params = urlencode(DEFAULT_QUERY_PARAMS)
+    if isinstance(page_sport, int) or str(page_sport).isdigit():
+        return [
+            f"{host}/api/content-managed-page?{common_params}&page=SPORT&eventTypeId={page_sport}",
+        ]
     return [
         f"{host}/api/content-managed-page?{common_params}&page=CUSTOM&customPageId={sport}",
         f"{host}/api/content-managed-page?{common_params}&page=SPORT&sport={page_sport}",

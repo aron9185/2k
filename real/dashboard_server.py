@@ -25,6 +25,7 @@ CORE_MARKETS_CSV = BASE_DIR / "sportsbook_markets_consensus_live.csv"
 SOCCER_MARKETS_CSV = BASE_DIR / "sportsbook_markets_soccer_live.csv"
 GOLF_MARKETS_CSV = BASE_DIR / "sportsbook_markets_golf_live.csv"
 UFC_MARKETS_CSV = BASE_DIR / "sportsbook_markets_ufc_live.csv"
+CWS_MARKETS_CSV = BASE_DIR / "sportsbook_markets_cws_live.csv"
 LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 ACTION_TOKEN_RE = re.compile(r"\s*<!--REAL_ACTIONS:([A-Za-z0-9_\-=]+)-->\s*$")
 SOURCE_LINES_TOKEN_RE = re.compile(r"\s*<!--REAL_SOURCE_LINES:([A-Za-z0-9_\-=]+)-->\s*$")
@@ -38,6 +39,14 @@ DOC_SPECS = [
         "sport": "mlb",
         "stable_path": DASHBOARD_DIR / "mlb.md",
         "fallback_glob": "mlb_v*.md",
+    },
+    {
+        "id": "cws-vote",
+        "category": "Vote Sheets",
+        "label": "CWS Vote Sheet",
+        "sport": "ncaabb",
+        "stable_path": DASHBOARD_DIR / "ncaabb.md",
+        "fallback_glob": "ncaabb_v*.md",
     },
     {
         "id": "nba-vote",
@@ -142,7 +151,7 @@ CATEGORY_ORDER = {
     "Live": 1,
     "Predictions": 2,
 }
-REFRESHABLE_VOTE_SPORTS = {"mlb", "nba", "nhl", "wnba", "soccer", "golf", "ufc"}
+REFRESHABLE_VOTE_SPORTS = {"mlb", "ncaabb", "nba", "nhl", "wnba", "soccer", "golf", "ufc"}
 REFRESHABLE_PREDICTION_SPORTS = {"mlb", "nba", "nhl", "soccer"}
 REFRESHABLE_TARGETS = {"live-polls"}
 REFRESH_TARGET_ALIASES = {
@@ -154,6 +163,8 @@ REFRESH_TARGET_ALIASES = {
 }
 SPORT_LABELS = {
     "mlb": "MLB",
+    "cws": "CWS",
+    "ncaabb": "CWS",
     "nba": "NBA",
     "nhl": "NHL",
     "wnba": "WNBA",
@@ -161,6 +172,14 @@ SPORT_LABELS = {
     "golf": "Golf",
     "ufc": "UFC",
 }
+SPORT_ALIASES = {
+    "cws": "ncaabb",
+}
+
+
+def _canonical_sport_key(value: object) -> str:
+    sport = str(value or "").strip().lower()
+    return SPORT_ALIASES.get(sport, sport)
 
 
 def parse_args() -> argparse.Namespace:
@@ -185,7 +204,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sports",
-        default="mlb,nba,nhl,wnba,golf,ufc",
+        default="mlb,ncaabb,nba,nhl,wnba,golf,ufc",
         help="Comma-separated sports passed through to refresh_dashboard_data.py.",
     )
     parser.add_argument(
@@ -205,7 +224,7 @@ def _normalize_sports_arg(value: str) -> str:
     seen: set[str] = set()
     sports: list[str] = []
     for item in str(value or "").split(","):
-        sport = item.strip().lower()
+        sport = _canonical_sport_key(item)
         if not sport or sport in seen:
             continue
         seen.add(sport)
@@ -234,6 +253,8 @@ def _odds_source_path_for_sport(sport: str) -> Path:
         return GOLF_MARKETS_CSV
     if sport_key == "ufc":
         return UFC_MARKETS_CSV
+    if sport_key == "ncaabb":
+        return CWS_MARKETS_CSV
     return CORE_MARKETS_CSV
 
 
@@ -1642,6 +1663,46 @@ def _html_shell() -> str:
       return { text: collectGamePickText(table), target: choosePostTarget(rows) };
     }
 
+    function collectPostTargetsInContainer(container) {
+      const targets = [];
+      if (!container) return targets;
+      for (const row of container.querySelectorAll("tbody tr[data-post-id]")) {
+        if (!row.dataset.postId) continue;
+        targets.push({
+          element: row,
+          postId: row.dataset.postId || "",
+          pollId: row.dataset.pollId || "",
+          pollKind: row.dataset.pollKind || "",
+          groupId: row.dataset.groupId || row.dataset.sectionGroupId || "",
+          sectionGroupId: row.dataset.sectionGroupId || row.dataset.groupId || "",
+          header: row.dataset.header || "",
+          gameId: row.dataset.gameId || "",
+          gameLabel: row.dataset.gameLabel || "",
+        });
+      }
+      return targets;
+    }
+
+    function chooseLineupPostTarget(container) {
+      const targets = collectPostTargetsInContainer(container);
+      const dailyTarget = targets.find((target) => {
+        const header = String(target.header || "").trim().toLowerCase();
+        const gameId = String(target.gameId || "");
+        return header === "daily stats" || gameId.startsWith("daily:");
+      });
+      if (dailyTarget) return dailyTarget;
+      return choosePostTarget(targets);
+    }
+
+    function isDailyLineupHeading(headingText) {
+      return (
+        headingText === "daily lineup" ||
+        headingText === "daily lineups" ||
+        headingText.endsWith(" daily lineup") ||
+        headingText.endsWith(" daily lineups")
+      );
+    }
+
     function collectDailyLineupNames(table) {
       const playerIndex = getTableColumnIndex(table, "Player");
       if (playerIndex < 0) return "";
@@ -1718,26 +1779,28 @@ def _html_shell() -> str:
       }
     }
 
-    function attachHeadingPostButton(row, heading, table, scope) {
+    function attachHeadingTextPostButton(row, label, title, buildPost, confirmText) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "post-game-picks";
-      button.textContent = "Post Picks";
-      button.dataset.defaultLabel = "Post Picks";
-      button.title = `Post current recommendations as a Real comment on this ${scope}'s game-lines poll`;
+      button.textContent = label;
+      button.dataset.defaultLabel = label;
+      button.title = title;
       button.addEventListener("click", async () => {
-        const built = buildRecommendationComment(heading, table);
-        if (!built.text) {
+        const built = buildPost() || {};
+        const text = String(built.text || "");
+        if (!text) {
           setPostButtonState(button, "Nothing to post", "failed", false);
           return;
         }
-        if (!built.target || !built.target.postId) {
+        const target = built.target;
+        if (!target || !target.postId) {
           setPostButtonState(button, "No post id", "failed", false);
           return;
         }
-        const groupId = built.target.groupId || built.target.sectionGroupId || "";
+        const groupId = target.groupId || target.sectionGroupId || "";
         const groupText = groupId ? ` in group ${groupId}` : "";
-        if (!window.confirm(`Post these picks to Real post ${built.target.postId}${groupText}?`)) {
+        if (!window.confirm(`Post ${confirmText || "this"} to Real post ${target.postId}${groupText}?`)) {
           return;
         }
         setPostButtonState(button, "Posting...", "", true);
@@ -1745,7 +1808,7 @@ def _html_shell() -> str:
           await fetchJson("/api/post-recommendation", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ post_id: built.target.postId, group_id: groupId, text: built.text }),
+            body: JSON.stringify({ post_id: target.postId, group_id: groupId, text }),
           });
           setPostButtonState(button, "Posted", "posted", false);
         } catch (error) {
@@ -1754,6 +1817,17 @@ def _html_shell() -> str:
         }
       });
       row.appendChild(button);
+      return button;
+    }
+
+    function attachHeadingPostButton(row, heading, table, scope) {
+      attachHeadingTextPostButton(
+        row,
+        "Post Picks",
+        `Post current recommendations as a Real comment on this ${scope}'s game-lines poll`,
+        () => buildRecommendationComment(heading, table),
+        "these picks"
+      );
     }
 
     function attachHeadingCopyButton(heading, rowClassName, label, title, collectText) {
@@ -1808,17 +1882,41 @@ def _html_shell() -> str:
       for (const heading of Array.from(container.querySelectorAll("h2"))) {
         const headingText = (heading.textContent || "").trim().toLowerCase();
         if (heading.closest(".game-copy-row")) continue;
-        if (headingText === "daily lineup") {
+        if (isDailyLineupHeading(headingText)) {
           const table = findDailyLineupTable(heading);
           if (!table) continue;
-          attachHeadingCopyButton(
+          const row = attachHeadingCopyButton(
             heading,
             "game-copy-row daily-lineup-copy-row",
             "Copy Names",
             "Copy all Daily Lineup player names",
             () => collectDailyLineupNames(table)
           );
-        } else if (headingText === "lineup contest picks") {
+          attachHeadingTextPostButton(
+            row,
+            "Post Names",
+            "Post Daily Lineup player names in rank order",
+            () => ({
+              text: collectDailyLineupNames(table),
+              target: chooseLineupPostTarget(container),
+            }),
+            "these lineup names"
+          );
+        } else if (headingText === "group stage draft lineup") {
+          const table = findLineupContestTable(heading);
+          if (!table) continue;
+          attachHeadingCopyButton(
+            heading,
+            "game-copy-row daily-lineup-copy-row",
+            "Copy Group Stage Lineup",
+            "Copy the World Cup group-stage draft player names",
+            () => collectLineupContestText(table)
+          );
+        } else if (
+          headingText === "daily draft lineup contests" ||
+          headingText === "lineup contests" ||
+          headingText === "lineup contest picks"
+        ) {
           const table = findLineupContestTable(heading);
           if (!table) continue;
           attachHeadingCopyButton(

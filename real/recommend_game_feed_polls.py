@@ -70,6 +70,7 @@ NHL_SPLIT_STAT_TYPES = {
     "hits": 60,
 }
 MLB_HRR_COMPONENT_STATS = ("hits", "runs", "rbis")
+BASEBALL_SPORTS = {"mlb", "ncaabb"}
 SOCCER_PROJECTION_STATS = {
     "goals": ("goals", 0.15, False),
     "assists": ("assists", 0.10, False),
@@ -79,8 +80,32 @@ SOCCER_PROJECTION_STATS = {
 }
 ZERO_PUT_WIN_WAGER = 10.0
 ZERO_COST_PLAYER_POLL_KINDS = {"anytime_play", "player_most_stat", "first_basket"}
-UNPRICED_POLL_KINDS = ZERO_COST_PLAYER_POLL_KINDS | {"team_stat", "golf_leaderboard"}
+TOURNAMENT_POLL_KINDS = {
+    "tournament_champion",
+    "tournament_group_winner",
+    "tournament_player_award",
+}
+UNPRICED_POLL_KINDS = ZERO_COST_PLAYER_POLL_KINDS | {"team_stat", "golf_leaderboard"} | TOURNAMENT_POLL_KINDS
 SOCCER_REAL_APP_HOME_COHORT = 777777777
+REAL_APP_HOME_COHORT_BY_SPORT = {
+    "soccer": SOCCER_REAL_APP_HOME_COHORT,
+}
+SPORT_ALIASES = {
+    "cws": "ncaabb",
+}
+TOURNAMENT_PLAYER_SEARCH_QUERIES = [""] + list("abcdefghijklmnopqrstuvwxyz")
+_TOURNAMENT_SEARCH_CACHE: dict[tuple[Any, ...], list[dict[str, Any]]] = {}
+GROUP_STAGE_DRAFT_MARKET_WEIGHTS = {
+    "goldenboot": 1.0,
+    "mostassists": 0.85,
+    "goldenball": 0.55,
+    "youngplayer": 0.25,
+}
+
+
+def _canonical_sport_key(value: object) -> str:
+    sport = str(value or "").strip().lower()
+    return SPORT_ALIASES.get(sport, sport)
 
 
 def parse_args() -> argparse.Namespace:
@@ -197,6 +222,58 @@ def _game_matches_day(game: dict[str, Any], day: str) -> bool:
     return game_day == day
 
 
+def _game_start_sort_value(game: dict[str, Any]) -> str:
+    for key in ("dateTime", "startTime", "startDate", "gameTime", "scheduledAt"):
+        value = str(game.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _post_numeric_id(post: dict[str, Any]) -> int:
+    try:
+        return int(post.get("id") or 0)
+    except Exception:
+        return 0
+
+
+def _visible_game_posts(posts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    # Real's visible game feed shows newer poll posts before older ones.
+    return sorted(
+        posts,
+        key=lambda post: (
+            str(post.get("createdAt") or ""),
+            _post_numeric_id(post),
+        ),
+        reverse=True,
+    )
+
+
+def _game_id_sort_value(game: dict[str, Any]) -> tuple[int, int | str]:
+    game_id = _clean_id(_game_id_from_home_item(game))
+    if not game_id:
+        return 2, ""
+    try:
+        return 0, int(game_id)
+    except ValueError:
+        return 1, game_id
+
+
+def _rendered_home_tab_games(games: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    # The web app renders same-start games by numeric Real game id, not raw API order.
+    return [
+        game
+        for index, game in sorted(
+            enumerate(games),
+            key=lambda item: (
+                _game_start_sort_value(item[1]) or f"~{item[0]:06d}",
+                _game_id_sort_value(item[1]) if _game_start_sort_value(item[1]) else (2, item[0]),
+                item[0],
+            ),
+        )
+    ]
+
+
 def _append_ordered_game_id(
     ordered_ids: list[str],
     seen_ids: set[str],
@@ -213,6 +290,14 @@ def _home_tab_game_order_ids(latest: dict[str, Any], *, day: str = "") -> list[s
     ordered_ids: list[str] = []
     seen_ids: set[str] = set()
 
+    games = [
+        game
+        for game in (latest.get("games") or [])
+        if isinstance(game, dict) and _game_matches_day(game, day)
+    ]
+    for game in _rendered_home_tab_games(games):
+        _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(game))
+
     for item in latest.get("items") or []:
         if not isinstance(item, dict):
             continue
@@ -224,17 +309,29 @@ def _home_tab_game_order_ids(latest: dict[str, Any], *, day: str = "") -> list[s
         entity_type = str(item.get("entityType") or item.get("type") or "").strip().lower()
         if entity_type in {"game", "games"}:
             _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(item))
-
-    for game in latest.get("games") or []:
-        if isinstance(game, dict) and _game_matches_day(game, day):
-            _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(game))
     return ordered_ids
+
+
+def _real_app_home_cohort(sport: str) -> int:
+    return int(REAL_APP_HOME_COHORT_BY_SPORT.get(str(sport or "").strip().lower(), 0))
+
+
+def _real_app_game_order_by_id(client: Any, sport: str, *, day: str) -> dict[str, int]:
+    try:
+        payload = client.get_home_tab(sport=sport, cohort=_real_app_home_cohort(sport))
+    except Exception:
+        return {}
+    latest = payload.get("latestDayContent") or {}
+    order_ids = _home_tab_game_order_ids(latest, day=day)
+    if str(sport or "").strip().lower() == "soccer":
+        order_ids = _soccer_home_tab_game_order_ids(client, day=day, base_latest=latest)
+    return {game_id: index for index, game_id in enumerate(order_ids)}
 
 
 def _game_ids_from_games(games: list[dict[str, Any]]) -> list[str]:
     ordered_ids: list[str] = []
     seen_ids: set[str] = set()
-    for game in games:
+    for game in _rendered_home_tab_games(games):
         _append_ordered_game_id(ordered_ids, seen_ids, _game_id_from_home_item(game))
     return ordered_ids
 
@@ -245,11 +342,11 @@ def _ordered_home_tab_games(
     day: str,
     preferred_order_ids: list[str] | None = None,
 ) -> list[dict[str, Any]]:
-    games = [
+    games = _rendered_home_tab_games([
         game
         for game in (latest.get("games") or [])
         if isinstance(game, dict) and _game_matches_day(game, day)
-    ]
+    ])
     if len(games) < 2:
         return games
 
@@ -442,6 +539,36 @@ def _player_lookup(players: list[dict[str, Any]]) -> dict[str, str]:
     return lookup
 
 
+def _golf_round_value_from_text(text: str) -> str:
+    normalized = normalize_text(text)
+    match = re.search(r"\bround\s+([0-9]+)\b", normalized)
+    if match:
+        return match.group(1)
+    match = re.search(r"\b([0-9]+)(?:st|nd|rd|th)?\s+round\b", normalized)
+    if match:
+        return match.group(1)
+    word_rounds = {
+        "first": "1",
+        "second": "2",
+        "third": "3",
+        "fourth": "4",
+    }
+    for word, value in word_rounds.items():
+        if re.search(rf"\b{word}\s+round\b", normalized):
+            return value
+    return ""
+
+
+def _is_golf_best_score_text(text: str) -> bool:
+    normalized = normalize_text(text)
+    return bool(
+        "best score" in normalized
+        or "best scorer" in normalized
+        or "lowest score" in normalized
+        or re.search(r"\bbest\s+(?:round\s+)?scor(?:e|er)\b", normalized)
+    )
+
+
 def _poll_kind(
     additional: dict[str, Any],
     *,
@@ -450,10 +577,12 @@ def _poll_kind(
 ) -> str:
     poll = poll or {}
     post = post or {}
-    poll_type = str(additional.get("type") or "").strip().lower()
+    post_additional = post.get("additionalInfo") or {}
+    poll_type = str(additional.get("type") or post_additional.get("type") or "").strip().lower()
     play_types = additional.get("playTypes") or []
     text_bits = [
         str(additional.get("playType") or "").strip().lower(),
+        normalize_text(str(additional.get("detail") or "")),
         " ".join(str(item).strip().lower() for item in play_types if str(item).strip()),
         normalize_text(str(post.get("header") or "")),
         normalize_text(_first_text(((post.get("content") or {}).get("nodes")) or [])),
@@ -471,9 +600,13 @@ def _poll_kind(
         return "anytime_play"
     if poll_type == "player" and additional.get("isMostStat"):
         return "player_most_stat"
-    if poll_type == "player" and additional.get("isLeaderboardPoll"):
-        sport_key = str(additional.get("sport") or poll.get("sport") or "").strip().lower()
-        if sport_key == "golf":
+    if poll_type == "player":
+        sport_key = str(additional.get("sport") or poll.get("sport") or post.get("sport") or "").strip().lower()
+        if sport_key == "golf" and (
+            additional.get("isLeaderboardPoll")
+            or additional.get("isMatchupPoll")
+            or _is_golf_best_score_text(combined_text)
+        ):
             return "golf_leaderboard"
     if poll_type == "teamstat":
         if "fighter" in combined_text or "strikes" in combined_text or "takedowns" in combined_text:
@@ -513,6 +646,23 @@ def _poll_kind(
         return "halftime_result"
     if poll_type == "playerratingcontest":
         return "contest"
+    if poll_type == "generalpoll":
+        sport_key = str(
+            additional.get("sport")
+            or poll.get("sport")
+            or post.get("sport")
+            or post_additional.get("sport")
+            or ""
+        ).strip().lower()
+        conference = normalize_text(str(additional.get("conference") or post_additional.get("conference") or ""))
+        entity_type = normalize_text(str(additional.get("entityType") or ""))
+        if sport_key == "soccer" and (conference == "wc" or "world cup" in combined_text):
+            if entity_type == "team":
+                if "group" in combined_text and "winner" in combined_text:
+                    return "tournament_group_winner"
+                return "tournament_champion"
+            if entity_type == "player":
+                return "tournament_player_award"
     return poll_type or "unknown"
 
 
@@ -578,6 +728,13 @@ def _option_choices_json(evaluations: list[dict[str, Any]]) -> str:
     return json.dumps(choices, separators=(",", ":"), ensure_ascii=True)
 
 
+def _option_slot_name(option_index: int) -> str:
+    slots = ("a", "b", "c", "d", "e")
+    if 0 <= option_index < len(slots):
+        return slots[option_index]
+    return str(option_index + 1)
+
+
 def _choose_zero_or_max_action(
     max_wager: int | float | None,
     evaluations: list[dict[str, Any]],
@@ -586,11 +743,12 @@ def _choose_zero_or_max_action(
         return None
 
     max_amount = _max_wager_amount(max_wager)
-    candidates: list[dict[str, Any]] = []
+    zero_candidates: list[dict[str, Any]] = []
+    bet_candidates: list[dict[str, Any]] = []
     for item in evaluations:
         evaluation = item.get("evaluation") or {}
         fair_prob = float(_evaluation_value(evaluation, "fair_prob") or 0.0)
-        candidates.append(
+        zero_candidates.append(
             {
                 **item,
                 "amount": 0,
@@ -600,7 +758,7 @@ def _choose_zero_or_max_action(
             }
         )
         if max_amount > 0:
-            candidates.append(
+            bet_candidates.append(
                 {
                     **item,
                     "amount": max_amount,
@@ -609,6 +767,11 @@ def _choose_zero_or_max_action(
                     "expected_value": max_amount * float(_evaluation_value(evaluation, "ev_per_unit") or 0.0),
                 }
             )
+
+    if max_amount > 0 and bet_candidates:
+        candidates = zero_candidates + bet_candidates
+    else:
+        candidates = zero_candidates
 
     return max(
         candidates,
@@ -747,7 +910,7 @@ def _recommend_multi_outcome(
         evaluations.append(
             {
                 "option": option,
-                "slot": ("a", "b", "c")[option_index] if option_index < 3 else str(option_index + 1),
+                "slot": _option_slot_name(option_index),
                 "key": option_key,
                 "label": label,
                 "real_odds": offered_odds,
@@ -800,7 +963,7 @@ def _recommend_multi_outcome(
     best_eval = best["evaluation"]
     return _with_odds_updated({
         **base,
-        **_book_outcome_fields(book_outcomes),
+        **_book_outcome_fields([item["book_outcome"] for item in evaluations]),
         "status": str(best.get("status") or "pick"),
         "recommended_option": str(best.get("label") or best["option"].get("label") or ""),
         "recommended_amount": int(best.get("amount") or 0),
@@ -846,8 +1009,52 @@ def _same_game(game: dict[str, Any], market: MarketRow) -> bool:
         name_pair = team_pair(home_name, away_name)
         if name_pair == market_pair:
             return True
+        if market.sport == "ufc" and _ufc_name_pair_matches(
+            home_name,
+            away_name,
+            market.home_team,
+            market.away_team,
+        ):
+            return True
 
     return False
+
+
+def _ufc_name_match(left: str, right: str) -> bool:
+    left_key = normalize_player_name(left)
+    right_key = normalize_player_name(right)
+    if not left_key or not right_key:
+        return False
+    if left_key == right_key:
+        return True
+    left_compact = left_key.replace(" ", "")
+    right_compact = right_key.replace(" ", "")
+    if left_compact == right_compact:
+        return True
+    left_parts = left_key.split()
+    right_parts = right_key.split()
+    if len(left_parts) >= 2 and right_compact.startswith(left_parts[0]) and right_compact.endswith(left_parts[-1]):
+        return True
+    if len(right_parts) >= 2 and left_compact.startswith(right_parts[0]) and left_compact.endswith(right_parts[-1]):
+        return True
+    if len(left_parts) < 2 or len(right_parts) < 2:
+        return False
+    return left_parts[0] == right_parts[0] and left_parts[-1] == right_parts[-1]
+
+
+def _ufc_name_pair_matches(
+    game_home: str,
+    game_away: str,
+    market_home: str,
+    market_away: str,
+) -> bool:
+    return (
+        _ufc_name_match(game_home, market_home)
+        and _ufc_name_match(game_away, market_away)
+    ) or (
+        _ufc_name_match(game_home, market_away)
+        and _ufc_name_match(game_away, market_home)
+    )
 
 
 def _matching_player_quotes(
@@ -875,7 +1082,9 @@ def _matching_player_quotes(
             continue
         if market.stat_key != stat_key:
             continue
-        if market.player_name != normalized_player:
+        if market.player_name != normalized_player and not (
+            sport == "ufc" and _ufc_name_match(player_name, market.player_name)
+        ):
             continue
         if market.line is None or market.over_odds is None or market.under_odds is None:
             continue
@@ -1088,7 +1297,12 @@ def _matching_game_quotes(
         market_period = str(market.period or "").strip()
         if period:
             if market_period != period:
-                continue
+                if not (
+                    market_family == "halftime_result"
+                    and period == "1H"
+                    and not market_period
+                ):
+                    continue
         elif market_period:
             continue
         if market_family == "game_total" and not period and not _is_full_game_total_market(market):
@@ -1144,6 +1358,7 @@ def _canonical_book_outcome_key(outcome: dict[str, Any], market: MarketRow) -> s
         "knockout": "ko",
         "submission": "sub",
         "sub": "sub",
+        "dec": "decision",
         "decision": "decision",
         "points": "decision",
         "bydecision": "decision",
@@ -1238,6 +1453,26 @@ def _canonical_poll_option_key(option: dict[str, Any], game: dict[str, Any]) -> 
         return "home"
     if normalized_label == normalize_team(game.get("awayTeamKey") or ""):
         return "away"
+    home_team_info = game.get("homeTeam")
+    away_team_info = game.get("awayTeam")
+    if isinstance(home_team_info, dict):
+        home_name = str(
+            home_team_info.get("displayName")
+            or home_team_info.get("name")
+            or home_team_info.get("key")
+            or ""
+        ).strip()
+        if home_name and normalize_text(label) == normalize_text(home_name):
+            return "home"
+    if isinstance(away_team_info, dict):
+        away_name = str(
+            away_team_info.get("displayName")
+            or away_team_info.get("name")
+            or away_team_info.get("key")
+            or ""
+        ).strip()
+        if away_name and normalize_text(label) == normalize_text(away_name):
+            return "away"
     label_key = normalize_text(label).replace(" ", "")
     fight_aliases = {
         "ko": "ko",
@@ -1246,6 +1481,7 @@ def _canonical_poll_option_key(option: dict[str, Any], game: dict[str, Any]) -> 
         "knockout": "ko",
         "sub": "sub",
         "submission": "sub",
+        "dec": "decision",
         "decision": "decision",
         "points": "decision",
         "1st": "1st",
@@ -1273,7 +1509,7 @@ def _canonical_poll_option_key(option: dict[str, Any], game: dict[str, Any]) -> 
 
 def _option_fields(options: list[dict[str, Any]]) -> dict[str, Any]:
     fields: dict[str, Any] = {}
-    slots = ("a", "b", "c")
+    slots = ("a", "b", "c", "d", "e")
     for slot, option in zip(slots, options):
         odds = _normalize_option_odds(option)
         fields[f"option_{slot}_label"] = str(option.get("label") or "")
@@ -1286,7 +1522,7 @@ def _option_fields(options: list[dict[str, Any]]) -> dict[str, Any]:
 
 def _book_outcome_fields(outcomes: list[dict[str, Any]]) -> dict[str, Any]:
     fields: dict[str, Any] = {}
-    slots = ("a", "b", "c")
+    slots = ("a", "b", "c", "d", "e")
     for slot, outcome in zip(slots, outcomes):
         fields[f"sportsbook_{slot}_label"] = str(outcome.get("label") or outcome.get("key") or "")
         fields[f"sportsbook_{slot}_odds"] = outcome.get("odds") if outcome.get("odds") is not None else ""
@@ -1650,7 +1886,7 @@ def _fetch_active_day_game_entries(
     client: Any | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
     client = client or build_realsports_client()
-    home_payload = client.get_home_tab(sport=sport)
+    home_payload = client.get_home_tab(sport=sport, cohort=_real_app_home_cohort(sport))
     latest = home_payload.get("latestDayContent") or {}
     active_day = str(latest.get("day") or home_payload.get("latestDay") or "").strip()
     resolved_day = requested_day or active_day
@@ -1672,7 +1908,7 @@ def _fetch_active_day_game_entries(
         game_payload = client.get_game_feed(game.get("id"), sport=sport)
         players_by_id = _player_lookup(game_payload.get("players") or [])
         game_payload_game = game_payload.get("game") or game
-        posts = game_payload.get("posts") or []
+        posts = _visible_game_posts(game_payload.get("posts") or [])
         for post_order, post in enumerate(posts):
             poll_id = _extract_poll_id(post)
             if poll_id:
@@ -1716,7 +1952,8 @@ def _fetch_requested_day_game_entries(
 
     posts_by_id: dict[str, dict[str, Any]] = {}
     games_by_id: dict[str, dict[str, Any]] = {}
-    game_order_by_id: dict[str, int] = {}
+    real_game_order_by_id = _real_app_game_order_by_id(client, sport, day=day)
+    fallback_game_order_by_id: dict[str, int] = {}
     before: str | None = None
     for _ in range(8):
         try:
@@ -1727,9 +1964,8 @@ def _fetch_requested_day_game_entries(
             game_id = str(game.get("id") or "").strip()
             if game_id:
                 games_by_id[game_id] = game
-                if game_id not in game_order_by_id:
-                    # The sport/day poll endpoint already returns games in Real app order.
-                    game_order_by_id[game_id] = len(game_order_by_id)
+                if game_id not in fallback_game_order_by_id:
+                    fallback_game_order_by_id[game_id] = len(fallback_game_order_by_id)
         posts = [
             post
             for post in (payload.get("posts") or [])
@@ -1747,6 +1983,12 @@ def _fetch_requested_day_game_entries(
     if not posts_by_id:
         return []
 
+    fallback_offset = len(real_game_order_by_id)
+    game_order_by_id = {
+        game_id: real_game_order_by_id.get(game_id, fallback_offset + fallback_order)
+        for game_id, fallback_order in fallback_game_order_by_id.items()
+    }
+
     game_payloads: dict[str, dict[str, Any]] = {}
     player_lookups: dict[str, dict[str, dict[str, Any]]] = {}
     for game_id in games_by_id:
@@ -1757,13 +1999,9 @@ def _fetch_requested_day_game_entries(
         game_payloads[game_id] = game_payload
         player_lookups[game_id] = _player_lookup(game_payload.get("players") or [])
 
-    ordered_posts = sorted(
-        posts_by_id.values(),
-        key=lambda post: (
-            game_order_by_id.get(str(post.get("gameId") or "").strip(), 999999),
-            str(post.get("createdAt") or ""),
-            int(post.get("id") or 0),
-        ),
+    ordered_posts = _visible_game_posts(list(posts_by_id.values()))
+    ordered_posts.sort(
+        key=lambda post: game_order_by_id.get(str(post.get("gameId") or "").strip(), 999999)
     )
 
     entries: list[dict[str, Any]] = []
@@ -1814,7 +2052,7 @@ def _fetch_daily_poll_entries(
     active_games: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     try:
-        home_payload = client.get_home_tab(sport=sport)
+        home_payload = client.get_home_tab(sport=sport, cohort=_real_app_home_cohort(sport))
     except Exception:
         return []
 
@@ -1836,9 +2074,46 @@ def _fetch_daily_poll_entries(
                 continue
             post = post_payload.get("post") or post_payload
             additional = post.get("additionalInfo") or {}
-            if str(additional.get("type") or "").strip().lower() != "daily":
+            post_type = str(additional.get("type") or "").strip().lower()
+            post_subtype = str(additional.get("subType") or "").strip().lower()
+            post_day = str(additional.get("day") or "").strip()
+            if post_day and day and post_day != day:
                 continue
-            if str(additional.get("subType") or "").strip().lower() != "stats":
+
+            if is_lineup_contest_post(post):
+                lock_time = str(post.get("pollsLockAt") or "").strip()
+                synthetic_game = {
+                    "id": f"contest:{post.get('id')}",
+                    "sport": sport,
+                    "day": day,
+                    "dateTime": lock_time,
+                    "homeTeamKey": "",
+                    "awayTeamKey": "",
+                    "metadata": {
+                        "title": str(post.get("header") or "Lineup").strip() or "Lineup",
+                    },
+                }
+                entries.append(
+                    {
+                        "game": synthetic_game,
+                        "game_payload": {
+                            "game": synthetic_game,
+                            "players": [],
+                            "posts": [],
+                        },
+                        "post": post,
+                        "poll": _contest_payload_from_post(post),
+                        "player_lookup": {},
+                        "game_order": -2,
+                        "post_order": len(entries),
+                        "active_day_games": active_games,
+                    }
+                )
+                continue
+
+            is_daily_stats = post_type == "daily" and post_subtype == "stats"
+            is_general_poll = post_type == "generalpoll"
+            if not is_daily_stats and not is_general_poll:
                 continue
 
             poll_ids = _extract_poll_ids(post)
@@ -1846,15 +2121,16 @@ def _fetch_daily_poll_entries(
                 continue
 
             lock_time = str(post.get("pollsLockAt") or "").strip()
+            fallback_title = "Tournament poll" if is_general_poll else "Daily stats"
             synthetic_game = {
-                "id": f"daily:{post.get('id')}",
+                "id": f"{'tournament' if is_general_poll else 'daily'}:{post.get('id')}",
                 "sport": sport,
                 "day": day,
                 "dateTime": lock_time,
                 "homeTeamKey": "",
                 "awayTeamKey": "",
                 "metadata": {
-                    "title": str(post.get("header") or "Daily stats").strip() or "Daily stats",
+                    "title": str(post.get("header") or fallback_title).strip() or fallback_title,
                 },
             }
             for post_order, poll_id in enumerate(poll_ids):
@@ -1874,7 +2150,7 @@ def _fetch_daily_poll_entries(
                         "post": post,
                         "poll": poll,
                         "player_lookup": {},
-                        "game_order": -1,
+                        "game_order": -2 if is_general_poll else -1,
                         "post_order": post_order,
                         "active_day_games": active_games,
                     }
@@ -1913,7 +2189,7 @@ def _fetch_daily_pool_posts(
     day: str,
 ) -> list[dict[str, Any]]:
     try:
-        home_payload = client.get_home_tab(sport=sport)
+        home_payload = client.get_home_tab(sport=sport, cohort=_real_app_home_cohort(sport))
     except Exception:
         return []
 
@@ -2006,6 +2282,8 @@ def _option_odds_pairs(row: dict[str, Any]) -> list[tuple[str, int]]:
         ("option_a_label", "option_a_odds"),
         ("option_b_label", "option_b_odds"),
         ("option_c_label", "option_c_odds"),
+        ("option_d_label", "option_d_odds"),
+        ("option_e_label", "option_e_odds"),
     ):
         label = str(row.get(label_key) or "").strip()
         odds_value = row.get(odds_key)
@@ -2025,6 +2303,8 @@ def _sportsbook_odds_pairs(row: dict[str, Any]) -> list[tuple[str, int]]:
         ("sportsbook_a_label", "sportsbook_a_odds"),
         ("sportsbook_b_label", "sportsbook_b_odds"),
         ("sportsbook_c_label", "sportsbook_c_odds"),
+        ("sportsbook_d_label", "sportsbook_d_odds"),
+        ("sportsbook_e_label", "sportsbook_e_odds"),
     ):
         label = str(row.get(label_key) or "").strip()
         odds_value = row.get(odds_key)
@@ -3551,6 +3831,10 @@ def _recommend_game_winner(
 def _ufc_fighter_stat_key(content_text: str) -> str:
     text = normalize_text(content_text)
     compact = text.replace(" ", "")
+    if "control" in text and "time" in text:
+        return "controltime"
+    if "head" in text and "strike" in text:
+        return "significantheadstrikes"
     if "leg" in text and "strike" in text:
         return "significantlegstrikes"
     if "significantstrike" in compact or "sigstrike" in compact:
@@ -3564,6 +3848,308 @@ def _ufc_fighter_stat_key(content_text: str) -> str:
     return "teamstat"
 
 
+def _game_side_display_name(game: dict[str, Any], side: str) -> str:
+    info = game.get(f"{side}Team")
+    if isinstance(info, dict):
+        name = str(
+            info.get("displayName")
+            or info.get("name")
+            or info.get("key")
+            or ""
+        ).strip()
+        if name:
+            return name
+    return str(game.get(f"{side}TeamKey") or "").strip()
+
+
+def _ufc_fighter_stat_proxy_key(stat_key: str) -> str:
+    key = normalize_stat(stat_key)
+    if key in {"significantstrikes", "takedowns", "strikes"}:
+        return key
+    if key in {"significantheadstrikes", "significantlegstrikes"}:
+        return "significantstrikes"
+    return ""
+
+
+def _ufc_stat_projection_scale(stat_key: str) -> float:
+    key = normalize_stat(stat_key)
+    if key == "takedowns":
+        return 0.85
+    if key == "strikes":
+        return 12.0
+    return 8.0
+
+
+def _ufc_stat_matchup_scale(stat_key: str) -> float:
+    key = normalize_stat(stat_key)
+    if key == "takedowns":
+        return 1.25
+    if key == "strikes":
+        return 14.0
+    return 10.0
+
+
+def _median_quote_line(quotes: list[MarketQuote]) -> float:
+    lines = sorted(float(quote.line) for quote in quotes)
+    if not lines:
+        return 0.0
+    middle = len(lines) // 2
+    if len(lines) % 2:
+        return lines[middle]
+    return (lines[middle - 1] + lines[middle]) / 2.0
+
+
+def _project_fair_line_from_quotes(
+    quotes: list[MarketQuote],
+    *,
+    default_scale: float = 1.5,
+) -> tuple[float, float, str] | None:
+    if not quotes:
+        return None
+    target_line = _median_quote_line(quotes)
+    try:
+        snapshot = consensus_snapshot(
+            quotes,
+            target_line=target_line,
+            over_odds=-110,
+            under_odds=-110,
+            default_scale=default_scale,
+            prefer_fitted_ladder=True,
+        )
+    except Exception:
+        try:
+            snapshot = consensus_snapshot(
+                quotes,
+                target_line=target_line,
+                over_odds=-110,
+                under_odds=-110,
+                default_scale=default_scale,
+            )
+        except Exception:
+            return None
+    estimate = snapshot.get("estimate")
+    if estimate is None:
+        return None
+    try:
+        return float(estimate.fair_line), float(target_line), str(estimate.source)
+    except Exception:
+        return None
+
+
+def _logit_probability(probability: float) -> float:
+    value = min(max(float(probability), 1e-9), 1.0 - 1e-9)
+    return math.log(value / (1.0 - value))
+
+
+def _ufc_player_prop_projection(
+    quotes: list[MarketQuote],
+    *,
+    stat_key: str,
+) -> tuple[float, float, str] | None:
+    if not quotes:
+        return None
+    target_line = _median_quote_line(quotes)
+    scale = _ufc_stat_projection_scale(stat_key)
+    unique_lines = {round(float(quote.line), 6) for quote in quotes}
+    if len(unique_lines) >= 3:
+        try:
+            snapshot = consensus_snapshot(
+                quotes,
+                target_line=target_line,
+                over_odds=-110,
+                under_odds=-110,
+                default_scale=scale,
+                prefer_fitted_ladder=True,
+            )
+            estimate = snapshot["estimate"]
+            return float(estimate.fair_line), target_line, str(estimate.source)
+        except Exception:
+            pass
+
+    devigged = [devig_quote(quote) for quote in quotes]
+    if not devigged:
+        return None
+    total_weight = sum(float(quote.weight) for quote in devigged)
+    if total_weight <= 0:
+        return None
+    projected_lines = [
+        float(quote.line) + (_logit_probability(float(quote.over_prob)) * scale)
+        for quote in devigged
+    ]
+    fair_line = sum(
+        projected * float(quote.weight)
+        for projected, quote in zip(projected_lines, devigged)
+    ) / total_weight
+    source = "single-line prop estimate" if len(devigged) == 1 else "weighted prop estimate"
+    return fair_line, target_line, source
+
+
+def _recommend_ufc_fighter_stat_winner_from_player_props(
+    entry: dict[str, Any],
+    markets: list[MarketRow],
+    sport: str,
+    *,
+    stat_key: str,
+    direct_result: dict[str, Any],
+) -> dict[str, Any] | None:
+    if sport != "ufc":
+        return None
+    proxy_stat_key = _ufc_fighter_stat_proxy_key(stat_key)
+    if not proxy_stat_key:
+        return None
+
+    game = entry["game"]
+    poll = entry["poll"]
+    options = poll.get("options") or []
+    option_by_side: dict[str, tuple[dict[str, Any], int | None, int]] = {}
+    for option_index, option in enumerate(options):
+        side = _canonical_poll_option_key(option, game)
+        offered_odds = _normalize_option_odds(option)
+        if side in {"home", "away"}:
+            option_by_side[side] = (option, offered_odds, option_index)
+    if "home" not in option_by_side or "away" not in option_by_side:
+        return None
+
+    home_name = _game_side_display_name(game, "home")
+    away_name = _game_side_display_name(game, "away")
+    if not home_name or not away_name:
+        return None
+
+    home_quotes = _matching_player_quotes(
+        markets,
+        sport=sport,
+        game=game,
+        player_name=home_name,
+        stat_key=proxy_stat_key,
+    )
+    away_quotes = _matching_player_quotes(
+        markets,
+        sport=sport,
+        game=game,
+        player_name=away_name,
+        stat_key=proxy_stat_key,
+    )
+    if not home_quotes or not away_quotes:
+        return None
+
+    home_projection = _ufc_player_prop_projection(home_quotes, stat_key=proxy_stat_key)
+    away_projection = _ufc_player_prop_projection(away_quotes, stat_key=proxy_stat_key)
+    if home_projection is None or away_projection is None:
+        return None
+    home_fair_line, home_target_line, home_source = home_projection
+    away_fair_line, away_target_line, away_source = away_projection
+    diff = home_fair_line - away_fair_line
+    matchup_scale = _ufc_stat_matchup_scale(proxy_stat_key)
+    home_prob = 1.0 / (1.0 + math.exp(-(diff / max(matchup_scale, 1e-6))))
+    home_prob = min(max(home_prob, 1e-6), 1.0 - 1e-6)
+    away_prob = 1.0 - home_prob
+
+    home_option, home_odds, home_index = option_by_side["home"]
+    away_option, away_odds, away_index = option_by_side["away"]
+    home_book_outcome = {
+        "key": "home",
+        "label": home_name,
+        "odds": probability_to_american(home_prob),
+    }
+    away_book_outcome = {
+        "key": "away",
+        "label": away_name,
+        "odds": probability_to_american(away_prob),
+    }
+    combined_quotes = home_quotes + away_quotes
+    home_summary = _book_line_summary(home_quotes, home_target_line, prefer_exact=False)
+    away_summary = _book_line_summary(away_quotes, away_target_line, prefer_exact=False)
+    source_lines = "\n".join(
+        part
+        for part in (
+            f"{home_name}: {home_summary}" if home_summary else "",
+            f"{away_name}: {away_summary}" if away_summary else "",
+        )
+        if part
+    )
+    proxy_note = (
+        f"; {proxy_stat_key} proxy for {stat_key}"
+        if proxy_stat_key != normalize_stat(stat_key)
+        else ""
+    )
+    if home_odds is None or away_odds is None:
+        lean_side = "home" if home_prob >= away_prob else "away"
+        lean_option = home_option if lean_side == "home" else away_option
+        lean_prob = home_prob if lean_side == "home" else away_prob
+        return _with_odds_updated({
+            **direct_result,
+            **_book_outcome_fields([home_book_outcome, away_book_outcome]),
+            "status": "missing_poll_data",
+            "recommended_option": str(lean_option.get("label") or lean_side),
+            "recommended_amount": 0,
+            "stake_fraction_of_max": 0.0,
+            "recommended_ev_percent": "",
+            "fair_prob": round(float(lean_prob), 6),
+            "fair_odds": int(probability_to_american(float(lean_prob))),
+            "consensus_fair_line": round(diff, 4),
+            "matched_books": len(combined_quotes),
+            "books": _quote_books_text(combined_quotes),
+            "option_choices_json": "",
+            "source_lines": source_lines,
+            "notes": (
+                f"UFC player-prop head-to-head proxy{proxy_note}; "
+                f"Real poll options did not expose odds; "
+                f"{home_name} {home_fair_line:.2f} vs {away_name} {away_fair_line:.2f} "
+                f"projected {proxy_stat_key}; {home_source} / {away_source}"
+            ),
+        }, combined_quotes)
+
+    evaluations = [
+        {
+            "option": home_option,
+            "slot": _option_slot_name(home_index),
+            "key": "home",
+            "label": str(home_option.get("label") or ""),
+            "real_odds": home_odds,
+            "book_outcome": home_book_outcome,
+            "evaluation": _evaluate_binary_offer(home_prob, home_odds),
+        },
+        {
+            "option": away_option,
+            "slot": _option_slot_name(away_index),
+            "key": "away",
+            "label": str(away_option.get("label") or ""),
+            "real_odds": away_odds,
+            "book_outcome": away_book_outcome,
+            "evaluation": _evaluate_binary_offer(away_prob, away_odds),
+        },
+    ]
+    selected_action = _choose_zero_or_max_action(
+        poll.get("maxWager"),
+        [{"label": str(item["option"].get("label") or ""), **item} for item in evaluations],
+    )
+    if selected_action is None:
+        return None
+
+    selected_eval = selected_action["evaluation"]
+    return _with_odds_updated({
+        **direct_result,
+        **_book_outcome_fields([home_book_outcome, away_book_outcome]),
+        "status": str(selected_action.get("status") or "pick"),
+        "recommended_option": str(selected_action.get("label") or selected_action["option"].get("label") or ""),
+        "recommended_amount": int(selected_action.get("amount") or 0),
+        "stake_fraction_of_max": round(float(selected_action.get("stake_fraction") or 0.0), 6),
+        "recommended_ev_percent": round(float(_evaluation_value(selected_eval, "ev_percent") or 0.0), 4),
+        "fair_prob": round(float(_evaluation_value(selected_eval, "fair_prob") or 0.0), 6),
+        "fair_odds": int(_evaluation_value(selected_eval, "fair_odds") or probability_to_american(0.5)),
+        "consensus_fair_line": round(diff, 4),
+        "matched_books": len(combined_quotes),
+        "books": _quote_books_text(combined_quotes),
+        "option_choices_json": _option_choices_json(evaluations),
+        "source_lines": source_lines,
+        "notes": (
+            f"UFC player-prop head-to-head proxy{proxy_note}; "
+            f"{home_name} {home_fair_line:.2f} vs {away_name} {away_fair_line:.2f} "
+            f"projected {proxy_stat_key}; {home_source} / {away_source}"
+        ),
+    }, combined_quotes)
+
+
 def _recommend_ufc_fighter_stat_winner(
     entry: dict[str, Any],
     markets: list[MarketRow],
@@ -3571,7 +4157,7 @@ def _recommend_ufc_fighter_stat_winner(
 ) -> dict[str, Any]:
     content_text = _first_text((((entry.get("post") or {}).get("content") or {}).get("nodes")) or [])
     stat_key = _ufc_fighter_stat_key(content_text)
-    return _recommend_multi_outcome(
+    direct_result = _recommend_multi_outcome(
         entry,
         markets,
         sport,
@@ -3580,6 +4166,18 @@ def _recommend_ufc_fighter_stat_winner(
         stat=stat_key,
         match_stat=True,
         notes_prefix=f"UFC {stat_key} head-to-head",
+    )
+    if str(direct_result.get("status") or "") != "no_market":
+        return direct_result
+    return (
+        _recommend_ufc_fighter_stat_winner_from_player_props(
+            entry,
+            markets,
+            sport,
+            stat_key=stat_key,
+            direct_result=direct_result,
+        )
+        or direct_result
     )
 
 
@@ -3821,7 +4419,7 @@ def _period_market_code(sport: str, period_value: str) -> str:
     period_key = normalized_period.upper()
     if period_key.endswith(("I", "Q", "P", "H", "R")):
         return period_key
-    if sport == "mlb" and normalized_period.isdigit():
+    if sport in BASEBALL_SPORTS and normalized_period.isdigit():
         return f"{normalized_period}I"
     if sport in {"nba", "wnba"} and normalized_period in {"1", "2", "3", "4"}:
         return f"{normalized_period}Q"
@@ -4200,7 +4798,7 @@ def _recommend_period_total_yes_no(
         )
         if period_match:
             period = period_match.group(1)
-    if not period and sport == "mlb":
+    if not period and sport in BASEBALL_SPORTS:
         ordinal_match = re.search(r"\b([1-9][0-9]*)(?:st|nd|rd|th)\b", content_text, flags=re.IGNORECASE)
         if ordinal_match:
             period = ordinal_match.group(1)
@@ -4220,7 +4818,7 @@ def _recommend_period_total_yes_no(
                 line_value = float(over_under_amount)
             except Exception:
                 line_value = None
-    if line_value is None and sport == "mlb" and re.search(r"\b(any\s+run|run\s+score)\b", content_text, flags=re.IGNORECASE):
+    if line_value is None and sport in BASEBALL_SPORTS and re.search(r"\b(any\s+run|run\s+score)\b", content_text, flags=re.IGNORECASE):
         line_value = 0.5
 
     base = {
@@ -4292,6 +4890,88 @@ def _recommend_period_total_yes_no(
         )
         used_team_run_fallback = bool(quotes)
     if not quotes:
+        if sport in BASEBALL_SPORTS and market_period == "1I":
+            full_game_rows = _matching_game_quotes(
+                markets,
+                sport=sport,
+                game=game,
+                market_family="game_total",
+                period="",
+            )
+            full_game_quotes = [
+                MarketQuote(
+                    book=market.book,
+                    line=market.line,
+                    over_odds=market.over_odds,
+                    under_odds=market.under_odds,
+                    updated_at=market.updated_at,
+                )
+                for market in full_game_rows
+                if market.line is not None and market.over_odds is not None and market.under_odds is not None
+            ]
+            projected_total = _project_fair_line_from_quotes(full_game_quotes, default_scale=1.5)
+            if projected_total is not None:
+                fair_total, full_target_line, full_source = projected_total
+                inning_mean = max(0.0, fair_total / 9.0)
+                over_prob = _poisson_over_probability(inning_mean, float(line_value))
+                under_prob = 1.0 - over_prob
+                over_eval = _evaluate_binary_offer(over_prob, int(over_odds))
+                under_eval = _evaluate_binary_offer(under_prob, int(under_odds))
+                selected_action = _choose_zero_or_max_action(
+                    poll.get("maxWager"),
+                    [
+                        {
+                            "label": str(over_option.get("label") or ""),
+                            "evaluation": over_eval,
+                        },
+                        {
+                            "label": str(under_option.get("label") or ""),
+                            "evaluation": under_eval,
+                        },
+                    ],
+                )
+                representative = _representative_market_quote(full_game_quotes, full_target_line)
+                source_lines = _book_line_summary(full_game_quotes, full_target_line, prefer_exact=False)
+                if selected_action is None:
+                    return _with_odds_updated({
+                        **base,
+                        "status": "missing_poll_data",
+                        "recommended_option": "",
+                        "recommended_amount": 0,
+                        "stake_fraction_of_max": 0.0,
+                        "recommended_ev_percent": "",
+                        "fair_prob": "",
+                        "fair_odds": "",
+                        "consensus_fair_line": round(fair_total, 4),
+                        "matched_books": _quote_book_count(full_game_quotes),
+                        "books": _quote_books_text(full_game_quotes),
+                        "notes": "Could not evaluate full-game-total fallback for first-inning run poll.",
+                        "sportsbook_a_odds": int(probability_to_american(over_prob)),
+                        "sportsbook_b_odds": int(probability_to_american(under_prob)),
+                        "source_lines": source_lines,
+                    }, full_game_quotes)
+                selected_eval = selected_action["evaluation"]
+                return _with_odds_updated({
+                    **base,
+                    "status": str(selected_action.get("status") or "pick"),
+                    "recommended_option": str(selected_action.get("label") or ""),
+                    "recommended_amount": int(selected_action.get("amount") or 0),
+                    "stake_fraction_of_max": round(float(selected_action.get("stake_fraction") or 0.0), 6),
+                    "recommended_ev_percent": round(float(_evaluation_value(selected_eval, "ev_percent") or 0.0), 4),
+                    "fair_prob": round(float(_evaluation_value(selected_eval, "fair_prob") or 0.0), 6),
+                    "fair_odds": int(_evaluation_value(selected_eval, "fair_odds") or probability_to_american(0.5)),
+                    "consensus_fair_line": round(fair_total, 4),
+                    "matched_books": _quote_book_count(full_game_quotes),
+                    "books": _quote_books_text(full_game_quotes),
+                    "notes": (
+                        f"{full_source}; first-inning run probability derived from "
+                        f"full-game total {fair_total:.2f}/9 innings because no "
+                        f"{sport.upper()} first-inning sportsbook quote was available."
+                    ),
+                    "sportsbook_a_odds": int(probability_to_american(over_prob)),
+                    "sportsbook_b_odds": int(probability_to_american(under_prob)),
+                    "source_lines": source_lines,
+                }, full_game_quotes)
         return {
             **base,
             "status": "no_market",
@@ -4474,6 +5154,11 @@ def _normalize_pick_stat(value: Any) -> str:
         "rbi": "rbis",
         "rbis": "rbis",
         "runsbattedin": "rbis",
+        "hit": "hits",
+        "hits": "hits",
+        "homerun": "homeruns",
+        "homeruns": "homeruns",
+        "home_runs": "homeruns",
         "totalbases": "totalbases",
         "3pt": "madethrees",
         "3pts": "madethrees",
@@ -4490,6 +5175,19 @@ def _normalize_pick_stat(value: Any) -> str:
     return normalize_stat(str(value or ""))
 
 
+def _baseball_anytime_stat_from_text(text: str) -> str:
+    normalized = normalize_text(str(text or ""))
+    if re.search(r"\bhome\s+runs?\b|\bhomers?\b", normalized):
+        return "homeruns"
+    if re.search(r"\brbis?\b|\bruns?\s+batted\s+in\b", normalized):
+        return "rbis"
+    if re.search(r"\bhits?\b", normalized):
+        return "hits"
+    if re.search(r"\bruns?\b", normalized):
+        return "runs"
+    return ""
+
+
 def _resolve_zero_cost_stat_key(entry: dict[str, Any], poll_kind: str) -> str:
     poll = entry.get("poll") or {}
     game = entry.get("game") or {}
@@ -4498,9 +5196,17 @@ def _resolve_zero_cost_stat_key(entry: dict[str, Any], poll_kind: str) -> str:
     if poll_kind == "first_basket":
         return "firstbasket"
     sport = str(additional.get("sport") or game.get("sport") or "").strip().lower()
-    stat_key = _normalize_pick_stat(additional.get("stat") or "")
-    if stat_key:
-        return stat_key
+    text_parts = [
+        str(post.get("header") or "").strip(),
+        _first_text(((post.get("content") or {}).get("nodes")) or []),
+        str(additional.get("playType") or "").strip(),
+        " ".join(str(item).strip() for item in (additional.get("playTypes") or []) if str(item).strip()),
+    ]
+    combined_text = " ".join(part for part in text_parts if part).lower()
+    if sport in BASEBALL_SPORTS and poll_kind == "anytime_play":
+        text_stat_key = _baseball_anytime_stat_from_text(combined_text)
+        if text_stat_key:
+            return text_stat_key
 
     params = additional.get("params") or {}
     try:
@@ -4510,17 +5216,13 @@ def _resolve_zero_cost_stat_key(entry: dict[str, Any], poll_kind: str) -> str:
     if target_points == 3:
         return "madethrees"
     if target_points == 1:
-        if not (sport == "mlb" and poll_kind == "anytime_play"):
+        if not (sport in BASEBALL_SPORTS and poll_kind == "anytime_play"):
             return "points"
 
-    play_types = additional.get("playTypes") or []
-    text_parts = [
-        str(post.get("header") or "").strip(),
-        _first_text(((post.get("content") or {}).get("nodes")) or []),
-        str(additional.get("playType") or "").strip(),
-        " ".join(str(item).strip() for item in play_types if str(item).strip()),
-    ]
-    combined_text = " ".join(part for part in text_parts if part).lower()
+    stat_key = _normalize_pick_stat(additional.get("stat") or "")
+    if stat_key:
+        return stat_key
+
     if "shot on goal" in combined_text or "shots on goal" in combined_text or " shot " in f" {combined_text} ":
         return "shots"
     if "assist" in combined_text:
@@ -4531,6 +5233,8 @@ def _resolve_zero_cost_stat_key(entry: dict[str, Any], poll_kind: str) -> str:
         return "goals"
     if "rbi" in combined_text:
         return "rbis"
+    if re.search(r"\bhits?\b", combined_text):
+        return "hits"
     if " run " in f" {combined_text} " or "runs" in combined_text:
         return "runs"
     if "rebound" in combined_text:
@@ -5156,6 +5860,252 @@ def _fantasy_points_records(path: Path = FANTASY_POINTS_FILE) -> tuple[dict[str,
     return _cached_fantasy_points_records(str(path), int(stat.st_mtime_ns))
 
 
+def _game_team_keys(game: dict[str, Any]) -> set[str]:
+    keys: set[str] = set()
+    for side in ("home", "away"):
+        for field in (f"{side}TeamKey", f"{side}TeamAbbr"):
+            value = str(game.get(field) or "").strip()
+            if value:
+                keys.add(normalize_team(value))
+        team = game.get(f"{side}Team")
+        if isinstance(team, dict):
+            for field in ("key", "abbr", "abbreviation", "displayName", "name", "city", "nickname"):
+                value = str(team.get(field) or "").strip()
+                if value:
+                    keys.add(normalize_team(value))
+    return {key for key in keys if key}
+
+
+def _record_team_keys(record: dict[str, Any]) -> set[str]:
+    keys: set[str] = set()
+    team = record.get("team") or record.get("teamInfo") or {}
+    if isinstance(team, dict):
+        for field in ("key", "abbr", "abbreviation", "team", "displayName", "name", "city", "nickname"):
+            value = str(team.get(field) or "").strip()
+            if value:
+                keys.add(normalize_team(value))
+    for field in ("teamKey", "teamAbbr", "team", "teamName"):
+        raw_value = record.get(field)
+        if isinstance(raw_value, dict):
+            continue
+        value = str(raw_value or "").strip()
+        if value:
+            keys.add(normalize_team(value))
+    return {key for key in keys if key}
+
+
+def _record_game_id(record: dict[str, Any]) -> str:
+    for value in (
+        record.get("gameId"),
+        record.get("gameID"),
+        record.get("game_id"),
+        (record.get("game") or {}).get("id") if isinstance(record.get("game"), dict) else "",
+    ):
+        text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def _same_cws_record_game(game: dict[str, Any], record: dict[str, Any]) -> bool:
+    game_id = str(game.get("id") or "").strip()
+    record_game_id = _record_game_id(record)
+    if game_id and record_game_id:
+        return game_id == record_game_id
+    game_team_keys = _game_team_keys(game)
+    record_team_keys = _record_team_keys(record)
+    return bool(game_team_keys and record_team_keys and not game_team_keys.isdisjoint(record_team_keys))
+
+
+def _baseball_position_tokens(record: dict[str, Any]) -> set[str]:
+    raw_positions: list[str] = []
+    for field in ("position", "positions", "eligiblePositions"):
+        value = record.get(field)
+        if isinstance(value, (list, tuple, set)):
+            raw_positions.extend(str(item or "") for item in value)
+        else:
+            raw_positions.append(str(value or ""))
+    tokens: set[str] = set()
+    for value in raw_positions:
+        for token in re.split(r"[^A-Za-z0-9]+", value.upper()):
+            if token:
+                tokens.add(token)
+    return tokens
+
+
+def _is_pitcher_only_record(record: dict[str, Any]) -> bool:
+    tokens = _baseball_position_tokens(record)
+    return bool(tokens) and tokens.issubset({"P", "SP", "RP", "LHP", "RHP"})
+
+
+def _record_primary_value(record: dict[str, Any]) -> float:
+    rankings = record.get("rankings") or {}
+    for value in (
+        rankings.get("primaryValue") if isinstance(rankings, dict) else None,
+        record.get("primaryValue"),
+        rankings.get("alltimeValue") if isinstance(rankings, dict) else None,
+        record.get("alltimeValue"),
+        record.get("realRating"),
+        record.get("rating"),
+    ):
+        number = safe_float(value)
+        if number > 0:
+            return number
+    return 0.0
+
+
+def _record_rating_weight(record: dict[str, Any]) -> float:
+    rankings = record.get("rankings") or {}
+    value = _record_primary_value(record)
+    if value > 0:
+        weight = value
+    else:
+        primary_rank = _positive_rank(
+            record.get("primaryRanking")
+            or (rankings.get("primaryRanking") if isinstance(rankings, dict) else None),
+            fallback=0.0,
+        )
+        alltime_rank = _positive_rank(
+            record.get("alltimeRanking")
+            or (rankings.get("alltimeRanking") if isinstance(rankings, dict) else None),
+            fallback=0.0,
+        )
+        weight = 0.0
+        if primary_rank > 0:
+            weight += 1.0 / math.sqrt(primary_rank)
+        if alltime_rank > 0:
+            weight += 0.45 / math.sqrt(alltime_rank)
+    bonus = safe_float(record.get("multiplierBonus"))
+    if 0 < bonus < 5:
+        weight *= 1.0 + bonus
+    return max(0.0, weight)
+
+
+def _cws_anytime_probability(stat_key: str, *, weight: float, max_weight: float, share: float) -> float:
+    relative = weight / max_weight if max_weight > 0 else 0.0
+    if stat_key == "hits":
+        probability = 0.18 + (0.48 * relative) + (0.20 * share)
+        return max(0.05, min(0.78, probability))
+    if stat_key == "rbis":
+        probability = 0.07 + (0.30 * relative) + (0.10 * share)
+        return max(0.02, min(0.48, probability))
+    if stat_key == "runs":
+        probability = 0.08 + (0.28 * relative) + (0.10 * share)
+        return max(0.02, min(0.50, probability))
+    if stat_key == "homeruns":
+        probability = 0.01 + (0.10 * relative) + (0.04 * share)
+        return max(0.005, min(0.22, probability))
+    return 0.0
+
+
+def _cws_player_source_line(record: dict[str, Any], weight: float) -> str:
+    selection = _player_candidate_label(record) or player_full_name(record)
+    team_keys = sorted(_record_team_keys(record))
+    team_text = team_keys[0].upper() if team_keys else ""
+    positions = "/".join(sorted(_baseball_position_tokens(record)))
+    rating = _record_primary_value(record)
+    if rating > 0:
+        metric = f"Real rating {rating:.2f}"
+    else:
+        metric = f"rank weight {weight:.3f}"
+    pieces = [selection]
+    detail = ", ".join(part for part in (team_text, positions) if part)
+    if detail:
+        pieces.append(f"({detail})")
+    pieces.append(metric)
+    return " ".join(part for part in pieces if part)
+
+
+def _cws_real_rating_fallback_candidates(
+    entry: dict[str, Any],
+    *,
+    stat_key: str,
+) -> list[dict[str, Any]]:
+    if stat_key not in {"hits", "rbis", "runs", "homeruns"}:
+        return []
+    game = entry.get("game") or {}
+    records: list[dict[str, Any]] = [
+        record
+        for record in _fantasy_points_records()
+        if isinstance(record, dict)
+        and str(record.get("sport") or "").lower() == "ncaabb"
+        and _same_cws_record_game(game, record)
+    ]
+    if not records:
+        client = entry.get("_realsports_client")
+        if client is not None:
+            try:
+                records = [
+                    record
+                    for record in _search_rating_lineup_players(
+                        client,
+                        "ncaabb",
+                        season=_poll_season(entry, entry.get("poll") or {}),
+                    )
+                    if isinstance(record, dict) and _same_cws_record_game(game, record)
+                ]
+            except Exception:
+                records = []
+    records = [
+        record
+        for record in records
+        if _player_candidate_label(record)
+        and not is_unavailable_or_questionable_record(record)
+        and _record_rating_weight(record) > 0
+    ]
+    if stat_key in {"hits", "rbis", "runs", "homeruns"}:
+        hitter_records = [record for record in records if not _is_pitcher_only_record(record)]
+        if hitter_records:
+            records = hitter_records
+    if not records:
+        return []
+
+    weighted_records = [(record, _record_rating_weight(record)) for record in records]
+    total_weight = sum(weight for _, weight in weighted_records)
+    max_weight = max((weight for _, weight in weighted_records), default=0.0)
+    if total_weight <= 0 or max_weight <= 0:
+        return []
+
+    stat_label = {
+        "hits": "hit",
+        "rbis": "RBI",
+        "runs": "run",
+        "homeruns": "home run",
+    }.get(stat_key, stat_key)
+    candidates: list[dict[str, Any]] = []
+    for record, weight in weighted_records:
+        selection = _player_candidate_label(record) or player_full_name(record)
+        if not selection:
+            continue
+        fair_prob = _cws_anytime_probability(
+            stat_key,
+            weight=weight,
+            max_weight=max_weight,
+            share=weight / total_weight,
+        )
+        if fair_prob <= 0:
+            continue
+        candidates.append(
+            {
+                "player_key": normalize_player_name(selection) or str(record.get("id") or selection),
+                "selection": selection,
+                "fair_prob": fair_prob,
+                "fair_odds": int(probability_to_american(fair_prob)),
+                "consensus_fair_line": round(weight, 4),
+                "matched_books": 0,
+                "books": "",
+                "sportsbook_odds": "",
+                "source_lines": _cws_player_source_line(record, weight),
+                "source_note": (
+                    f"CWS Real rating/rank fallback for anytime {stat_label}; "
+                    f"no same-game sportsbook {stat_key} prop was available"
+                ),
+                "odds_updated_at": "",
+            }
+        )
+    return candidates
+
+
 def _soccer_game_pair_candidates(game: dict[str, Any]) -> set[tuple[str, str]]:
     values: dict[str, list[str]] = {"home": [], "away": []}
     for side in ("home", "away"):
@@ -5358,6 +6308,7 @@ def _rank_zero_cost_candidates(
     payout_base: int,
     *,
     daily_ladder: bool = False,
+    flat_payout: bool = False,
 ) -> list[dict[str, Any]]:
     ranked: list[dict[str, Any]] = []
     ordered = sorted(
@@ -5368,7 +6319,9 @@ def _rank_zero_cost_candidates(
         ),
     )
     for probability_rank, candidate in enumerate(ordered, start=1):
-        if daily_ladder:
+        if flat_payout:
+            payout = int(payout_base)
+        elif daily_ladder:
             if probability_rank <= 20:
                 payout = int(payout_base) * probability_rank
             else:
@@ -5760,6 +6713,11 @@ def _recommend_zero_cost_player_poll(
                 entry,
                 stat_key=stat_key,
             )
+        if not candidates and sport == "ncaabb" and poll_kind == "anytime_play":
+            candidates = _cws_real_rating_fallback_candidates(
+                entry,
+                stat_key=stat_key,
+            )
 
         if (
             not candidates
@@ -5934,6 +6892,8 @@ def _golf_leaderboard_context(entry: dict[str, Any]) -> tuple[str, float, str, s
     content_text = _first_text(((post.get("content") or {}).get("nodes")) or [])
     text = f"{content_text} {additional.get('karmaDisplay') or ''}".lower()
     round_value = str(additional.get("round") or "").strip()
+    if not round_value:
+        round_value = _golf_round_value_from_text(text)
     period = f"R{round_value}" if round_value.isdigit() else ""
 
     min_rank: int | None = None
@@ -5944,6 +6904,11 @@ def _golf_leaderboard_context(entry: dict[str, Any]) -> tuple[str, float, str, s
     top_match = re.search(r"\btop\s+([0-9]+)\b", text)
     if top_match:
         min_rank = int(top_match.group(1))
+
+    round_best_score_text = _is_golf_best_score_text(text)
+    if period and round_best_score_text:
+        round_label = f"round {round_value} best scorer" if round_value else "round best scorer"
+        return "leader", 1.0, period, round_label
 
     if additional.get("isMatchupPoll") and round_value:
         return "roundmatchup", 1.0, period, f"round {round_value} matchup"
@@ -6159,6 +7124,127 @@ def _golf_round_score_candidates(
     return candidates
 
 
+def _golf_projection_fallback_candidates(
+    entry: dict[str, Any],
+    *,
+    period: str,
+    allowed_players: set[str],
+    market_label: str,
+) -> list[dict[str, Any]]:
+    if not period or not allowed_players:
+        return []
+    round_value = period[1:] if period.upper().startswith("R") else ""
+    records = entry.get("projection_records")
+    if not isinstance(records, (list, tuple)):
+        records = _fantasy_points_records()
+
+    by_player: dict[str, dict[str, Any]] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        record_name = player_full_name(record) or str(record.get("fullName") or "").strip()
+        record_key = normalize_player_name(record_name)
+        if not record_key or not _golf_player_key_in_set(record_key, allowed_players):
+            continue
+        if is_unavailable_or_questionable_record(record):
+            continue
+        projected_points = safe_float(record.get("pts"))
+        odds = record.get("odds") if isinstance(record.get("odds"), dict) else {}
+        round_odds = 0
+        if round_value:
+            try:
+                round_odds = int(float(odds.get(f"round{round_value}") or 0))
+            except Exception:
+                round_odds = 0
+        existing = by_player.get(record_key)
+        if existing is None or projected_points > safe_float(existing.get("pts")):
+            by_player[record_key] = record
+
+    if len(by_player) < 2:
+        return []
+
+    odds_probabilities: dict[str, float] = {}
+    for player_key, record in by_player.items():
+        odds = record.get("odds") if isinstance(record.get("odds"), dict) else {}
+        try:
+            round_odds = int(float(odds.get(f"round{round_value}") or 0))
+        except Exception:
+            round_odds = 0
+        if round_odds:
+            odds_probabilities[player_key] = american_to_implied_prob(round_odds)
+
+    probability_source = "projected fantasy points"
+    if len(odds_probabilities) >= 2:
+        total_probability = sum(odds_probabilities.values())
+        weights = {
+            player_key: probability / total_probability
+            for player_key, probability in odds_probabilities.items()
+            if total_probability > 0
+        }
+        probability_source = f"Rotowire round {round_value} leader odds"
+    else:
+        points_by_player = {
+            player_key: max(0.1, safe_float(record.get("pts")))
+            for player_key, record in by_player.items()
+        }
+        if len(points_by_player) < 2:
+            return []
+        mean_points = sum(points_by_player.values()) / len(points_by_player)
+        variance = sum((points - mean_points) ** 2 for points in points_by_player.values()) / len(points_by_player)
+        scale = max(3.0, math.sqrt(variance) or 0.0)
+        raw_weights = {
+            player_key: math.exp((points - mean_points) / scale)
+            for player_key, points in points_by_player.items()
+        }
+        total_weight = sum(raw_weights.values())
+        if total_weight <= 0:
+            return []
+        weights = {
+            player_key: weight / total_weight
+            for player_key, weight in raw_weights.items()
+        }
+
+    candidates: list[dict[str, Any]] = []
+    for player_key, fair_prob in weights.items():
+        if fair_prob <= 0:
+            continue
+        record = by_player.get(player_key) or {}
+        selection = player_full_name(record) or str(record.get("fullName") or player_key).strip()
+        projected_points = safe_float(record.get("pts"))
+        source_site = str(record.get("sourceSite") or "Rotowire").strip()
+        source_lines = (
+            f"{source_site} {selection} projected {projected_points:.2f} pts"
+            if projected_points > 0
+            else f"{source_site} {selection}"
+        )
+        odds = record.get("odds") if isinstance(record.get("odds"), dict) else {}
+        try:
+            round_odds = int(float(odds.get(f"round{round_value}") or 0))
+        except Exception:
+            round_odds = 0
+        if round_odds:
+            source_lines = f"{source_lines}; R{round_value} leader {_format_american(round_odds)}"
+        candidates.append(
+            {
+                "player_key": player_key,
+                "selection": selection,
+                "fair_prob": fair_prob,
+                "fair_odds": int(probability_to_american(fair_prob)),
+                "consensus_fair_line": round(projected_points, 4) if projected_points > 0 else "",
+                "matched_books": 0,
+                "books": source_site,
+                "sportsbook_odds": round_odds or "",
+                "source_lines": source_lines,
+                "source_note": (
+                    f"{probability_source} fallback for {market_label}; "
+                    "no current sportsbook round-leader/round-score market matched"
+                ),
+                "odds_updated_at": "",
+            }
+        )
+    return candidates
+
+
 def _recommend_golf_leaderboard_poll(
     entry: dict[str, Any],
     markets: list[MarketRow],
@@ -6185,6 +7271,7 @@ def _recommend_golf_leaderboard_poll(
     option_players = _poll_option_player_names(entry)
     required_players = option_players if stat_key == "roundmatchup" else set()
     allowed_players = option_players or _allowed_game_players(entry.get("game_payload") or {})
+    is_round_best_score = "best score" in market_label or "best scorer" in market_label
     candidates = _golf_leaderboard_candidates(
         markets,
         stat_key=stat_key,
@@ -6201,11 +7288,35 @@ def _recommend_golf_leaderboard_poll(
         )
         if candidates:
             market_label = f"round {period[1:]} best score" if period.startswith("R") else "round best score"
+    if not candidates and stat_key == "leader" and period:
+        candidates = _golf_round_score_candidates(
+            markets,
+            period=period,
+            allowed_players=option_players or allowed_players,
+        )
+        if candidates:
+            market_label = (
+                f"round {period[1:]} best score proxy"
+                if period.startswith("R") and is_round_best_score
+                else f"round {period[1:]} leader score proxy"
+                if period.startswith("R")
+                else "round score proxy"
+            )
+    if not candidates and stat_key == "leader" and period:
+        candidates = _golf_projection_fallback_candidates(
+            entry,
+            period=period,
+            allowed_players=option_players or allowed_players,
+            market_label=market_label,
+        )
     if not candidates:
         return {
             **base,
             "status": "no_market",
-            "notes": f"No DraftKings golf {market_label} odds matched this leaderboard poll.",
+            "notes": (
+                f"No DraftKings golf {market_label} odds matched this leaderboard poll, "
+                "and no Rotowire projection fallback matched the poll options."
+            ),
         }
 
     additional = (entry.get("poll") or {}).get("additionalInfo") or {}
@@ -6213,7 +7324,8 @@ def _recommend_golf_leaderboard_poll(
         payout_base = max(1, int(float(additional.get("karmaIncrement") or 10)))
     except Exception:
         payout_base = 10
-    ranked_candidates = _rank_zero_cost_candidates(candidates, payout_base)
+    flat_payout = "best score" in market_label or "best scorer" in market_label
+    ranked_candidates = _rank_zero_cost_candidates(candidates, payout_base, flat_payout=flat_payout)
     selected = max(
         ranked_candidates,
         key=lambda candidate: (
@@ -6224,7 +7336,11 @@ def _recommend_golf_leaderboard_poll(
         ),
     )
     note_parts = [
-        f"weighted golf leaderboard payout ladder from karmaIncrement={payout_base}",
+        (
+            f"flat golf best-scorer payout from karmaIncrement={payout_base}"
+            if flat_payout
+            else f"weighted golf leaderboard payout ladder from karmaIncrement={payout_base}"
+        ),
         f"{market_label} market",
         f"rank {int(selected['probability_rank'])} payout {int(selected['ranked_payout'])}",
         f"fair win {float(selected['fair_prob']) * 100.0:.1f}%",
@@ -6412,6 +7528,978 @@ def _recommend_team_stat_poll(
     }
 
 
+def _poll_detail_text(poll: dict[str, Any], post: dict[str, Any]) -> str:
+    additional = poll.get("additionalInfo") or {}
+    detail = str(additional.get("detail") or "").strip()
+    if detail:
+        return detail
+    header = str(post.get("header") or "").strip()
+    if header:
+        return header
+    return _first_text(((post.get("content") or {}).get("nodes")) or [])
+
+
+def _poll_season(entry: dict[str, Any], poll: dict[str, Any]) -> str:
+    additional = poll.get("additionalInfo") or {}
+    for value in (
+        additional.get("season"),
+        (entry.get("game") or {}).get("season"),
+        str((entry.get("game") or {}).get("day") or "")[:4],
+        str((entry.get("game") or {}).get("dateTime") or "")[:4],
+    ):
+        text = str(value or "").strip()
+        if text:
+            return text
+    return "2026"
+
+
+def _positive_rank(value: Any, fallback: float = 999999.0) -> float:
+    try:
+        rank = float(value)
+    except Exception:
+        return fallback
+    if not math.isfinite(rank) or rank <= 0:
+        return fallback
+    return rank
+
+
+def _team_candidate_label(team: dict[str, Any]) -> str:
+    return str(team.get("name") or team.get("displayName") or team.get("key") or "").strip()
+
+
+def _player_candidate_label(player: dict[str, Any]) -> str:
+    first = str(player.get("firstName") or "").strip()
+    last = str(player.get("lastName") or "").strip()
+    full_name = " ".join(part for part in (first, last) if part).strip()
+    return full_name or str(player.get("displayName") or "").strip()
+
+
+def _candidate_match_values(candidate: dict[str, Any], entity_type: str) -> set[str]:
+    values: set[str] = set()
+    for raw in (
+        candidate.get("selection"),
+        candidate.get("label"),
+        candidate.get("key"),
+        candidate.get("short_label"),
+    ):
+        text = str(raw or "").strip()
+        if not text:
+            continue
+        values.add(normalize_text(text).replace(" ", ""))
+        if entity_type == "team":
+            values.add(normalize_team(text))
+        else:
+            values.add(normalize_player_name(text))
+    return {value for value in values if value}
+
+
+def _labels_might_match(label: str, candidate: dict[str, Any], entity_type: str) -> bool:
+    label_key = normalize_text(label).replace(" ", "")
+    if not label_key:
+        return False
+    if entity_type == "team":
+        label_keys = {label_key, normalize_team(label)}
+    else:
+        label_keys = {label_key, normalize_player_name(label)}
+    candidate_keys = _candidate_match_values(candidate, entity_type)
+    return bool(label_keys & candidate_keys)
+
+
+def _tournament_market_matches_detail(raw: dict[str, Any], detail: str, entity_type: str) -> bool:
+    detail_norm = normalize_text(detail)
+    detail_compact = detail_norm.replace(" ", "")
+    haystack = normalize_text(
+        " ".join(
+            str(raw.get(key) or "")
+            for key in (
+                "provider_market_name",
+                "market_type",
+                "stat",
+                "question",
+                "provider_league",
+            )
+        )
+    )
+    haystack_compact = haystack.replace(" ", "")
+    if not haystack:
+        return False
+    if "group" in detail_norm and "winner" in detail_norm:
+        return detail_compact in haystack_compact
+    if entity_type == "team":
+        return any(
+            phrase in haystack
+            for phrase in (
+                "champion",
+                "world cup winner",
+                "tournament winner",
+                "outright winner",
+            )
+        ) and "group" not in haystack
+    if "golden boot" in detail_norm:
+        return "golden boot" in haystack or "top goal scorer" in haystack or "top goalscorer" in haystack
+    if "silver boot" in detail_norm:
+        return "silver boot" in haystack
+    if "bronze boot" in detail_norm:
+        return "bronze boot" in haystack
+    if "golden glove" in detail_norm:
+        return "golden glove" in haystack or "best goalkeeper" in haystack
+    return detail_compact in haystack_compact
+
+
+def _market_price_outcomes(market: MarketRow) -> list[dict[str, Any]]:
+    outcomes = _market_extra_outcomes(market)
+    if outcomes:
+        return outcomes
+    raw = market.raw or {}
+    player_name = str(raw.get("player_name") or "").strip()
+    if player_name and market.over_odds is not None:
+        return [{"label": player_name, "key": player_name, "odds": market.over_odds}]
+    return []
+
+
+def _attach_tournament_market_prices(
+    candidates: list[dict[str, Any]],
+    markets: list[MarketRow],
+    *,
+    sport: str,
+    detail: str,
+    entity_type: str,
+) -> bool:
+    matched_any = False
+    for market in markets:
+        if market.sport != sport:
+            continue
+        if not _tournament_market_matches_detail(market.raw or {}, detail, entity_type):
+            continue
+        for outcome in _market_price_outcomes(market):
+            odds = _normalize_option_odds({"odds": outcome.get("odds")})
+            if odds is None:
+                continue
+            label = str(outcome.get("label") or outcome.get("key") or "").strip()
+            if not label:
+                continue
+            for candidate in candidates:
+                if not _labels_might_match(label, candidate, entity_type):
+                    continue
+                candidate.setdefault("market_prices", []).append(
+                    {
+                        "book": market.book,
+                        "label": label,
+                        "odds": odds,
+                        "updated_at": market.updated_at,
+                    }
+                )
+                matched_any = True
+    if not matched_any:
+        return False
+
+    priced_candidates = [candidate for candidate in candidates if candidate.get("market_prices")]
+    raw_prob_total = 0.0
+    for candidate in priced_candidates:
+        prices = candidate.get("market_prices") or []
+        implied_values = [american_to_implied_prob(price["odds"]) for price in prices]
+        avg_implied = sum(implied_values) / len(implied_values)
+        candidate["market_raw_prob"] = avg_implied
+        raw_prob_total += avg_implied
+        best_price = max(prices, key=lambda price: american_to_implied_prob(price["odds"]))
+        candidate["sportsbook_odds"] = best_price["odds"]
+        candidate["matched_books"] = len({str(price.get("book") or "") for price in prices if price.get("book")})
+        candidate["books"] = " | ".join(sorted({str(price.get("book") or "") for price in prices if price.get("book")}))
+        candidate["odds_updated_at"] = _latest_odds_updated_at(
+            [
+                type("_OddsItem", (), {"updated_at": price.get("updated_at")})()
+                for price in prices
+            ]
+        )
+    if raw_prob_total <= 0:
+        return True
+    for candidate in priced_candidates:
+        fair_prob = float(candidate.get("market_raw_prob") or 0.0) / raw_prob_total
+        candidate["fair_prob"] = fair_prob
+        candidate["fair_odds"] = probability_to_american(fair_prob)
+    return True
+
+
+def _candidate_probability(candidates: list[dict[str, Any]]) -> None:
+    weights: list[float] = []
+    for index, candidate in enumerate(candidates):
+        rank = _positive_rank(candidate.get("rank"), fallback=5000.0 + index)
+        weights.append(1.0 / max(rank, 1.0))
+    total_weight = sum(weights) or 1.0
+    for candidate, weight in zip(candidates, weights):
+        if candidate.get("fair_prob") not in (None, "", "None"):
+            continue
+        fair_prob = weight / total_weight
+        candidate["fair_prob"] = fair_prob
+        candidate["fair_odds"] = probability_to_american(fair_prob)
+
+
+def _search_tournament_teams(
+    client: Any,
+    sport: str,
+    *,
+    poll_id: Any,
+    season: str,
+) -> list[dict[str, Any]]:
+    cache_key = ("teams", sport, str(poll_id), str(season))
+    if cache_key in _TOURNAMENT_SEARCH_CACHE:
+        return list(_TOURNAMENT_SEARCH_CACHE[cache_key])
+    try:
+        payload = client.search_teams(
+            sport,
+            query="",
+            poll_id=poll_id,
+            season=season,
+            search_type="",
+        )
+    except Exception:
+        payload = {}
+    teams = [team for team in (payload.get("teams") or []) if isinstance(team, dict)]
+    _TOURNAMENT_SEARCH_CACHE[cache_key] = teams
+    return list(teams)
+
+
+def _search_tournament_players(
+    client: Any,
+    sport: str,
+    *,
+    poll_id: Any,
+    season: str,
+    position: str = "",
+) -> list[dict[str, Any]]:
+    cache_key = ("players", sport, str(poll_id), str(season), str(position or ""))
+    if cache_key in _TOURNAMENT_SEARCH_CACHE:
+        return list(_TOURNAMENT_SEARCH_CACHE[cache_key])
+    players_by_id: dict[str, dict[str, Any]] = {}
+    for query in TOURNAMENT_PLAYER_SEARCH_QUERIES:
+        try:
+            payload = client.search_players(
+                sport,
+                query=query,
+                day="",
+                search_type="",
+                include_no_one_option=False,
+                poll_id=poll_id,
+                season=season,
+                position=position or None,
+            )
+        except Exception:
+            continue
+        for player in payload.get("players") or []:
+            if not isinstance(player, dict):
+                continue
+            player_id = str(player.get("id") or "").strip()
+            if player_id:
+                players_by_id.setdefault(player_id, player)
+    players = list(players_by_id.values())
+    _TOURNAMENT_SEARCH_CACHE[cache_key] = players
+    return list(players)
+
+
+def _search_rating_lineup_players(
+    client: Any,
+    sport: str,
+    *,
+    season: str,
+) -> list[dict[str, Any]]:
+    cache_key = ("rating_lineup_players", sport, str(season))
+    if cache_key in _TOURNAMENT_SEARCH_CACHE:
+        return list(_TOURNAMENT_SEARCH_CACHE[cache_key])
+    players_by_id: dict[str, dict[str, Any]] = {}
+    for query in TOURNAMENT_PLAYER_SEARCH_QUERIES:
+        try:
+            payload = client.search_players(
+                sport,
+                query=query,
+                day="",
+                search_type="ratingLineup",
+                include_no_one_option=False,
+                season=season,
+            )
+        except Exception:
+            continue
+        for player in payload.get("players") or []:
+            if not isinstance(player, dict):
+                continue
+            player_id = str(player.get("id") or "").strip()
+            if player_id:
+                players_by_id.setdefault(player_id, player)
+    players = list(players_by_id.values())
+    _TOURNAMENT_SEARCH_CACHE[cache_key] = players
+    return list(players)
+
+
+def _team_tournament_candidates(
+    client: Any,
+    sport: str,
+    *,
+    entry: dict[str, Any],
+    poll: dict[str, Any],
+) -> list[dict[str, Any]]:
+    season = _poll_season(entry, poll)
+    teams = _search_tournament_teams(client, sport, poll_id=poll.get("id"), season=season)
+    candidates: list[dict[str, Any]] = []
+    for team in teams:
+        label = _team_candidate_label(team)
+        if not label:
+            continue
+        rank = _positive_rank(team.get("overallRank"), fallback=_positive_rank(team.get("conferenceRank")))
+        key = str(team.get("key") or "").strip()
+        candidates.append(
+            {
+                "selection": label,
+                "label": label,
+                "key": key,
+                "short_label": key,
+                "rank": rank,
+                "source_line": (
+                    f"{label}"
+                    f"{f' ({key})' if key else ''}: Real overall rank {int(rank) if rank < 999999 else 'n/a'}"
+                ),
+            }
+        )
+    candidates.sort(key=lambda item: (float(item.get("rank") or 999999), str(item.get("selection") or "")))
+    _candidate_probability(candidates)
+    return candidates
+
+
+def _award_finish_rank(detail: str) -> int:
+    normalized = normalize_text(detail)
+    if "silver" in normalized:
+        return 2
+    if "bronze" in normalized:
+        return 3
+    return 1
+
+
+def _player_award_position(detail: str, additional: dict[str, Any]) -> str:
+    explicit = str(additional.get("position") or "").strip()
+    if explicit:
+        return explicit
+    normalized = normalize_text(detail)
+    if "boot" in normalized or "goal scorer" in normalized or "goalscorer" in normalized:
+        return "F"
+    if "glove" in normalized or "goalkeeper" in normalized:
+        return "G"
+    return ""
+
+
+def _player_tournament_candidates(
+    client: Any,
+    sport: str,
+    *,
+    entry: dict[str, Any],
+    poll: dict[str, Any],
+    detail: str,
+) -> tuple[list[dict[str, Any]], int]:
+    additional = poll.get("additionalInfo") or {}
+    season = _poll_season(entry, poll)
+    position = _player_award_position(detail, additional)
+    players = _search_tournament_players(
+        client,
+        sport,
+        poll_id=poll.get("id"),
+        season=season,
+        position=position,
+    )
+    unavailable_count = 0
+    candidates: list[dict[str, Any]] = []
+    for player in players:
+        label = _player_candidate_label(player)
+        if not label:
+            continue
+        if is_unavailable_or_questionable_record(player):
+            unavailable_count += 1
+            continue
+        rank = _positive_rank(
+            player.get("primaryRanking"),
+            fallback=5000.0 + _positive_rank(player.get("alltimeRanking"), fallback=999999.0),
+        )
+        team = player.get("team") or {}
+        team_key = str(team.get("key") or "").strip()
+        display_name = str(player.get("displayName") or "").strip()
+        candidates.append(
+            {
+                "selection": label,
+                "label": label,
+                "key": str(player.get("id") or "").strip(),
+                "short_label": display_name,
+                "rank": rank,
+                "position": str(player.get("position") or "").strip(),
+                "team": team_key,
+                "source_line": (
+                    f"{label}"
+                    f"{f' ({team_key})' if team_key else ''}: Real player rank {int(rank) if rank < 999999 else 'n/a'}"
+                ),
+            }
+        )
+    candidates.sort(key=lambda item: (float(item.get("rank") or 999999), str(item.get("selection") or "")))
+    _candidate_probability(candidates)
+    return candidates, unavailable_count
+
+
+def _tournament_choices_json(candidates: list[dict[str, Any]]) -> str:
+    ranked: list[dict[str, Any]] = []
+    for index, candidate in enumerate(candidates[:20], start=1):
+        fair_prob = float(candidate.get("fair_prob") or 0.0)
+        ranked.append(
+            {
+                "slot": str(index),
+                "key": str(candidate.get("key") or "").strip(),
+                "label": str(candidate.get("selection") or "").strip(),
+                "option": {"label": str(candidate.get("selection") or "").strip()},
+                "evaluation": {
+                    "fair_prob": fair_prob,
+                    "fair_odds": int(candidate.get("fair_odds") or probability_to_american(fair_prob or 0.5)),
+                    "ev_percent": 0.0,
+                },
+                "book_outcome": {
+                    "label": str(candidate.get("selection") or "").strip(),
+                    "odds": candidate.get("sportsbook_odds") if candidate.get("sportsbook_odds") not in ("", None) else "",
+                },
+            }
+        )
+    return _option_choices_json(ranked)
+
+
+def _recommend_tournament_poll(
+    entry: dict[str, Any],
+    markets: list[MarketRow],
+    sport: str,
+    *,
+    client: Any,
+) -> dict[str, Any]:
+    game = entry["game"]
+    post = entry["post"]
+    poll = entry["poll"]
+    additional = poll.get("additionalInfo") or {}
+    detail = _poll_detail_text(poll, post)
+    entity_type = normalize_text(str(additional.get("entityType") or ""))
+    poll_kind = _poll_kind(additional, poll=poll, post=post)
+    unavailable_count = 0
+    if entity_type == "team":
+        candidates = _team_tournament_candidates(client, sport, entry=entry, poll=poll)
+    else:
+        candidates, unavailable_count = _player_tournament_candidates(
+            client,
+            sport,
+            entry=entry,
+            poll=poll,
+            detail=detail,
+        )
+
+    futures_matched = _attach_tournament_market_prices(
+        candidates,
+        markets,
+        sport=sport,
+        detail=detail,
+        entity_type=entity_type,
+    )
+    if futures_matched:
+        candidates.sort(
+            key=lambda item: (
+                -float(item.get("fair_prob") or 0.0),
+                float(item.get("rank") or 999999),
+                str(item.get("selection") or ""),
+            )
+        )
+
+    option_candidates = candidates[:5]
+    option_fields = _option_fields([{"label": candidate.get("selection") or ""} for candidate in option_candidates])
+    sportsbook_fields = _book_outcome_fields(
+        [
+            {
+                "label": candidate.get("selection") or "",
+                "odds": candidate.get("sportsbook_odds") if candidate.get("sportsbook_odds") not in ("", None) else "",
+            }
+            for candidate in option_candidates
+        ]
+    )
+    base = {
+        "poll_id": poll.get("id"),
+        "post_id": post.get("id"),
+        "sport": sport,
+        "game_id": game.get("id"),
+        "game_time": game.get("dateTime") or "",
+        "home_team": game.get("homeTeamKey") or "",
+        "away_team": game.get("awayTeamKey") or "",
+        "header": post.get("header") or detail or "Tournament poll",
+        "content_text": _first_text(((post.get("content") or {}).get("nodes")) or []),
+        "poll_kind": poll_kind,
+        "player_name": "",
+        "stat": normalize_stat(detail),
+        "line": "",
+        "can_wager": False,
+        "max_wager": 0,
+        **option_fields,
+        **sportsbook_fields,
+    }
+    if not candidates:
+        return {
+            **base,
+            "status": "no_market",
+            "recommended_option": "",
+            "recommended_amount": 0,
+            "stake_fraction_of_max": 0.0,
+            "recommended_ev_percent": "",
+            "fair_prob": "",
+            "fair_odds": "",
+            "consensus_fair_line": "",
+            "matched_books": 0,
+            "books": "",
+            "notes": "No Real tournament candidates were returned for this poll.",
+        }
+
+    pick_index = 0 if futures_matched else min(_award_finish_rank(detail) - 1, len(candidates) - 1)
+    pick = candidates[pick_index]
+    fair_prob = float(pick.get("fair_prob") or 0.0)
+    matched_books = int(pick.get("matched_books") or 0)
+    notes = (
+        "Sportsbook futures proxy matched this tournament poll."
+        if futures_matched
+        else "No matching sportsbook futures were loaded; using Real tournament search/ranking as a fixed-return proxy."
+    )
+    if unavailable_count:
+        notes = f"{notes} Skipped {unavailable_count} unavailable/questionable player candidates."
+    return _with_odds_updated(
+        {
+            **base,
+            "status": "pick",
+            "recommended_option": str(pick.get("selection") or ""),
+            "recommended_amount": 0,
+            "stake_fraction_of_max": 0.0,
+            "recommended_ev_percent": "",
+            "fair_prob": round(fair_prob, 6),
+            "fair_odds": int(pick.get("fair_odds") or probability_to_american(fair_prob or 0.5)),
+            "consensus_fair_line": "",
+            "matched_books": matched_books,
+            "books": str(pick.get("books") or ""),
+            "odds_updated_at": str(pick.get("odds_updated_at") or ""),
+            "player_choices_json": _zero_cost_player_choices_json(
+                [
+                    {
+                        "selection": candidate.get("selection") or "",
+                        "player_key": candidate.get("key") or "",
+                        "probability_rank": index + 1,
+                        "fair_prob": candidate.get("fair_prob") or 0.0,
+                        "fair_odds": candidate.get("fair_odds") or probability_to_american(0.5),
+                        "ranked_payout": 0,
+                        "expected_value": 0.0,
+                        "sportsbook_odds": candidate.get("sportsbook_odds") or "",
+                        "matched_books": candidate.get("matched_books") or 0,
+                        "books": candidate.get("books") or "",
+                        "odds_updated_at": candidate.get("odds_updated_at") or "",
+                        "source_lines": candidate.get("source_line") or "",
+                        "source_note": notes,
+                    }
+                    for index, candidate in enumerate(candidates[:20])
+                ]
+            )
+            if entity_type == "player"
+            else "",
+            "option_choices_json": _tournament_choices_json(candidates),
+            "source_lines": "\n".join(
+                str(candidate.get("source_line") or "")
+                for candidate in candidates[:10]
+                if candidate.get("source_line")
+            ),
+            "notes": notes,
+        },
+        [],
+    )
+
+
+def _strip_player_country(label: str) -> tuple[str, str]:
+    text = str(label or "").strip()
+    match = re.match(r"^(.*?)\s*\(([^)]{2,60})\)\s*$", text)
+    if not match:
+        return clean_player_name(text).strip(), ""
+    return clean_player_name(match.group(1)).strip(), match.group(2).strip()
+
+
+def _player_name_match_keys(label: str) -> set[str]:
+    name, _country = _strip_player_country(label)
+    normalized = normalize_text(name)
+    compact = normalized.replace(" ", "")
+    keys = {compact} if compact else set()
+    parts = normalized.split()
+    if len(parts) >= 2 and parts[0]:
+        keys.add((parts[0][0] + "".join(parts[1:])).replace(" ", ""))
+        keys.add((parts[0][0] + parts[-1]).replace(" ", ""))
+    return {key for key in keys if key}
+
+
+def _real_player_lookup_by_name(client: Any, sport: str, *, season: str) -> dict[str, dict[str, Any]]:
+    lookup: dict[str, dict[str, Any]] = {}
+    for player in _search_tournament_players(client, sport, poll_id=None, season=season):
+        if not isinstance(player, dict):
+            continue
+        labels = [
+            _player_candidate_label(player),
+            str(player.get("displayName") or "").strip(),
+            str(player.get("fullName") or "").strip(),
+        ]
+        for label in labels:
+            for key in _player_name_match_keys(label):
+                lookup.setdefault(key, player)
+    return lookup
+
+
+def _real_rating_lineup_lookup_by_name(client: Any, sport: str, *, season: str) -> dict[str, dict[str, Any]]:
+    lookup: dict[str, dict[str, Any]] = {}
+    for player in _search_rating_lineup_players(client, sport, season=season):
+        if not isinstance(player, dict):
+            continue
+        labels = [
+            _player_candidate_label(player),
+            str(player.get("displayName") or "").strip(),
+            str(player.get("fullName") or "").strip(),
+        ]
+        for label in labels:
+            for key in _player_name_match_keys(label):
+                lookup.setdefault(key, player)
+    return lookup
+
+
+def _is_group_stage_draft_contest(entry: dict[str, Any], sport: str) -> bool:
+    if str(sport or "").strip().lower() != "soccer":
+        return False
+    game = entry.get("game") or {}
+    home_team = str(game.get("homeTeamKey") or "").strip()
+    away_team = str(game.get("awayTeamKey") or "").strip()
+    if home_team or away_team:
+        return False
+
+    post = entry.get("post") or {}
+    content_nodes = ((post.get("content") or {}).get("nodes")) or []
+    additional_sources: list[dict[str, Any]] = []
+    for source in (
+        (entry.get("poll") or {}).get("additionalInfo") or {},
+        post.get("additionalInfo") or {},
+    ):
+        if isinstance(source, dict):
+            additional_sources.append(source)
+    for node in content_nodes:
+        if isinstance(node, dict) and isinstance(node.get("additionalInfo"), dict):
+            additional_sources.append(node.get("additionalInfo") or {})
+
+    text_parts = [
+        str(post.get("header") or ""),
+        _first_text(content_nodes),
+    ]
+    for source in additional_sources:
+        text_parts.extend(
+            str(source.get(key) or "")
+            for key in (
+                "title",
+                "postTitle",
+                "description",
+                "postDescription",
+                "contestType",
+                "conference",
+            )
+        )
+    combined_text = normalize_text(" ".join(part for part in text_parts if part))
+
+    conference_values = {
+        normalize_text(str(source.get("conference") or "")).replace(" ", "")
+        for source in additional_sources
+    }
+    day = next((str(source.get("day") or "").strip() for source in additional_sources if source.get("day")), "")
+    end_day = next((str(source.get("endDay") or "").strip() for source in additional_sources if source.get("endDay")), "")
+
+    is_draft = "draft" in combined_text or "lineup" in combined_text
+    is_world_cup = "wc" in conference_values or "worldcup" in conference_values or "world cup" in combined_text
+    is_group_stage = "group stage" in combined_text
+    is_multi_day = bool(day and end_day and day != end_day)
+    return is_draft and is_world_cup and (is_group_stage or is_multi_day)
+
+
+def _group_stage_draft_candidates(
+    markets: list[MarketRow],
+    *,
+    sport: str,
+    client: Any,
+    season: str,
+) -> list[dict[str, Any]]:
+    relevant_markets: list[tuple[MarketRow, float]] = []
+    stat_counts: dict[str, int] = {}
+    for market in markets:
+        if market.sport != sport:
+            continue
+        raw = market.raw or {}
+        if normalize_text(str(raw.get("market_type") or "")).replace(" ", "") != "tournamentfuture":
+            continue
+        stat = normalize_stat(str(market.stat_key or raw.get("stat") or ""))
+        if stat not in GROUP_STAGE_DRAFT_MARKET_WEIGHTS:
+            continue
+        relevant_markets.append((market, GROUP_STAGE_DRAFT_MARKET_WEIGHTS[stat]))
+        stat_counts[stat] = stat_counts.get(stat, 0) + 1
+
+    if not relevant_markets:
+        return []
+
+    real_lookup = _real_player_lookup_by_name(client, sport, season=season)
+    rating_lineup_lookup = _real_rating_lineup_lookup_by_name(client, sport, season=season)
+    candidates: dict[str, dict[str, Any]] = {}
+    for market, stat_weight in relevant_markets:
+        stat = normalize_stat(str(market.stat_key or (market.raw or {}).get("stat") or ""))
+        market_weight = stat_weight / max(1, stat_counts.get(stat, 1))
+        priced_outcomes: list[dict[str, Any]] = []
+        for outcome in _market_price_outcomes(market):
+            odds = _normalize_option_odds({"odds": outcome.get("odds")})
+            label = str(outcome.get("label") or outcome.get("key") or "").strip()
+            name, country = _strip_player_country(label)
+            if odds is None or not name:
+                continue
+            implied = american_to_implied_prob(odds)
+            if implied <= 0:
+                continue
+            priced_outcomes.append(
+                {
+                    "label": label,
+                    "name": name,
+                    "country": country,
+                    "odds": odds,
+                    "implied": implied,
+                }
+            )
+        implied_total = sum(float(item["implied"]) for item in priced_outcomes)
+        if implied_total <= 0:
+            continue
+        market_name = str((market.raw or {}).get("provider_market_name") or stat).strip()
+        for outcome in priced_outcomes:
+            fair_prob = float(outcome["implied"]) / implied_total
+            contribution = fair_prob * market_weight
+            key = normalize_player_name(str(outcome["name"])).replace(" ", "")
+            if not key:
+                continue
+            candidate = candidates.setdefault(
+                key,
+                {
+                    "selection": str(outcome["name"]),
+                    "country": str(outcome.get("country") or ""),
+                    "score": 0.0,
+                    "sources": [],
+                    "matched_books": set(),
+                    "market_prices": [],
+                    "base_score": 0.0,
+                    "multiplier_bonus": 0.0,
+                    "multiplier_factor": 1.0,
+                    "real_rank": 999999.0,
+                    "availability_blocked": False,
+                    "availability_note": "",
+                },
+            )
+            if not candidate.get("country") and outcome.get("country"):
+                candidate["country"] = str(outcome.get("country") or "")
+            candidate["score"] = float(candidate.get("score") or 0.0) + contribution
+            candidate["matched_books"].add(str(market.book or ""))
+            candidate["market_prices"].append(
+                {
+                    "book": market.book,
+                    "market": market_name,
+                    "odds": int(outcome["odds"]),
+                    "fair_prob": fair_prob,
+                    "updated_at": market.updated_at,
+                    "contribution": contribution,
+                }
+            )
+            candidate["sources"].append(
+                f"{market_name} {_format_american(outcome['odds'])} ({fair_prob * 100.0:.1f}% devig)"
+            )
+
+    for candidate in candidates.values():
+        real_record = None
+        rating_lineup_record = None
+        for key in _player_name_match_keys(str(candidate.get("selection") or "")):
+            if real_record is None:
+                real_record = real_lookup.get(key)
+            if rating_lineup_record is None:
+                rating_lineup_record = rating_lineup_lookup.get(key)
+            if real_record is not None and rating_lineup_record is not None:
+                break
+        base_score = float(candidate.get("score") or 0.0)
+        multiplier_bonus = 0.0
+        multiplier_factor = 1.0
+        rank_record = real_record or rating_lineup_record
+        if rank_record:
+            candidate["real_rank"] = _positive_rank(
+                rank_record.get("primaryRanking"),
+                fallback=_positive_rank(rank_record.get("alltimeRanking"), fallback=999999.0),
+            )
+        multiplier_record = rating_lineup_record or real_record
+        if multiplier_record:
+            multiplier_bonus = safe_float(multiplier_record.get("multiplierBonus", 0))
+            multiplier_factor = max(0.0, 1.0 + multiplier_bonus)
+        for availability_record in (real_record, rating_lineup_record):
+            if not availability_record:
+                continue
+            if is_unavailable_or_questionable_record(availability_record):
+                candidate["availability_blocked"] = True
+                candidate["availability_note"] = "Real availability/rank record flagged this player"
+                break
+        candidate["base_score"] = base_score
+        candidate["multiplier_bonus"] = multiplier_bonus
+        candidate["multiplier_factor"] = multiplier_factor
+        candidate["score"] = base_score * multiplier_factor
+
+    ranked = [
+        candidate
+        for candidate in candidates.values()
+        if not candidate.get("availability_blocked") and float(candidate.get("score") or 0.0) > 0
+    ]
+    total_score = sum(float(candidate.get("score") or 0.0) for candidate in ranked)
+    for candidate in ranked:
+        score = float(candidate.get("score") or 0.0)
+        fair_prob = score / total_score if total_score > 0 else 0.0
+        prices = candidate.get("market_prices") or []
+        best_price = max(prices, key=lambda item: float(item.get("contribution") or 0.0)) if prices else {}
+        candidate["fair_prob"] = fair_prob
+        candidate["fair_odds"] = probability_to_american(fair_prob) if fair_prob > 0 else ""
+        candidate["sportsbook_odds"] = best_price.get("odds", "")
+        candidate["books"] = " | ".join(sorted(str(book) for book in candidate.get("matched_books") or [] if book))
+        candidate["matched_books"] = len({str(price.get("book") or "") for price in prices if price.get("book")})
+        candidate["odds_updated_at"] = _latest_odds_updated_at(
+            [
+                type("_OddsItem", (), {"updated_at": price.get("updated_at")})()
+                for price in prices
+            ]
+        )
+        candidate["source_line"] = (
+            f"{candidate.get('selection')}"
+            f"{f' ({candidate.get('country')})' if candidate.get('country') else ''}: "
+            + "; ".join(str(source) for source in (candidate.get("sources") or [])[:3])
+            + (
+                f"; Real boost {float(candidate.get('multiplier_factor') or 1.0):.2f}x"
+                if abs(float(candidate.get("multiplier_factor") or 1.0) - 1.0) > 0.0001
+                else ""
+            )
+        )
+    ranked.sort(
+        key=lambda item: (
+            -float(item.get("score") or 0.0),
+            float(item.get("real_rank") or 999999.0),
+            str(item.get("selection") or ""),
+        )
+    )
+    return ranked
+
+
+def _build_group_stage_draft_contest_rankings(
+    entries: list[dict[str, Any]],
+    markets: list[MarketRow],
+    *,
+    sport: str,
+    day: str,
+    client: Any,
+) -> dict[str, dict[str, Any]]:
+    sport_wide_entries = [entry for entry in entries if _is_group_stage_draft_contest(entry, sport)]
+    if not sport_wide_entries:
+        return {}
+    season = str(day or "")[:4] or "2026"
+    candidates = _group_stage_draft_candidates(markets, sport=sport, client=client, season=season)
+    if not candidates:
+        return {
+            str((entry.get("post") or {}).get("id") or ""): {
+                "status": "no_market",
+                "recommended_option": "",
+                "lineup_players": "",
+                "lineup_cutoff_gap": "",
+                "lineup_min_rank_gap": "",
+                "lineup_avg_rank_gap": "",
+                "lineup_top5_total": "",
+                "lineup_rank": "",
+                "lineup_projection_site": "World Cup futures",
+                "lineup_candidate_count": 0,
+                "notes": "No World Cup player futures were available for the sport-wide draft.",
+            }
+            for entry in sport_wide_entries
+            if str((entry.get("post") or {}).get("id") or "")
+        }
+
+    rankings: dict[str, dict[str, Any]] = {}
+    for entry_index, entry in enumerate(sport_wide_entries):
+        post = entry.get("post") or {}
+        poll = entry.get("poll") or {}
+        additional = poll.get("additionalInfo") or {}
+        post_id = str(post.get("id") or "").strip()
+        if not post_id:
+            continue
+        try:
+            lineup_size = int(float(additional.get("lineupSize") or 5))
+        except Exception:
+            lineup_size = 5
+        lineup_size = max(1, lineup_size)
+        top_players = candidates[:lineup_size]
+        next_score = float(candidates[lineup_size].get("score") or 0.0) if len(candidates) > lineup_size else 0.0
+        scores = [float(candidate.get("score") or 0.0) for candidate in top_players]
+        adjacent_gaps = [scores[index] - scores[index + 1] for index in range(len(scores) - 1)]
+        lineup_players = " > ".join(
+            f"{index + 1}. {candidate.get('selection')}"
+            for index, candidate in enumerate(top_players)
+        )
+        display_candidates = candidates[:5]
+        option_fields = _option_fields([{"label": candidate.get("selection") or ""} for candidate in display_candidates])
+        sportsbook_fields = _book_outcome_fields(
+            [
+                {
+                    "label": candidate.get("selection") or "",
+                    "odds": candidate.get("sportsbook_odds") if candidate.get("sportsbook_odds") not in ("", None) else "",
+                }
+                for candidate in display_candidates
+            ]
+        )
+        rankings[post_id] = {
+            "status": "pick",
+            "recommended_option": lineup_players,
+            "lineup_players": lineup_players,
+            "lineup_cutoff_gap": round((scores[-1] - next_score) * 100.0, 4) if scores else "",
+            "lineup_min_rank_gap": round(min(adjacent_gaps) * 100.0, 4) if adjacent_gaps else 0.0,
+            "lineup_avg_rank_gap": round((sum(adjacent_gaps) / len(adjacent_gaps)) * 100.0, 4) if adjacent_gaps else 0.0,
+            "lineup_top5_total": round(sum(scores) * 100.0, 4),
+            "lineup_rank": entry_index + 1,
+            "lineup_projection_site": "World Cup futures",
+            "lineup_candidate_count": len(candidates),
+            "fair_prob": round(sum(float(candidate.get("fair_prob") or 0.0) for candidate in top_players), 6),
+            "fair_odds": probability_to_american(
+                max(0.0001, min(0.9999, sum(float(candidate.get("fair_prob") or 0.0) for candidate in top_players)))
+            ),
+            "matched_books": max((int(candidate.get("matched_books") or 0) for candidate in top_players), default=0),
+            "books": " | ".join(
+                sorted(
+                    {
+                        book.strip()
+                        for candidate in top_players
+                        for book in str(candidate.get("books") or "").split("|")
+                        if book.strip()
+                    }
+                )
+            ),
+            "odds_updated_at": _latest_odds_updated_at(
+                [
+                    type("_OddsItem", (), {"updated_at": candidate.get("odds_updated_at")})()
+                    for candidate in top_players
+                ]
+            ),
+            "source_lines": "\n".join(
+                str(candidate.get("source_line") or "")
+                for candidate in candidates[:12]
+                if candidate.get("source_line")
+            ),
+            "notes": (
+                "Sport-wide group-stage draft fallback from World Cup player futures; "
+                "score blends Golden Boot, assist leader, Golden Ball, and Young Player odds, "
+                "then applies the Real boost multiplier when available. Selections are ranked by "
+                "boost-adjusted devigged futures probability and Real availability/rank tiebreakers."
+            ),
+            "option_choices_json": _tournament_choices_json(candidates),
+            **option_fields,
+            **sportsbook_fields,
+        }
+    return rankings
+
+
 def _recommend_special_or_unpriced(
     entry: dict[str, Any],
     sport: str,
@@ -6541,6 +8629,33 @@ def _recommend_lineup_contest(
         **base,
         "status": contest_recommendation.get("status") or base["status"],
         "recommended_option": contest_recommendation.get("recommended_option") or "",
+        "option_a_label": contest_recommendation.get("option_a_label") or base["option_a_label"],
+        "option_a_odds": contest_recommendation.get("option_a_odds") or base["option_a_odds"],
+        "option_b_label": contest_recommendation.get("option_b_label") or base["option_b_label"],
+        "option_b_odds": contest_recommendation.get("option_b_odds") or base["option_b_odds"],
+        "option_c_label": contest_recommendation.get("option_c_label") or "",
+        "option_c_odds": contest_recommendation.get("option_c_odds") or "",
+        "option_d_label": contest_recommendation.get("option_d_label") or "",
+        "option_d_odds": contest_recommendation.get("option_d_odds") or "",
+        "option_e_label": contest_recommendation.get("option_e_label") or "",
+        "option_e_odds": contest_recommendation.get("option_e_odds") or "",
+        "sportsbook_a_label": contest_recommendation.get("sportsbook_a_label") or base["sportsbook_a_label"],
+        "sportsbook_a_odds": contest_recommendation.get("sportsbook_a_odds") or base["sportsbook_a_odds"],
+        "sportsbook_b_label": contest_recommendation.get("sportsbook_b_label") or base["sportsbook_b_label"],
+        "sportsbook_b_odds": contest_recommendation.get("sportsbook_b_odds") or base["sportsbook_b_odds"],
+        "sportsbook_c_label": contest_recommendation.get("sportsbook_c_label") or "",
+        "sportsbook_c_odds": contest_recommendation.get("sportsbook_c_odds") or "",
+        "sportsbook_d_label": contest_recommendation.get("sportsbook_d_label") or "",
+        "sportsbook_d_odds": contest_recommendation.get("sportsbook_d_odds") or "",
+        "sportsbook_e_label": contest_recommendation.get("sportsbook_e_label") or "",
+        "sportsbook_e_odds": contest_recommendation.get("sportsbook_e_odds") or "",
+        "fair_prob": contest_recommendation.get("fair_prob") or base["fair_prob"],
+        "fair_odds": contest_recommendation.get("fair_odds") or base["fair_odds"],
+        "matched_books": contest_recommendation.get("matched_books") or base["matched_books"],
+        "books": contest_recommendation.get("books") or base["books"],
+        "odds_updated_at": contest_recommendation.get("odds_updated_at") or "",
+        "option_choices_json": contest_recommendation.get("option_choices_json") or "",
+        "source_lines": contest_recommendation.get("source_lines") or "",
         "notes": contest_recommendation.get("notes") or base["notes"],
         "lineup_rank": contest_recommendation.get("lineup_rank") or "",
         "lineup_players": contest_recommendation.get("lineup_players") or "",
@@ -6610,6 +8725,7 @@ def build_recommendations(
     requested_day: str = "",
     include_nonwagerable: bool = False,
 ) -> tuple[str, list[dict[str, Any]]]:
+    sport = _canonical_sport_key(sport)
     markets = [build_market_row(row) for row in load_csv_rows(markets_csv)]
     client = build_realsports_client()
     resolved_day, entries = _fetch_active_day_game_entries(
@@ -6618,7 +8734,7 @@ def build_recommendations(
         include_nonwagerable=include_nonwagerable,
         client=client,
     )
-    if requested_day and not entries:
+    if not entries and resolved_day:
         entries = _fetch_requested_day_game_entries(
             client,
             sport,
@@ -6634,6 +8750,9 @@ def build_recommendations(
             active_games=active_games,
         )
     )
+    for entry in entries:
+        if isinstance(entry, dict):
+            entry["_realsports_client"] = client
     daily_pool_posts = _fetch_daily_pool_posts(
         client,
         sport,
@@ -6661,7 +8780,23 @@ def build_recommendations(
             )
         except Exception as exc:
             contest_error = f"Rotowire lineup projection load failed: {exc}"
-    if sport == "soccer" and isinstance(contest_projection_summary, dict):
+        if sport == "soccer":
+            try:
+                group_stage_draft_recommendations = _build_group_stage_draft_contest_rankings(
+                    contest_entries,
+                    markets,
+                    sport=sport,
+                    day=resolved_day,
+                    client=client,
+                )
+            except Exception as exc:
+                group_stage_draft_recommendations = {}
+                if not contest_error:
+                    contest_error = f"World Cup group-stage draft load failed: {exc}"
+            for post_id, recommendation in group_stage_draft_recommendations.items():
+                if recommendation:
+                    contest_recommendations[post_id] = recommendation
+    if sport in {"soccer", "golf"} and isinstance(contest_projection_summary, dict):
         projection_records = contest_projection_summary.get("records")
         if isinstance(projection_records, list) and projection_records:
             for entry in entries:
@@ -6709,6 +8844,13 @@ def build_recommendations(
                 sport,
                 day=resolved_day,
                 markets=markets,
+            )
+        elif poll_kind in TOURNAMENT_POLL_KINDS:
+            recommendation = _recommend_tournament_poll(
+                entry,
+                markets,
+                sport,
+                client=client,
             )
         elif poll_kind == "contest":
             recommendation = _recommend_lineup_contest(
@@ -6786,12 +8928,20 @@ def write_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
         "option_b_odds",
         "option_c_label",
         "option_c_odds",
+        "option_d_label",
+        "option_d_odds",
+        "option_e_label",
+        "option_e_odds",
         "sportsbook_a_label",
         "sportsbook_a_odds",
         "sportsbook_b_label",
         "sportsbook_b_odds",
         "sportsbook_c_label",
         "sportsbook_c_odds",
+        "sportsbook_d_label",
+        "sportsbook_d_odds",
+        "sportsbook_e_label",
+        "sportsbook_e_odds",
         "status",
         "recommended_option",
         "recommended_amount",
@@ -6824,15 +8974,16 @@ def write_csv(path: str | Path, rows: list[dict[str, Any]]) -> None:
 
 def main() -> None:
     args = parse_args()
+    sport = _canonical_sport_key(args.sport)
     resolved_day, rows = build_recommendations(
-        args.sport,
+        sport,
         args.markets_csv,
         requested_day=args.day,
         include_nonwagerable=args.include_nonwagerable,
     )
     write_csv(args.output, rows)
     bet_count = sum(1 for row in rows if row.get("status") == "bet")
-    print(f"Saved {len(rows)} poll recommendations for {args.sport} {resolved_day} to {args.output}")
+    print(f"Saved {len(rows)} poll recommendations for {sport} {resolved_day} to {args.output}")
     print(f"Bet recommendations: {bet_count}")
 
 

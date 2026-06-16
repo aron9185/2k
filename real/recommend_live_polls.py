@@ -45,6 +45,9 @@ BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_MARKETS_CSV = BASE_DIR / "sportsbook_markets_consensus_live.csv"
 DEFAULT_OUTPUT = BASE_DIR / "live_poll_vote_recommendations.csv"
 DEFAULT_HISTORY = BASE_DIR / "live_poll_vote_history.jsonl"
+SPORT_ALIASES = {
+    "cws": "ncaabb",
+}
 
 SUPPORTED_POLL_KINDS = {
     "anytime_play",
@@ -152,6 +155,39 @@ def parse_args() -> argparse.Namespace:
 
 def _parse_csv_arg(value: str) -> list[str]:
     return [part.strip() for part in str(value or "").split(",") if part.strip()]
+
+
+def _canonical_sport_key(value: object) -> str:
+    sport = str(value or "").strip().lower()
+    return SPORT_ALIASES.get(sport, sport)
+
+
+def _parse_sports_arg(value: str) -> list[str]:
+    sports: list[str] = []
+    for part in _parse_csv_arg(value):
+        sport = _canonical_sport_key(part)
+        if sport and sport not in sports:
+            sports.append(sport)
+    return sports
+
+
+def _filter_rows_and_raw_by_sports(
+    rows: list[dict[str, Any]],
+    raw_entries: list[dict[str, Any]],
+    sports: list[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    allowed = {_canonical_sport_key(sport) for sport in sports if str(sport or "").strip()}
+    if not allowed:
+        return rows, raw_entries
+    filtered_rows: list[dict[str, Any]] = []
+    filtered_raw_entries: list[dict[str, Any]] = []
+    for row, raw_entry in zip(rows, raw_entries):
+        sport = _canonical_sport_key(row.get("sport"))
+        if sport not in allowed:
+            continue
+        filtered_rows.append(row)
+        filtered_raw_entries.append(raw_entry)
+    return filtered_rows, filtered_raw_entries
 
 
 def _expand_livefeed_segments(feed: str) -> list[str]:
@@ -900,7 +936,7 @@ def _print_iteration_summary(
 def main() -> None:
     args = parse_args()
     providers = _parse_csv_arg(args.providers)
-    sports = _parse_csv_arg(args.sports)
+    sports = _parse_sports_arg(args.sports)
     include_locked = args.include_locked or not args.unlocked_only
     iteration = 0
 
@@ -912,6 +948,7 @@ def main() -> None:
             limit=args.limit,
             pages=args.pages,
         )
+        open_rows, open_raw_entries = _filter_rows_and_raw_by_sports(open_rows, open_raw_entries, sports)
         requirements = _build_live_poll_market_requirements(open_rows)
         if args.refresh_markets:
             refresh_sports = sorted(
